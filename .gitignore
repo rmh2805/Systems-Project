@@ -1,2 +1,8 @@
+src/BuildImage
+src/usb.image
 *.class
 *.o
+*.b
+*.nl
+*.lst
+*.dis

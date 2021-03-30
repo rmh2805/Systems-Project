@@ -208,6 +208,9 @@ clean:
 
 realclean:	clean
 
+qemu: usb.image
+	qemu-system-x86_64 -serial mon:stdio usb.image
+
 #
 # Create a printable namelist from the prog.o file
 #
