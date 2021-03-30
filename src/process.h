@@ -83,6 +83,8 @@ typedef struct context {
     uint32_t eflags;
 } context_t;
 
+//#define PCB_FILLER
+
 // the process control block
 //
 // fields are ordered by size to avoid padding
@@ -97,12 +99,17 @@ typedef struct pcb_s {
     context_t *context;     // pointer to context save area on stack
     stack_t *stack;         // pointer to process stack
 
+    uint32_t wDir;          // ID of the working directory's inode
+
     int32_t exit_status;    // termination status, for parent's use
     event_t event;          // what this process is waiting for
 
     // two-byte values
     pid_t pid;              // unique PID for this process
     pid_t ppid;             // PID of the parent
+    
+    uint16_t gid;           // group ID of this process
+    uint16_t uid;           // user ID of this process
 
     // one-byte values
     state_t state;          // current state (see common.h)
@@ -113,8 +120,6 @@ typedef struct pcb_s {
 
     // filler, to round us up to 32 bytes
     // adjust this as fields are added/removed/changed
-    uint8_t filler[8];
-
 } pcb_t;
 
 /*

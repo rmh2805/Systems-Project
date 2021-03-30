@@ -394,11 +394,15 @@ void _pcb_dump( const char *msg, register pcb_t *p ) {
     __cio_printf( "\n context %08x stack %08x",
                   (uint32_t) p->context, (uint32_t) p->stack );
 
+#ifdef PCB_FILLER
     // and the filler (just to be sure)
+
     __cio_puts( " fill: " );
     for( int i = 0; i < sizeof(p->filler); ++i ) {
         __cio_printf( "%02x", p->filler[i] );
     }
+#endif
+
     __cio_putchar( '\n' );
 }
 
