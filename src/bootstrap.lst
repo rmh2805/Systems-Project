@@ -1,0 +1,885 @@
+GAS LISTING bootstrap.s 			page 1
+
+
+   1              	/*
+   2              	** SCCS ID:	@(#)bootstrap.S	2.1	12/8/19
+   3              	**
+   4              	** File:	bootstrap.S
+   5              	**
+   6              	** Author:	Jon Coles
+   7              	**		copyleft 1999 Jon Coles
+   8              	**
+   9              	** Contributor:	Warren R. Carithers, K. Reek, Garrett C. Smith
+  10              	**              Walter Litwinczyk, David C. Larsen, Sean T. Congden
+  11              	**
+  12              	** Description:	Bootstrap routine.
+  13              	**
+  14              	** This bootstrap program is loaded by the PC BIOS into memory at
+  15              	** location 0000:7C00.  It must be exactly 512 bytes long, and must
+  16              	** end with the hex sequence AA55 at location 1FE.
+  17              	**
+  18              	** The bootstrap initially sets up a stack in low memory.  Next, it
+  19              	** loads a second sector at 0000:7E00 (immediately following the
+  20              	** boot block).  Then it loads the target program at TARGET_ADDRESS, 
+  21              	** switches to protected mode, and branches to the target program.
+  22              	**
+  23              	** NOTE: This loader does NOT zero out the bss of any of the loaded
+  24              	** programs.  However, a reset appears to set all memory locations
+  25              	** between 0x10000 and 0x45d50 to 0, so there is no need to explicitly
+  26              	** zero the bss in modules loaded into that range.
+  27              	**
+  28              	** Must assemble this as 16-bit code.
+  29              	*/
+  30              		.code16
+  31              	
+  32              	#include "bootstrap.h"
+  33              	
+  34              	BOOT_SEGMENT	= 0x07C0	/* default BIOS addr to load boot sector */
+  35              	BOOT_ADDRESS 	= 0x00007C00
+  36              	START_SEGMENT	= 0x0000	/* where we'll put the startup code */
+  37              	START_OFFSET	= 0x00007E00
+  38              	SECTOR_SIZE	= 0x200		/* typical sector size for floppy & HD */
+  39              	BOOT_SIZE	= (SECTOR_SIZE + SECTOR_SIZE)   /* two sectors */
+  40              	OFFSET_LIMIT	= 65536 - SECTOR_SIZE
+  41              	
+  42              	MMAP_MAX_ENTRIES = (BOOT_ADDRESS - MMAP_ADDRESS - 4) / 24
+  43              	
+  44              	/*
+  45              	** Symbol for locating the beginning of the code.
+  46              	*/
+  47              		.globl begtext
+  48              	
+  49              		.text
+  50              	begtext:
+  51              	
+  52              	/*
+  53              	** Entry point.	Begin by setting up a runtime stack.
+  54              	*/
+  55 ???? B8C007   		movw	$BOOT_SEGMENT, %ax	/* get our data seg */
+  56 ???? 8ED8     		movw	%ax, %ds
+  57 ???? 8ED0     		movw	%ax, %ss	/* stack segment starts at BOOT_SEGMENT */
+GAS LISTING bootstrap.s 			page 2
+
+
+  58 ???? B80040   		movw	$0x4000, %ax	/* and the stack starts 0x4000 beyond that */
+  59 ???? 89C4     		movw	%ax, %sp
+  60              	
+  61              	/*
+  62              	** Next, verify that the disk is there and working.
+  63              	*/
+  64 ???? B401     		movb	$0x01, %ah	/* test the disk status and make sure */
+  65 ???? 8A16FC01 		movb	drive, %dl	/* it's safe to proceed */
+  66 ???? CD13     		int	$0x13
+  67 ???? 7308     		jnc	diskok
+  68              	
+  69 ???? BE8501   		movw	$err_diskstatus, %si /* Something went wrong; print a message */
+  70 ???? E8EF00   		call	dispMsg		/* and freeze. */
+  71 ???? EBFE     		jmp	.
+  72              	
+  73              	diskok:
+  74 ???? B80000   		movw	$0,%ax		/* Reset the disk */
+  75 ???? 8A16FC01 		movb	drive,%dl
+  76 ???? CD13     		int	$0x13
+  77              	
+  78              		/* get drive parameters to determine number of heads and sectors/track */
+  79 ???? 31C0     		xorw	%ax, %ax	/* set ES:DI = 0000:0000 in case of BIOS bugs */
+  80 ???? 8EC0     		movw	%ax, %es
+  81 ???? 89C7     		movw	%ax, %di
+  82 ???? B408     		movb	$0x08, %ah	/* get drive parameters */
+  83 ???? 8A16FC01 		movb	drive, %dl	/* hard disk or floppy */
+  84 ???? CD13     		int	$0x13
+  85              	
+  86              		/* store (max + 1) - CL[5:0] = maximum head, DH = maximum head */
+  87 ???? 80E13F   		andb	$0x3F, %cl
+  88 ???? FEC1     		incb	%cl
+  89 ???? FEC6     		incb	%dh
+  90              	
+  91 ???? 880E7101 		movb	%cl, max_sec
+  92 ???? 88367201 		movb	%dh, max_head
+  93              	
+  94              	/*
+  95              	** The disk is OK, so we now need to load the second page of the bootstrap.
+  96              	** It must immediately follow the boot sector on the disk,
+  97              	** and the target program(s) must immediately follow.
+  98              	*/
+  99 ???? BE7301   		movw	$msg_loading,%si /* Print the Loading message */
+ 100 ???? E8C100   		call	dispMsg
+ 101              	
+ 102 ???? B80100   		movw	$1,%ax		/* sector count = 1 */
+ 103 ???? BB0000   		movw	$START_SEGMENT,%bx /* read this into memory that */
+ 104 ???? 8EC3     		movw	%bx,%es		/* immediately follows this code. */
+ 105 ???? BB007E   		movw	$START_OFFSET,%bx
+ 106 ???? E82E00   		call	readprog
+ 107              	
+ 108              	/*
+ 109              	** We've got the second block of the bootstrap program in memory. Now
+ 110              	** read all of the user's program blocks.  Use %di to point to the
+ 111              	** count field for the next block to load.
+ 112              	*/
+ 113 ???? BFFE03   		movw	$firstcount,%di
+ 114              	
+GAS LISTING bootstrap.s 			page 3
+
+
+ 115 ???? 1E       		pushw	%ds
+ 116 ???? 8B1D     		movw	(%di), %bx
+ 117 ???? B80000   		movw	$MMAP_SEGMENT, %ax
+ 118 ???? 8ED8     		movw	%ax, %ds
+ 119 ???? 891E0000 		movw	%bx, MMAP_SECTORS	/* store kernel image size */
+ 120 ???? 1F       		popw	%ds
+ 121              	
+ 122              	nextblock:
+ 123 ???? 8B05     		movw	(%di),%ax	/* get the # of sectors */
+ 124 ???? 85C0     		testw	%ax,%ax		/* is it zero? */
+ 125 ???? 0F849200 		jz	done_loading	/*   yes, nothing more to load. */
+ 126              	
+ 127 ???? 83EF02   		subw	$2,%di
+ 128 ???? 8B1D     		movw	(%di),%bx	/* get the segment value */
+ 129 ???? 8EC3     		movw	%bx,%es		/*   and copy it to %es */
+ 130 ???? 83EF02   		subw	$2,%di
+ 131 ???? 8B1D     		movw	(%di),%bx	/* get the address offset */
+ 132 ???? 83EF02   		subw	$2,%di
+ 133 ???? 57       		pushw	%di		/* save di */
+ 134 ???? E80300   		call	readprog	/* read this program block, */
+ 135 ???? 5F       		popw	%di		/* and restore di */
+ 136 ???? EBE2     		jmp	nextblock	/*   then go back and read the next one. */
+ 137              	
+ 138              	/*
+ 139              	** Read one complete program block into memory.
+ 140              	**
+ 141              	**	ax: number of sectors to read
+ 142              	**	es:bx = starting address for the block
+ 143              	*/
+ 144              	readprog:
+ 145 ???? 50       		pushw	%ax		/* save sector count */
+ 146              	
+ 147 ???? B90300   		movw	$3,%cx		/* initial retry count is 3 */
+ 148              	retry:
+ 149 ???? 51       		pushw	%cx		/* push the retry count on the stack. */
+ 150              	
+ 151 ???? 8B0E6D01 		movw	sec,%cx		/* get sector number */
+ 152 ???? 8B166F01 		movw	head,%dx	/* get head number */
+ 153 ???? 8A16FC01 		movb	drive, %dl
+ 154              	
+ 155 ???? B80102   		movw	$0x0201,%ax	/* read 1 sector */
+ 156 ???? CD13     		int	$0x13
+ 157 ???? 7311     		jnc	readcont	/* jmp if it worked ok */
+ 158              	
+ 159 ???? BE9701   		movw	$err_diskread,%si /* report the error */
+ 160 ???? E86700   		call	dispMsg
+ 161 ???? 59       		popw	%cx		/* get the retry count back */
+ 162 ???? E2E3     		loop	retry		/*   and go try again. */
+ 163 ???? BEAF01   		movw	$err_diskfail,%si /* can't proceed, */
+ 164 ???? E85E00   		call	dispMsg		/* print message and freeze. */
+ 165 ???? EBFE     		jmp	.
+ 166              	
+ 167              	readcont:
+ 168 ???? BE7B01   		movw	$msg_dot,%si	/* print status: a dot */
+ 169 ???? E85600   		call	dispMsg
+ 170 ???? 81FB00FE 		cmpw	$OFFSET_LIMIT,%bx  /* have we reached the offset limit? */
+ 171 ???? 7406     		je	adjust		/* Yes--must adjust the es register */
+GAS LISTING bootstrap.s 			page 4
+
+
+ 172 ???? 81C30002 		addw	$SECTOR_SIZE,%bx	/* No--just adjust the block size to */
+ 173 ???? EB0A     		jmp	readcont2	/*    the offset and continue. */
+ 174              	
+ 175              	adjust:
+ 176 ???? BB0000   		movw	$0, %bx		/* start offset over again */
+ 177 ???? 8CC0     		movw	%es, %ax
+ 178 ???? 050010   		addw	$0x1000,%ax	/* move segment pointer to next chunk */
+ 179 ???? 8EC0     		movw	%ax, %es
+ 180              	
+ 181              	readcont2:
+ 182 ???? FEC1     		incb	%cl		/* not done - move to the next sector */
+ 183 ???? 3A0E7101 		cmpb	max_sec, %cl	/* only 18 per track - see if we need */
+ 184 ???? 751B     		jnz	save_sector	/* to switch heads or tracks */
+ 185              	
+ 186 ???? B101     		movb	$1, %cl		/* reset sector number */
+ 187 ???? FEC6     		incb	%dh		/* first, switch heads */
+ 188 ???? 3A367201 		cmpb	max_head, %dh	/* there are only two - if we've already */
+ 189 ???? 7511     		jnz	save_sector	/* used both, we need to switch tracks */
+ 190              	
+ 191 ???? 30F6     		xorb	%dh, %dh	/* reset to head $0 */
+ 192 ???? FEC5     		incb	%ch		/* inc track number */
+ 193 ???? 80FD50   		cmpb	$80, %ch	/* 80 tracks per side - have we read all? */
+ 194 ???? 7508     		jnz	save_sector	/* read another track */
+ 195              	
+ 196 ???? BEA501   		movw	$err_toobig, %si 	/* report the error */
+ 197 ???? E81F00   		call	dispMsg
+ 198 ???? EBFE     		jmp	.		/* and freeze */
+ 199              	
+ 200              	save_sector:
+ 201 ???? 890E6D01 		movw	%cx,sec		/* save sector number */
+ 202 ???? 89166F01 		movw	%dx,head	/*   and head number */
+ 203              	
+ 204 ???? 58       		popw	%ax		/* discard the retry count */
+ 205 ???? 58       		popw	%ax		/* get the sector count from the stack */
+ 206 ???? 48       		decw	%ax		/*   and decrement it. */
+ 207 ???? 7F8B     		jg	readprog	/* If it is zero, we're done reading. */
+ 208              	
+ 209              	readdone:
+ 210 ???? BE8301   		movw	$msg_bar,%si	/* print message saying this block is done */
+ 211 ???? E80A00   		call	dispMsg
+ 212 ???? C3       		ret			/* and return to the caller */
+ 213              	
+ 214              	/*
+ 215              	** We've loaded the whole target program into memory,
+ 216              	** so it's time to transfer to the startup code.
+ 217              	*/
+ 218              	done_loading:
+ 219 ???? BE7D01   		movw	$msg_go, %si	/* last status message */
+ 220 ???? E80300   		call	dispMsg
+ 221              	
+ 222 ???? E95401   		jmp	switch		/* move to the next phase */
+ 223              		
+ 224              	/*
+ 225              	** Support routine - display a message byte by byte to the monitor.
+ 226              	*/
+ 227              	dispMsg:	
+ 228 ???? 50       		pushw	%ax
+GAS LISTING bootstrap.s 			page 5
+
+
+ 229 ???? 53       		pushw	%bx
+ 230              	repeat:
+ 231 ???? AC       		lodsb			/* grab next character */
+ 232              	
+ 233 ???? B40E     		movb	$0x0e, %ah	/* write and advance cursor */
+ 234 ???? BB0700   		movw	$0x07, %bx	/* page 0, white on blank, no blink */
+ 235 ???? 08C0     		orb	%al, %al	/* AL is character to write */
+ 236 ???? 7404     		jz	getOut		/* if we've reached the NUL, get out */
+ 237              	
+ 238 ???? CD10     		int	$0x10		/* otherwise, print and repeat */
+ 239 ???? EBF2     		jmp	repeat	
+ 240              	
+ 241              	getOut:				/* we're done, so return */
+ 242 ???? 5B       		popw	%bx
+ 243 ???? 58       		popw	%ax
+ 244 ???? C3       		ret
+ 245              	
+ 246              	#if 0
+ 247              	/*
+ 248              	** Debugging routine.  This lives in the 1st block of the bootstrap
+ 249              	** so it can be called from there as well as from the 2nd block.
+ 250              	**
+ 251              	**	movw	$'x',%di	/* a single character to print */
+ 252              	**	movw	value,%ax	/* a 16-bit value to print in hex */
+ 253              	**	call	pnum
+ 254              	*/
+ 255              	pnum:
+ 256 ???? 50       		pushw	%ax
+ 257 ???? 53       		pushw	%bx
+ 258 ???? 89F8     		movw	%di,%ax
+ 259 ???? B40E     		movb	$0xe,%ah
+ 260 ???? BB0700   		movw	$7,%bx
+ 261 ???? CD10     		int	$0x10
+ 262              	
+ 263 ???? E80C00   		call	pdigit
+ 264 ???? E80900   		call	pdigit
+ 265 ???? E80600   		call	pdigit
+ 266 ???? E80300   		call	pdigit
+ 267              	
+ 268 ???? 5B       		popw	%bx
+ 269 ???? 58       		popw	%ax
+ 270 ???? C3       		ret
+ 271              	
+ 272 ???? 89F0     	pdigit:	movw	%si,%ax
+ 273 ???? C1E604   		shl	$4,%si
+ 274 ???? C1E80C   		shr	$12,%ax
+ 275 ???? 83F809   		cmpw	$9,%ax
+ 276 ???? 7E05     		jle	pdd
+ 277 ???? 83C037   		addw	$'A'-10,%ax
+ 278 ???? EB03     		jmp	prt
+ 279 ???? 83C030   	pdd:	addw	$'0',%ax
+ 280 ???? B40E     	prt:	movb	$0xe,%ah
+ 281 ???? BB0700   		movw	$7,%bx
+ 282 ???? CD10     		int	$0x10
+ 283 ???? C3       		ret
+ 284              	#endif
+ 285              	
+GAS LISTING bootstrap.s 			page 6
+
+
+ 286              	/*
+ 287              	** Move the GDT entries from where they are to location 0000:0000
+ 288              	**
+ 289              	** As with the IDTR and GDTR loads, we need the offset for the GDT
+ 290              	** data from the beginning of the segment (0000:0000).
+ 291              	*/
+ 292              	move_gdt:
+ 293 ???? 8CCE     		movw	%cs, %si
+ 294 ???? 8EDE     		movw	%si, %ds
+ 295 ???? BEE77E   		movw	$start_gdt + BOOT_ADDRESS, %si
+ 296 ???? BF0000   		movw	$GDT_SEGMENT, %di
+ 297 ???? 8EC7     		movw	%di, %es
+ 298 ???? 31FF     		xorw	%di, %di
+ 299 ???? 66B92800 		movl	$gdt_len, %ecx
+ 299      0000
+ 300 ???? FC       		cld
+ 301 ???? F3A4     		rep	movsb
+ 302 ???? C3       		ret
+ 303              	
+ 304              	/*
+ 305              	** DATA AREAS.
+ 306              	**
+ 307              	** Next sector number and head number to read from.
+ 308              	*/
+ 309 ???? 0200     	sec:	.word	2	/* cylinder=0, sector=1 */
+ 310 ???? 0000     	head:	.word	0	/* head=0 */
+ 311 ???? 13       	max_sec:	.byte	19	/* up to 18 sectors per floppy track */
+ 312 ???? 02       	max_head:	.byte	2	/* only two r/w heads per floppy drive */
+ 313              	
+ 314              	/*
+ 315              	** Status and error messages.
+ 316              	*/
+ 317              	msg_loading:
+ 318 ???? 4C6F6164 		.asciz "Loading"
+ 318      696E6700 
+ 319              	msg_dot:
+ 320 ???? 2E00     		.asciz "."
+ 321              	msg_go:
+ 322 ???? 646F6E65 		.asciz "done."
+ 322      2E00
+ 323              	msg_bar:
+ 324 ???? 7C00     		.asciz	"|"
+ 325              	
+ 326              	/*
+ 327              	** Error messages.
+ 328              	*/
+ 329              	err_diskstatus:
+ 330 ???? 4469736B 		.asciz "Disk not ready.\n\r"
+ 330      206E6F74 
+ 330      20726561 
+ 330      64792E0A 
+ 330      0D00
+ 331              	err_diskread:
+ 332 ???? 52656164 		.asciz "Read failed\n\r"
+ 332      20666169 
+ 332      6C65640A 
+ 332      0D00
+GAS LISTING bootstrap.s 			page 7
+
+
+ 333              	err_toobig:
+ 334 ???? 546F6F20 		.asciz	"Too big\n\r"
+ 334      6269670A 
+ 334      0D00
+ 335              	err_diskfail:
+ 336 ???? 43616E27 		.asciz	"Can't proceed\n\r"
+ 336      74207072 
+ 336      6F636565 
+ 336      640A0D00 
+ 337              	
+ 338              	/*
+ 339              	** Data areas.
+ 340              	*/
+ 341              	
+ 342              	/*
+ 343              	** The GDTR and IDTR contents.
+ 344              	*/
+ 345              	gdt_48:
+ 346 ???? 0020     		.word	0x2000		/* 1024 GDT entries x 8 bytes/entry = 8192 */
+ 347 ???? 00000000 		.quad	GDT_ADDRESS
+ 347      00000000 
+ 348              	
+ 349              	idt_48:
+ 350 ???? 0008     		.word	0x0800		/* 256 interrupts */
+ 351 ???? 00000000 		.quad	IDT_ADDRESS
+ 351      00000000 
+ 352              	
+ 353              	/*
+ 354              	** Originally, the GDT contents were here.  When booting from a floppy
+ 355              	** disk, that's not a problem, as all 510 available bytes of the boot
+ 356              	** sector can be used.  However, when booting from a hard drive, only
+ 357              	** the first 446 bytes (0x000-0x1bd) can be used, and including the GDT
+ 358              	** here pushed this part of the bootstrap over that limit.  The older
+ 359              	** machines in the lab (Intel D867PERL motherboards) didn't enforce
+ 360              	** this when booting from a flash drive; however, the current machines
+ 361              	** (Asus H270 Prime Pro motherboards) do, so the GDT contents are now
+ 362              	** in the second sector of the bootstrap program.
+ 363              	*/
+ 364              	
+ 365              	/*
+ 366              	** End of the first sector of the boot program.  The last two bytes
+ 367              	** of this sector must be AA55 in order for the disk to be recognized
+ 368              	** by the BIOS as bootable.
+ 369              	*/
+ 370 ???? 00000000 		.org	SECTOR_SIZE-4
+ 370      00000000 
+ 370      00000000 
+ 370      00000000 
+ 370      00000000 
+ 371              	
+ 372 ???? 8000     	drive:	.word	0x80	/* 0x00 = floppy, 0x80 = usb */
+ 373              	
+ 374              	boot_sig:
+ 375 ???? 55AA     		.word 0xAA55
+ 376              	
+ 377              	/*******************************************************
+ 378              	******* BEGINNING OF SECTOR TWO OF THE BOOTSTRAP *******
+GAS LISTING bootstrap.s 			page 8
+
+
+ 379              	*******************************************************/
+ 380              	
+ 381              	#ifdef GET_MMAP
+ 382              	/*
+ 383              	** Query the BIOS to get the list of usable memory regions
+ 384              	**
+ 385              	** Adapted from: http://wiki.osdev.org/Detecting_Memory_%28x86%29
+ 386              	** (see section "BIOS Function INT 0x15. EAX = 0xE820")
+ 387              	**
+ 388              	** After the first 'int', if the location 0x2D00 (4 bytes) contains -1,
+ 389              	** then this method failed to detect memory properly; otherwise, this
+ 390              	** location contains the number of elements read.
+ 391              	**
+ 392              	** The start of the array is at 0x2D04. The elements are tightly
+ 393              	** packed following the layout as defined below.  Each entry in the
+ 394              	** array contains the following information:
+ 395              	**
+ 396              	**	uint64_t  base address of region
+ 397              	**	uint64_t  length of region (0 --> ignore the entry)
+ 398              	**	uint32_t  type of region
+ 399              	**	uint32_t  ACIP 3.0 Extended Attributes
+ 400              	**
+ 401              	** The C struct definition is as follows:
+ 402              	**
+ 403              	** struct MemMapEntry
+ 404              	** {
+ 405              	**    uint32_t base[2];    // 64-bit base address
+ 406              	**    uint32_t length[2];  // 64-bit length
+ 407              	**    uint32_t type;       // 32-bit region type
+ 408              	**    uint32_t ACPI;       // 32-bit ACPI "extended attributes" bitfield
+ 409              	** };
+ 410              	**
+ 411              	** This structure must be packed in memory.  This shouldn't be a problem,
+ 412              	** but if it is, you may need to add this attribute at the end of the
+ 413              	** struct declaration before the semicolon:
+ 414              	**
+ 415              	**    __attribute__((packed))
+ 416              	**
+ 417              	** Parameters:
+ 418              	**     None
+ 419              	**/
+ 420              	check_memory:
+ 421              		// save everything
+ 422              		// pushaw won't work here because we're in real mode
+ 423 ???? 1E       		pushw	%ds
+ 424 ???? 06       		pushw	%es
+ 425 ???? 50       		pushw	%ax
+ 426 ???? 53       		pushw	%bx
+ 427 ???? 51       		pushw	%cx
+ 428 ???? 52       		pushw	%dx
+ 429 ???? 56       		pushw	%si
+ 430 ???? 57       		pushw	%di
+ 431              	
+ 432              		// Set the start of the buffer
+ 433              		movw	$MMAP_SEGMENT, %bx // 0x2D0
+ 434              		mov	%bx, %ds	// Data segment now starts at 0x2D00
+ 435              		mov	%bx, %es	// Extended segment also starts at 0x2D00
+GAS LISTING bootstrap.s 			page 9
+
+
+ 436              	
+ 437              		// The first 4 bytes are for the # of entries
+ 438 ???? BF0400   		movw	$0x4, %di
+ 439              		// Make a valid ACPI 3.X entry
+ 440 ???? 26C74514 		movw	$1, %es:20(%di)
+ 440      0100
+ 441              	
+ 442              		xorw	%bp, %bp	// Count of entries in the list
+ 443              		xorl	%ebx, %ebx	// Must contain zeroes
+ 444              	
+ 445              		movl	$MMAP_MAGIC_NUM, %edx	// Magic number into EDX
+ 446              		movl	$MMAP_CODE, %eax	// E820 memory command
+ 447              		movl	$24, %ecx	// Ask the BIOS for 24 bytes
+ 448 ???? CD15     		int	$0x15		// Call the BIOS
+****  Error: bad expression
+****  Warning: division by zero
+****  Error: junk `Call the BIOS' after expression
+ 449              	
+ 450              		// check for success
+ 451              		jc	cm_failed	// C == 1 --> failure
+ 452              		movl	$MMAP_MAGIC_NUM, %edx	// sometimes EDX changes
+ 453              		cmpl	%eax, %edx	// EAX should equal EDX after the call
+ 454 ???? 7537     		jne	cm_failed
+ 455              		testl	%ebx, %ebx	// Should have at least one more entry
+ 456 ???? 7435     		je	cm_failed
+ 457              	
+ 458 ???? EB13     		jmp	cm_jumpin	// Good to go - start us off
+****  Error: bad expression
+****  Error: junk `Good to go - start us off' after expression
+ 459              	
+ 460              	cm_loop:
+ 461              		movl	$MMAP_CODE, %eax	// Reset our registers
+ 462 ???? C7451401 		movw	$1, 20(%di)
+ 462      00
+ 463 ???? 66B91800 		movl	$24, %ecx
+ 463      0000
+ 464 ???? CD15     		int	$0x15
+ 465              		jc	cm_end_of_list	// C == 1 --> end of list
+ 466 ???? 66BA0000 		movl	$MMAP_MAGIC_NUM, %edx
+ 466      0000
+ 467              	
+ 468              	cm_jumpin:
+ 469              		jcxz	cm_skip_entry	// Did we get any data?
+ 470              	
+ 471              		cmp	$20, %cl	// Check the byte count
+ 472 ???? 7608     		jbe	cm_no_text	// Skip the next test if only 20 bytes
+****  Error: bad expression
+****  Error: junk `Skip the next test if only 20 bytes' after expression
+ 473              	
+ 474 ???? 26F60614 		testb	$1, %es:20(%di) // Check the "ignore this entry" flag
+****  Error: junk `(%di)//Check the "ignore this entry"flag' after expression
+ 474      0001
+ 475 ???? 740B     		je	cm_skip_entry
+ 476              	
+ 477              	cm_no_text:
+ 478              		mov	%es:8(%di), %ecx	// lower half of length
+ 479              		or	%es:12(%di), %ecx	// now, full length
+GAS LISTING bootstrap.s 			page 10
+
+
+ 480 ???? 7409     		jz	cm_skip_entry
+ 481              	
+ 482              		inc	%bp		// one more valid entry
+ 483              	
+ 484              		// make sure we don't overflow our space
+ 485 ???? 81FD2A05 		cmpw	$MMAP_MAX_ENTRIES, %bp
+ 486 ???? 7D08     		jge	cm_end_of_list
+ 487              	
+ 488              		// we're ok - move the pointer to the next struct in the array
+ 489 ???? 83C718   		add	$24, %di
+ 490              	
+ 491              	cm_skip_entry:
+ 492              		// are there more entries to retrieve?
+ 493 ???? 6685DB   		testl	%ebx, %ebx
+ 494 ???? 75D3     		jne	cm_loop
+ 495              	
+ 496              	cm_end_of_list:
+ 497              		// All done!  Store the number of elements in 0x2D00
+ 498 ???? 892E0000 		movw	%bp, %ds:0x0
+ 499              	
+ 500              		clc	// Clear the carry bit and return
+ 501 ???? EB0A     		jmp	cm_ret
+ 502              	
+ 503              	cm_failed:
+ 504 ???? 66C70600 		movl	$-1, %ds:0x0	// indicate failure
+****  Error: bad expression
+****  Warning: division by zero
+****  Error: junk `indicate failure' after expression
+ 504      00FFFFFF 
+ 504      FF
+ 505 ???? F9       		stc
+ 506              	
+ 507              	cm_ret:
+ 508              		// restore everything we saved
+ 509              		// popaw won't work here (still in real mode!)
+ 510 ???? 5F       		popw	%di
+ 511 ???? 5E       		popw	%si
+ 512 ???? 5A       		popw	%dx
+ 513 ???? 59       		popw	%cx
+ 514 ???? 5B       		popw	%bx
+ 515 ???? 58       		popw	%ax
+ 516 ???? 07       		popw	%es
+ 517 ???? 1F       		popw	%ds
+ 518 ???? C3       		ret
+ 519              	#endif
+ 520              	
+ 521              	/*
+ 522              	** Startup code.
+ 523              	**
+ 524              	** This code configures the GDT, enters protected mode, and then
+ 525              	** transfers to the OS entry point.
+ 526              	*/
+ 527              	
+ 528              	switch:
+ 529 ???? FA       		cli
+ 530 ???? B080     		movb	$0x80, %al	/* disable NMIs */
+ 531 ???? E670     		outb	%al, $0x70
+GAS LISTING bootstrap.s 			page 11
+
+
+ 532              	
+ 533 ???? E82500   		call	floppy_off
+ 534 ???? E82B00   		call	enable_A20
+ 535 ???? E8E8FE   		call	move_gdt
+ 536              	#ifdef GET_MMAP
+ 537 ???? E890FF   		call	check_memory
+ 538              	#endif
+ 539              	
+ 540              	/*
+ 541              	** The IDTR and GDTR are loaded relative to this segment, so we must
+ 542              	** use the full offsets from the beginning of the segment (0000:0000);
+ 543              	** however, we were loaded at 0000:7c00, so we need to add that in.
+ 544              	*/
+ 545 ???? 0F011EC9 		lidt	idt_48 + BOOT_ADDRESS
+ 545      7D
+ 546 ???? 0F0116BF 		lgdt	gdt_48 + BOOT_ADDRESS
+ 546      7D
+ 547              	
+ 548 ???? 0F20C0   		movl	%cr0, %eax	/* get current CR0 */
+ 549 ???? 6683C801 		orl	$1, %eax	/* set the PE bit */
+ 550 ???? 0F22C0   		movl	%eax, %cr0	/* and store it back. */
+ 551              		
+ 552              		/*
+ 553              		** We'll be in protected mode at the start of the user's code
+ 554              		** right after this jump executes.
+ 555              		**
+ 556              		** First, a byte to force 32-bit mode execution, followed by
+ 557              		** a 32-bit long jump.  The long ("far") jump loads both EIP
+ 558              		** and CS with the proper values so that when we land at the
+ 559              		** destination address in protected mode, the next instruction
+ 560              		** fetch doesn't cause a fault.
+ 561              		**
+ 562              		** The old code for this:
+ 563              		**
+ 564              		**	.byte	0x66, 0xEA
+ 565              		**	.long	TARGET_ADDRESS
+ 566              		**	.word	GDT_CODE
+ 567              		*/
+ 568              	
+ 569 ???? 66       		.byte	0x66	/* 32-bit mode prefix */
+ 570              		.code32
+ 571 ???? EA000000 		ljmp	$GDT_CODE, $TARGET_ADDRESS
+****  Error: can't handle non absolute segment in `ljmp'
+ 571      000000
+ 572              		.code16
+ 573              	
+ 574              	/*
+ 575              	** Supporting code.
+ 576              	**
+ 577              	** Turn off the motor on the floppy disk drive.
+ 578              	*/
+ 579              	floppy_off:
+ 580 ???? 52       		push	%dx
+ 581 ???? BAF203   		movw	$0x3f2, %dx
+ 582 ???? 30C0     		xorb	%al, %al
+ 583 ???? EE       		outb	%al, %dx
+ 584 ???? 5A       		pop	%dx
+GAS LISTING bootstrap.s 			page 12
+
+
+ 585 ???? C3       		ret
+ 586              	
+ 587              	/*
+ 588              	** Enable the A20 gate for full memory access.
+ 589              	*/
+ 590              	enable_A20:
+ 591 ???? E82D00   		call	a20wait
+ 592 ???? B0AD     		movb	$0xad, %al
+ 593 ???? E664     		outb	%al, $0x64
+ 594              	
+ 595 ???? E82600   		call	a20wait
+ 596 ???? B0D0     		movb	$0xd0, %al
+ 597 ???? E664     		outb	%al, $0x64
+ 598              	
+ 599 ???? E83000   		call	a20wait2
+ 600 ???? E460     		inb	$0x60, %al
+ 601 ???? 6650     		pushl	%eax
+ 602              	
+ 603 ???? E81800   		call	a20wait
+ 604 ???? B0D1     		movb	$0xd1, %al
+ 605 ???? E664     		outb	%al, $0x64
+ 606              	
+ 607 ???? E81100   		call	a20wait
+ 608 ???? 6658     		popl	%eax
+ 609 ???? 0C02     		orb	$2, %al
+ 610 ???? E660     		outb	%al, $0x60
+ 611              	
+ 612 ???? E80800   		call	a20wait
+ 613 ???? B0AE     		mov	$0xae, %al
+ 614 ???? E664     		out	%al, $0x64
+ 615              	
+ 616 ???? E80100   		call	a20wait
+ 617 ???? C3       		ret
+ 618              	
+ 619              	a20wait:	/* wait until bit 1 of the device register is clear */
+ 620 ???? 66B90000 		movl    $65536, %ecx	/* loop a lot if need be */
+ 620      0100
+ 621              	wait_loop: 
+ 622 ???? E464     		inb     $0x64, %al	/* grab the byte */
+ 623 ???? A802     		test    $2, %al		/* is the bit clear? */
+ 624 ???? 7404     		jz      wait_exit	/* yes */
+ 625 ???? E2F8     		loop    wait_loop	/* no, so loop */
+ 626 ???? EBF0     		jmp     a20wait		/* if still not clear, go again */
+ 627              	wait_exit:    
+ 628 ???? C3       		ret
+ 629              	
+ 630              	a20wait2:	/* like a20wait, but waits until bit 0 is set. */
+ 631 ???? 66B90000 		mov     $65536, %ecx
+ 631      0100
+ 632              	wait2_loop:
+ 633 ???? E464     		in      $0x64, %al
+ 634 ???? A801     		test    $1, %al
+ 635 ???? 7504     		jnz     wait2_exit
+ 636 ???? E2F8     		loop    wait2_loop
+ 637 ???? EBF0     		jmp     a20wait2
+ 638              	wait2_exit:
+ 639 ???? C3       		ret
+GAS LISTING bootstrap.s 			page 13
+
+
+ 640              	
+ 641              	/*
+ 642              	** The GDT.  This cannot be created in C because the bootstrap is not
+ 643              	** linked with that code.
+ 644              	*/
+ 645              	start_gdt:
+ 646 ???? 00000000 		.word	0,0,0,0		/* first GDT entry is always null */
+ 646      00000000 
+ 647              	
+ 648              	linear_seg:	/* limit FFFFF, base 0, R/W data seg, 32-bit 4K */
+ 649 ???? FFFF     		.word	0xFFFF	/* limit[15:0] */
+ 650 ???? 0000     		.word	0x0000	/* base[15:0] */
+ 651 ???? 00       		.byte	0x00	/* base[23:16] */
+ 652 ???? 92       		.byte	0x92	/* access byte */
+ 653 ???? CF       		.byte	0xCF	/* granularity */
+ 654 ???? 00       		.byte	0x00	/* base[31:24] */
+ 655              	
+ 656              	code_seg:	/* limit FFFFF, base 0, R/E code seg, 32-bit 4K */
+ 657 ???? FFFF     		.word	0xFFFF
+ 658 ???? 0000     		.word	0x0000
+ 659 ???? 00       		.byte	0x00
+ 660 ???? 9A       		.byte	0x9A	/* 1 00 1 1010: present, prio 0, C/D, R/E code */
+ 661 ???? CF       		.byte	0xCF	/* 1 1 00 1111: 4K, 32-bit, 0, 0, limit[19:16] */
+ 662 ???? 00       		.byte	0x00
+ 663              	
+ 664              	data_seg:	/* limit FFFFF, base 0, R/W data seg, 32-bit 4K */
+ 665 ???? FFFF     		.word	0xFFFF
+ 666 ???? 0000     		.word	0x0000
+ 667 ???? 00       		.byte	0x00
+ 668 ???? 92       		.byte	0x92	/* 1 00 1 0010: present, prio 0, C/D, R/W data */
+ 669 ???? CF       		.byte	0xCF
+ 670 ???? 00       		.byte	0x00
+ 671              	
+ 672              	stack_seg:	/* limit FFFFF, base 0, R/W data seg, 32-bit 4K */
+ 673 ???? FFFF     		.word	0xFFFF
+ 674 ???? 0000     		.word	0x0000
+ 675 ???? 00       		.byte	0x00
+ 676 ???? 92       		.byte	0x92
+ 677 ???? CF       		.byte	0xCF
+ 678 ???? 00       		.byte	0x00
+ 679              	
+ 680              	end_gdt:
+ 681              	gdt_len = end_gdt - start_gdt
+ 682              	
+ 683              	/*
+ 684              	** The end of this program will contain a list of the sizes and load
+ 685              	** addresses of all of the blocks to be loaded.  These values are
+ 686              	** inserted here by the BuildImage program, which checks that there are
+ 687              	** not so many blocks that the IDT would be overwritten.  The layout
+ 688              	** of the data is:
+ 689              	**
+ 690              	**	offset
+ 691              	**	segment
+ 692              	**	# of sectors
+ 693              	**
+ 694              	** with the # of sectors for the first block appearing at firstcount, and
+ 695              	** the other values appearing just before it.  If additional blocks are
+GAS LISTING bootstrap.s 			page 14
+
+
+ 696              	** to be loaded, their values appear just before the previous set.
+ 697              	*/
+ 698              	
+ 699 ???? 00000000 		.org	1024-2
+ 699      00000000 
+ 699      00000000 
+ 699      00000000 
+ 699      00000000 
+ 700              	firstcount:
+ 701 ???? 0000     		.word	0	/* n_sectors for 1st module will go here */
+****  Error: invalid operands (.text and *ABS* sections) for `/'
+****  Error: division by zero
+****  Error: invalid operands (.text and *ABS* sections) for `/'
+****  Error: division by zero
+****  Error: invalid operands (*ABS* and *UND* sections) for `-'
+GAS LISTING bootstrap.s 			page 15
+
+
+DEFINED SYMBOLS
+         bootstrap.s:34     *ABS*:00000000000007c0 BOOT_SEGMENT
+         bootstrap.s:35     *ABS*:0000000000007c00 BOOT_ADDRESS
+         bootstrap.s:36     *ABS*:0000000000000000 START_SEGMENT
+         bootstrap.s:37     *ABS*:0000000000007e00 START_OFFSET
+         bootstrap.s:38     *ABS*:0000000000000200 SECTOR_SIZE
+         bootstrap.s:39     *ABS*:0000000000000400 BOOT_SIZE
+         bootstrap.s:40     *ABS*:000000000000fe00 OFFSET_LIMIT
+         bootstrap.s:42     *ABS*:000000000000052a MMAP_MAX_ENTRIES
+         bootstrap.s:50     .text:0000000000000000 begtext
+         bootstrap.s:372    .text:00000000000001fc drive
+         bootstrap.s:73     .text:000000000000001e diskok
+         bootstrap.s:329    .text:0000000000000185 err_diskstatus
+         bootstrap.s:227    .text:000000000000010b dispMsg
+         bootstrap.s:311    .text:0000000000000171 max_sec
+         bootstrap.s:312    .text:0000000000000172 max_head
+         bootstrap.s:317    .text:0000000000000173 msg_loading
+         bootstrap.s:144    .text:0000000000000086 readprog
+         bootstrap.s:700    .text:00000000000003fe firstcount
+         bootstrap.s:122    .text:0000000000000068 nextblock
+         bootstrap.s:218    .text:0000000000000102 done_loading
+         bootstrap.s:148    .text:000000000000008a retry
+         bootstrap.s:309    .text:000000000000016d sec
+         bootstrap.s:310    .text:000000000000016f head
+         bootstrap.s:167    .text:00000000000000af readcont
+         bootstrap.s:331    .text:0000000000000197 err_diskread
+         bootstrap.s:335    .text:00000000000001af err_diskfail
+         bootstrap.s:319    .text:000000000000017b msg_dot
+         bootstrap.s:175    .text:00000000000000c1 adjust
+         bootstrap.s:181    .text:00000000000000cb readcont2
+         bootstrap.s:200    .text:00000000000000ee save_sector
+         bootstrap.s:333    .text:00000000000001a5 err_toobig
+         bootstrap.s:209    .text:00000000000000fb readdone
+         bootstrap.s:323    .text:0000000000000183 msg_bar
+         bootstrap.s:321    .text:000000000000017d msg_go
+         bootstrap.s:528    .text:000000000000025f switch
+         bootstrap.s:230    .text:000000000000010d repeat
+         bootstrap.s:241    .text:000000000000011b getOut
+         bootstrap.s:255    .text:000000000000011e pnum
+         bootstrap.s:272    .text:0000000000000138 pdigit
+         bootstrap.s:279    .text:000000000000014a pdd
+         bootstrap.s:280    .text:000000000000014d prt
+         bootstrap.s:292    .text:0000000000000155 move_gdt
+         bootstrap.s:645    .text:00000000000002e7 start_gdt
+                            *ABS*:0000000000000028 gdt_len
+         bootstrap.s:345    .text:00000000000001bf gdt_48
+         bootstrap.s:349    .text:00000000000001c9 idt_48
+         bootstrap.s:374    .text:00000000000001fe boot_sig
+         bootstrap.s:420    .text:0000000000000200 check_memory
+         bootstrap.s:503    .text:000000000000024c cm_failed
+         bootstrap.s:468    .text:000000000000022c cm_jumpin
+         bootstrap.s:460    .text:0000000000000219 cm_loop
+         bootstrap.s:477    .text:0000000000000236 cm_no_text
+         bootstrap.s:491    .text:0000000000000241 cm_skip_entry
+         bootstrap.s:496    .text:0000000000000246 cm_end_of_list
+         bootstrap.s:507    .text:0000000000000256 cm_ret
+         bootstrap.s:579    .text:000000000000028c floppy_off
+GAS LISTING bootstrap.s 			page 16
+
+
+         bootstrap.s:590    .text:0000000000000295 enable_A20
+         bootstrap.s:619    .text:00000000000002c5 a20wait
+         bootstrap.s:630    .text:00000000000002d6 a20wait2
+         bootstrap.s:621    .text:00000000000002cb wait_loop
+         bootstrap.s:627    .text:00000000000002d5 wait_exit
+         bootstrap.s:632    .text:00000000000002dc wait2_loop
+         bootstrap.s:638    .text:00000000000002e6 wait2_exit
+         bootstrap.s:648    .text:00000000000002ef linear_seg
+         bootstrap.s:656    .text:00000000000002f7 code_seg
+         bootstrap.s:664    .text:00000000000002ff data_seg
+         bootstrap.s:672    .text:0000000000000307 stack_seg
+         bootstrap.s:680    .text:000000000000030f end_gdt
+
+UNDEFINED SYMBOLS
+MMAP_ADDRESS
+MMAP_SEGMENT
+MMAP_SECTORS
+GDT_SEGMENT
+GDT_ADDRESS
+IDT_ADDRESS
+MMAP_MAGIC_NUM
+MMAP_CODE
+GDT_CODE
+TARGET_ADDRESS
