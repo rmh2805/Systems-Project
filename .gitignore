@@ -1,8 +1,10 @@
 src/BuildImage
 src/usb.image
+src/Offsets
 *.class
 *.o
 *.b
 *.nl
+*.nll
 *.lst
 *.dis
