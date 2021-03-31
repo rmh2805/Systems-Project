@@ -499,6 +499,14 @@ static void _sys_wait( uint32_t args[4] ) {
     return;
 }
 
+static void _sys_getuid ( uint32_t args[4] ) {
+    RET(_current) = _current->uid;
+}
+
+static void _sys_getgid (uint32_t args[4] ) {
+    RET(_current) = _current->gid;
+}
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -534,6 +542,9 @@ void _sys_init( void ) {
     _syscalls[ SYS_sleep ]    = _sys_sleep;
     _syscalls[ SYS_spawn ]    = _sys_spawn;
     _syscalls[ SYS_wait ]     = _sys_wait;
+    
+    _syscalls[ SYS_getuid ]   = _sys_getuid;
+    _syscalls[ SYS_getgid ]   = _sys_getgid;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );
