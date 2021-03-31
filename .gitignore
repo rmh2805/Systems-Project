@@ -1,7 +1,7 @@
 src/BuildImage
 src/usb.image
 src/Offsets
-src/*.vscode
+src/.vscode
 *.class
 *.o
 *.b
