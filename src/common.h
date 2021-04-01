@@ -88,6 +88,10 @@ typedef uint8_t bool_t;
 // PID data type
 typedef int16_t pid_t;
 
+// User and Group ID data types
+typedef uint16_t gid_t;
+typedef uint16_t uid_t;
+
 // Process state and state values
 //
 // (defined here in case user-level code needs to know)

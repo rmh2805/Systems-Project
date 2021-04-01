@@ -108,8 +108,8 @@ typedef struct pcb_s {
     pid_t pid;              // unique PID for this process
     pid_t ppid;             // PID of the parent
     
-    uint16_t gid;           // group ID of this process
-    uint16_t uid;           // user ID of this process
+    gid_t gid;           // group ID of this process
+    uid_t uid;           // user ID of this process
 
     // one-byte values
     state_t state;          // current state (see common.h)

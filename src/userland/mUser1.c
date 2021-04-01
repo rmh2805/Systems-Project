@@ -3,7 +3,9 @@
 
 int mUser1(uint32_t arg1, uint32_t arg2) {
     char buf[128];
-    uint16_t gid = getgid(), uid = getuid();
+    gid_t gid = getgid();
+    uid_t uid = getuid();
+    
     sprint(buf, "M User 1 reports gid %d\n", gid);
     cwrites(buf);
     sprint(buf, "M User 1 reports uid %d\n", uid);

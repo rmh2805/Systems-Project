@@ -198,7 +198,7 @@ void bogus( void );
  **
  ** @return The current gid number of this process
  */
-uint16_t getgid( void );
+gid_t getgid( void );
 
 /**
  ** getuid - retrieve the user id of this process
@@ -207,7 +207,7 @@ uint16_t getgid( void );
  ** 
  ** @return The current uid number of this process
  */
-uint16_t getuid( void );
+uid_t getuid( void );
 
 /*
 **********************************************
