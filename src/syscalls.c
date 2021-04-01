@@ -406,7 +406,7 @@ static void _sys_spawn( uint32_t args[4] ) {
 
     // create the process
     pcb_t *pcb = _proc_create( args, _next_pid++, _current->pid, 
-								_current->uid, _current->gid );
+                                _current->uid, _current->gid );
     if( pcb == NULL ) {
         RET(_current) = E_NO_MEMORY;
         return;
@@ -500,12 +500,32 @@ static void _sys_wait( uint32_t args[4] ) {
     return;
 }
 
+/**
+** _sys_getuid - retrieves the uid of this process
+** 
+** implements:
+**    uid_t getuid( void );
+*/
 static void _sys_getuid ( uint32_t args[4] ) {
     RET(_current) = _current->uid;
 }
 
-static void _sys_getgid (uint32_t args[4] ) {
+/**
+** _sys_getgid - retrieves the gid of this process
+** 
+** implements:
+**    gid_t getgid( void );
+*/
+static void _sys_getgid ( uint32_t args[4] ) {
     RET(_current) = _current->gid;
+}
+
+static void _sys_setuid ( uint32_t args[4] ) {
+    RET(_current) = -1;
+}
+
+static void _sys_setgid ( uint32_t args[4] ) {
+    RET(_current) = -1;
 }
 
 /*
@@ -546,6 +566,8 @@ void _sys_init( void ) {
     
     _syscalls[ SYS_getuid ]   = _sys_getuid;
     _syscalls[ SYS_getgid ]   = _sys_getgid;
+    _syscalls[ SYS_setuid ]   = _sys_setuid;
+    _syscalls[ SYS_setgid ]   = _sys_setgid;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );

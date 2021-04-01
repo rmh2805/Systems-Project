@@ -79,9 +79,10 @@
 // Multi-user syscalls: getgid, getuid
 //
 //                        Multi-user system calls in use
-//   fcn   ggid   guid
-// ------  ----   ----
-// mUser1   x      x  
+//   fcn   ggid   guid   sgid   suid
+// ------  ----   ----   ----   ----
+// mUser1   x      x                
+// mUser2   x      x      x      x
 //
 //
 
@@ -125,6 +126,7 @@
 // #define SPAWN_V
 
 #define SPAWN_M_1
+#define SPAWN_M_2
 
 //
 // Users W-Z are spawned from other processes; they

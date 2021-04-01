@@ -259,7 +259,7 @@ void _proc_init( void ) {
 **         not be allocated for the PCB or the stack
 */
 pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid, 
-						uid_t uid, gid_t gid ) {
+                        uid_t uid, gid_t gid ) {
 
     // allocate the necessary data structures
     pcb_t *pcb = _pcb_alloc();

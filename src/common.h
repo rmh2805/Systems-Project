@@ -92,6 +92,14 @@ typedef int16_t pid_t;
 typedef uint16_t gid_t;
 typedef uint16_t uid_t;
 
+// Group ID definitions
+#define GID_USER    (0)
+#define GID_OPEN    (1)
+
+// User ID definitions
+#define UID_ROOT    (0)
+
+
 // Process state and state values
 //
 // (defined here in case user-level code needs to know)
@@ -153,6 +161,8 @@ typedef int status_t;
 #define E_NO_PROCS      (-8)
 #define E_NOT_FOUND     (-9)
 #define E_NO_CHILDREN   (-10)
+
+#define E_NO_PERMISSION (-11)
 
 /*
 ** Additional OS-only or user-only things

@@ -6,9 +6,9 @@ int mUser1(uint32_t arg1, uint32_t arg2) {
     gid_t gid = getgid();
     uid_t uid = getuid();
     
-    sprint(buf, "M User 1 reports gid %d\n", gid);
+    sprint(buf, "M User %d reports gid %d\n", arg1, (uint32_t)gid);
     cwrites(buf);
-    sprint(buf, "M User 1 reports uid %d\n", uid);
+    sprint(buf, "M User %d reports uid %d\n", arg1, (uint32_t)uid);
     cwrites(buf);
 
     exit(0);
