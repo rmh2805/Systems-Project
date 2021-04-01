@@ -405,7 +405,8 @@ static void _sys_spawn( uint32_t args[4] ) {
     }
 
     // create the process
-    pcb_t *pcb = _proc_create( args, _next_pid++, _current->pid );
+    pcb_t *pcb = _proc_create( args, _next_pid++, _current->pid, 
+								_current->uid, _current->gid );
     if( pcb == NULL ) {
         RET(_current) = E_NO_MEMORY;
         return;

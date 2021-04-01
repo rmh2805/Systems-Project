@@ -151,7 +151,7 @@ void _init( void ) {
     args[2] = args[3] = 0;       // no command-line arguments
 
     // create it; init is strange, as it is its own parent
-    pcb_t *pcb = _proc_create( args, PID_INIT, PID_INIT );
+    pcb_t *pcb = _proc_create( args, PID_INIT, PID_INIT, 0, 0 );
     assert( pcb != NULL );
 
     // schedule it
