@@ -276,6 +276,16 @@ int init( uint32_t arg1, uint32_t arg2 ) {
     swritech( ch );
 #endif
 
+#ifdef SPAWN_M_1
+    // M User 1: get and display uid and gid
+    whom = spawn( mUser1, PRIO_HIGHEST, 0, 0 );
+    if( whom < 0 ) {
+        cwrites( "init, spawn() M User 1 failed\n" );
+    }
+    swritech( ch );
+
+#endif
+
     // Users W through Z are spawned elsewhere
 
     swrites( "!\r\n\n" );
