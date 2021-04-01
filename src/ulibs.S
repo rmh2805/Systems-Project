@@ -37,6 +37,7 @@ name:					; \
 ** "real" system calls
 */
 
+// Baseline
 SYSCALL(exit)
 SYSCALL(read)
 SYSCALL(write)
@@ -49,6 +50,11 @@ SYSCALL(kill)
 SYSCALL(sleep)
 SYSCALL(spawn)
 SYSCALL(wait)
+
+// Users
+SYSCALL(getgid)
+SYSCALL(getuid)
+
 
 /*
 ** This is a bogus system call; it's here so that we can test

@@ -191,6 +191,24 @@ int32_t wait( int32_t *status );
 */
 void bogus( void );
 
+ /**
+ ** getgid - retrieve the group id of this process
+ **
+ ** usage: getgid();
+ **
+ ** @return The current gid number of this process
+ */
+uint16_t getgid( void );
+
+/**
+ ** getuid - retrieve the user id of this process
+ ** 
+ ** usage: getuid();
+ ** 
+ ** @return The current uid number of this process
+ */
+uint16_t getuid( void );
+
 /*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS
