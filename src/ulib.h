@@ -220,6 +220,18 @@ gid_t getgid( void );
 */
 int32_t setuid( uid_t uid );
 
+
+/**
+** setgid - set the group id of this process
+* 
+* usage: setgid( gid_t gid );
+* 
+* @param gid The new gid
+* 
+* @return 0 on success, < 0 on failure (E_NO_PERMISSION if lacking permission)
+*/
+int32_t setgid( gid_t gid );
+
 /*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS

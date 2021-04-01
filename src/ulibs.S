@@ -55,6 +55,7 @@ SYSCALL(wait)
 SYSCALL(getgid)
 SYSCALL(getuid)
 SYSCALL(setuid)
+SYSCALL(setgid)
 
 /*
 ** This is a bogus system call; it's here so that we can test
