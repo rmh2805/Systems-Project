@@ -39,14 +39,14 @@
 //
 // System call matrix
 //
-// System calls in this system:   exit, wait, kill, spawn, read, write,
+// System calls in the baseline system:   exit, wait, kill, spawn, read, write,
 //  sleep, gettime, getpid, getppid, getprio, setprio
 //
 // There is also a "bogus" system call which attempts to use an invalid
 // system call code; this should be caught by the syscall handler and
 // the process should be terminated.
 //
-// These are the system calls which are used in each of the user-level
+// These are the baseline system calls which are used in each of the user-level
 // main functions.  Some main functions only invoke certain system calls
 // when given particular command-line arguments (e.g., main6).
 //
@@ -74,6 +74,16 @@
 // userX    X    .    .    .     .    X     .    .    .    .    .    .    .
 // userY    X    .    .    .     .    X     X    .    .    .    .    .    .
 // userZ    X    .    .    .     .    X     X    .    X    X    .    .    .
+//
+//
+// Multi-user syscalls: getgid, getuid
+//
+//                        Multi-user system calls in use
+//   fcn   ggid   guid
+// ------  ----   ----
+// mUser1   x      x  
+//
+//
 
 /*
 ** User process controls.
@@ -113,6 +123,8 @@
 #define SPAWN_T
 #define SPAWN_U
 #define SPAWN_V
+
+#define SPAWN_M_1
 
 //
 // Users W-Z are spawned from other processes; they

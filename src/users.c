@@ -30,7 +30,7 @@
 */
 
 /*
-** Prototypes for all user main routines (even ones that may not exist,
+** Prototypes for all vase user main routines (even ones that may not exist,
 ** for completeness)
 */
 
@@ -53,6 +53,8 @@ int32_t userS( uint32_t, uint32_t ); int32_t userT( uint32_t, uint32_t );
 int32_t userU( uint32_t, uint32_t ); int32_t userV( uint32_t, uint32_t );
 int32_t userW( uint32_t, uint32_t ); int32_t userX( uint32_t, uint32_t );
 int32_t userY( uint32_t, uint32_t ); int32_t userZ( uint32_t, uint32_t );
+
+int32_t mUser1( uint32_t, uint32_t );
 
 /*
 ** The user processes
@@ -127,6 +129,10 @@ int32_t userY( uint32_t, uint32_t ); int32_t userZ( uint32_t, uint32_t );
 
 #if defined(SPAWN_V)
 #include "userland/userV.c"
+#endif
+
+#if defined(SPAWN_M_1)
+#include "userland/mUser1.c"
 #endif
 
 /*
