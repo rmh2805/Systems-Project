@@ -277,6 +277,8 @@ pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid,
     pcb->stack    = stack;      // user runtime stack
     pcb->pid      = pid;        // unique PID
     pcb->ppid     = ppid;       // parent's PID
+    pcb->gid      = gid;        // provided gid
+    pcb->uid      = uid;        // provided uid
     pcb->state    = New;        // initial state
     pcb->priority = args[1];    // process priority
     pcb->quantum  = Q_STD;      // allotted time slice

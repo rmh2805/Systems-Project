@@ -287,10 +287,22 @@ int init( uint32_t arg1, uint32_t arg2 ) {
 #endif
 
 #ifdef SPAWN_M_2
-    // M User 1: get and display uid and gid
+    // M User 2: Test changing gid and uid
     whom = spawn( mUser2, PRIO_HIGHEST, 2, 0 );
     if( whom < 0 ) {
         cwrites( "init, spawn() M User 2 failed\n" );
+    }
+    swritech( ch );
+
+#endif
+
+
+
+#ifdef SPAWN_M_3
+    // M User 3: test inhereting gid and uid
+    whom = spawn( mUser3, PRIO_HIGHEST, 3, 0 );
+    if( whom < 0 ) {
+        cwrites( "init, spawn() M User 3 failed\n" );
     }
     swritech( ch );
 

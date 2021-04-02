@@ -131,12 +131,17 @@ int32_t mUser1(uint32_t, uint32_t ); int32_t mUser2(uint32_t, uint32_t );
 #include "userland/userV.c"
 #endif
 
-#if defined(SPAWN_M_1) || defined (SPAWN_M_2)
+#if defined(SPAWN_M_1) || defined (SPAWN_M_2) || defined(SPAWN_M_3)
 #include "userland/mUser1.c"
 #endif
 
 #if defined(SPAWN_M_2)
 #include "userland/mUser2.c"
+#endif
+
+
+#if defined(SPAWN_M_3)
+#include "userland/mUser3.c"
 #endif
 
 /*

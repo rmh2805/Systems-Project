@@ -126,8 +126,9 @@
 // #define SPAWN_U
 // #define SPAWN_V
 
-#define SPAWN_M_1
-#define SPAWN_M_2
+//#define SPAWN_M_1
+//#define SPAWN_M_2
+#define SPAWN_M_3
 
 // #define DO_IDLE_PRINT
 
