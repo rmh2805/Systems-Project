@@ -4,70 +4,73 @@
 int mUser2(uint32_t arg1, uint32_t arg2) {
     int32_t result;
     
-    cwrites("M User 2 sleeping to skip early prints\n");
-    sleep(1000);
-    
     cwrites("\nM User 2 reporting initial values\n");
     cwrites("M User 2 reporting initial values\n");
     mUser1(arg1, arg2);
     
     sleep(1000);
     
-    // Test setting invalid GID as root
-    cwrites("\nM User 2 attempting to set invalid gid as root\n");
-    swrites("M User 2 attempting to set invalid gid as root\n");
-    result = setgid(0xF00D);
-    if(result != E_SUCCESS) {
-        cwrites("M User 2 reports failure\n");
-        swrites("M User 2 reports failure\n");
+    uid_t uid = getuid();
+
+    if(uid == UID_ROOT) {
+        // Test setting invalid GID as root
+        cwrites("\nM User 2 attempting to set invalid gid as root\n");
+        swrites("M User 2 attempting to set invalid gid as root\n");
+        result = setgid(0xF00D);
+        if(result != E_SUCCESS) {
+            cwrites("M User 2 reports failure\n");
+            swrites("M User 2 reports failure\n");
+        } else {
+            cwrites("M User 2 reports success\n");
+            swrites("M User 2 reports success\n");
+        }
+        mUser1(arg1, arg2);
+        
+        // Test setting valid GID as root
+        cwrites("\nM User 2 attempting to set valid gid as root\n");
+        swrites("M User 2 attempting to set valid gid as root\n");
+        result = setgid(GID_OPEN);
+        if(result != E_SUCCESS) {
+            cwrites("M User 2 reports failure\n");
+            swrites("M User 2 reports failure\n");
+        } else {
+            cwrites("M User 2 reports success\n");
+            swrites("M User 2 reports success\n");
+        }
+        mUser1(arg1, arg2);
+        
+        sleep(1000);
+        
+        // Test changing UID from root (no group reset)
+        cwrites("\nM User 2 attempting to set uid to root as root\n");
+        swrites("M User 2 attempting to set uid to root as root\n");
+        result = setuid(UID_ROOT);
+        if(result != E_SUCCESS) {
+            cwrites("M User 2 reports failure\n");
+            swrites("M User 2 reports failure\n");
+        } else {
+            cwrites("M User 2 reports success\n");
+            swrites("M User 2 reports success\n");
+        }
+        mUser1(arg1, arg2);
+        
+        sleep(1000);
+        
+        // Test become user from root (group reset)
+        cwrites("\nM User 2 attempting to set uid to user as root\n");
+        swrites("M User 2 attempting to set uid to user as root\n");
+        result = setuid(100);
+        if(result != E_SUCCESS) {
+            cwrites("M User 2 reports failure\n");
+            swrites("M User 2 reports failure\n");
+        } else {
+            cwrites("M User 2 reports success\n");
+            swrites("M User 2 reports success\n");
+        }
+        mUser1(arg1, arg2);
     } else {
-        cwrites("M User 2 reports success\n");
-        swrites("M User 2 reports success\n");
+        cwrites("M User 2 spawned as non-root, skipping root tests\n");
     }
-    mUser1(arg1, arg2);
-    
-    // Test setting valid GID as root
-    cwrites("\nM User 2 attempting to set valid gid as root\n");
-    swrites("M User 2 attempting to set valid gid as root\n");
-    result = setgid(GID_OPEN);
-    if(result != E_SUCCESS) {
-        cwrites("M User 2 reports failure\n");
-        swrites("M User 2 reports failure\n");
-    } else {
-        cwrites("M User 2 reports success\n");
-        swrites("M User 2 reports success\n");
-    }
-    mUser1(arg1, arg2);
-    
-    sleep(1000);
-    
-    // Test changing UID from root (no group reset)
-    cwrites("\nM User 2 attempting to set uid to root as root\n");
-    swrites("M User 2 attempting to set uid to root as root\n");
-    result = setuid(UID_ROOT);
-    if(result != E_SUCCESS) {
-        cwrites("M User 2 reports failure\n");
-        swrites("M User 2 reports failure\n");
-    } else {
-        cwrites("M User 2 reports success\n");
-        swrites("M User 2 reports success\n");
-    }
-    mUser1(arg1, arg2);
-    
-    sleep(1000);
-    
-    // Test become user from root (group reset)
-    cwrites("\nM User 2 attempting to set uid to user as root\n");
-    swrites("M User 2 attempting to set uid to user as root\n");
-    result = setuid(100);
-    if(result != E_SUCCESS) {
-        cwrites("M User 2 reports failure\n");
-        swrites("M User 2 reports failure\n");
-    } else {
-        cwrites("M User 2 reports success\n");
-        swrites("M User 2 reports success\n");
-    }
-    mUser1(arg1, arg2);
     
     // Test become self as user
     cwrites("\nM User 2 attempting to set uid to self as user\n");
