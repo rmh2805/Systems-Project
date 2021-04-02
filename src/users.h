@@ -128,6 +128,8 @@
 #define SPAWN_M_1
 #define SPAWN_M_2
 
+//#define DO_IDLE_PRINT
+
 //
 // Users W-Z are spawned from other processes; they
 // should never be spawned directly by init().
