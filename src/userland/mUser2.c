@@ -5,10 +5,8 @@ int mUser2(uint32_t arg1, uint32_t arg2) {
     int32_t result;
     
     cwrites("\nM User 2 reporting initial values\n");
-    cwrites("M User 2 reporting initial values\n");
+    swrites("M User 2 reporting initial values\n");
     mUser1(arg1, arg2);
-    
-    sleep(1000);
     
     uid_t uid = getuid();
 
@@ -39,8 +37,6 @@ int mUser2(uint32_t arg1, uint32_t arg2) {
         }
         mUser1(arg1, arg2);
         
-        sleep(1000);
-        
         // Test changing UID from root (no group reset)
         cwrites("\nM User 2 attempting to set uid to root as root\n");
         swrites("M User 2 attempting to set uid to root as root\n");
@@ -53,8 +49,6 @@ int mUser2(uint32_t arg1, uint32_t arg2) {
             swrites("M User 2 reports success\n");
         }
         mUser1(arg1, arg2);
-        
-        sleep(1000);
         
         // Test become user from root (group reset)
         cwrites("\nM User 2 attempting to set uid to user as root\n");
