@@ -1,58 +1,9 @@
 #ifndef INIT_H_
 #define INIT_H_
 
-/**
-** Initial process; it starts the other top-level user processes.
-**
-** Prints a message at startup, '+' after each user process is spawned,
-** and '!' before transitioning to wait() mode to the SIO, and
-** startup and transition messages to the console.  It also reports
-** each child process it collects via wait() to the console along
-** with that child's exit status.
-*/
-
-/*
-** For the test programs in the baseline system, command-line arguments
-** follow these rules.  The first two entries are fixed:
-**
-**      arg1 is the "character to print" (identifies the process)
-**      arg2 is either an iteration count or a sleep time
-**
-** See the comment at the beginning of each user-code source file for
-** information on the argument list that code expects.
-*/
-
-int init( uint32_t arg1, uint32_t arg2 ) {
-    pid_t whom;
+int spawnTests(uint32_t arg1, uint32_t arg2) {
     char ch = '+';
-    static int invoked = 0;
-    char buf[128];
-
-    if( invoked > 0 ) {
-        cwrites( "Init RESTARTED???\n" );
-        for(;;);
-    }
-
-    cwrites( "Init started\n" );
-    ++invoked;
-
-    // home up, clear
-    swritech( '\x1a' );
-    // wait a bit
-    DELAY(STD);
-
-    // a bit of Dante to set the mood
-    swrites( "\n\nSpem relinquunt qui huc intrasti!\n\n\r" );
-
-    // start by spawning the idle process
-    whom = spawn( idle, PRIO_LOWEST, '.', 0 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() of idle failed!!!\n" );
-    }
-
-    /*
-    ** Start all the other users
-    */
+    pid_t whom;
 
     // set up for users A, B, and C initially
 #ifdef SPAWN_A
@@ -276,6 +227,8 @@ int init( uint32_t arg1, uint32_t arg2 ) {
     swritech( ch );
 #endif
 
+    // M User 1 performs tests on the getters for gid and uid
+
 #ifdef SPAWN_M_1
     // M User 1: get and display uid and gid
     whom = spawn( mUser1, PRIO_HIGHEST, 1, 0 );
@@ -285,6 +238,8 @@ int init( uint32_t arg1, uint32_t arg2 ) {
     swritech( ch );
 
 #endif
+
+    // M User 2 plays with basic setting of uid and gid, both legal and illegal
 
 #ifdef SPAWN_M_2
     // M User 2: Test changing gid and uid
@@ -296,7 +251,7 @@ int init( uint32_t arg1, uint32_t arg2 ) {
 
 #endif
 
-
+    // M User 3 tests inheretence of uid and gid by child processes
 
 #ifdef SPAWN_M_3
     // M User 3: test inhereting gid and uid
@@ -307,6 +262,62 @@ int init( uint32_t arg1, uint32_t arg2 ) {
     swritech( ch );
 
 #endif
+
+    return E_SUCCESS;
+}
+
+/**
+** Initial process; it starts the other top-level user processes.
+**
+** Prints a message at startup, '+' after each user process is spawned,
+** and '!' before transitioning to wait() mode to the SIO, and
+** startup and transition messages to the console.  It also reports
+** each child process it collects via wait() to the console along
+** with that child's exit status.
+*/
+
+/*
+** For the test programs in the baseline system, command-line arguments
+** follow these rules.  The first two entries are fixed:
+**
+**      arg1 is the "character to print" (identifies the process)
+**      arg2 is either an iteration count or a sleep time
+**
+** See the comment at the beginning of each user-code source file for
+** information on the argument list that code expects.
+*/
+
+int init( uint32_t arg1, uint32_t arg2 ) {
+    pid_t whom;
+    static int invoked = 0;
+    char buf[128];
+
+    if( invoked > 0 ) {
+        cwrites( "Init RESTARTED???\n" );
+        for(;;);
+    }
+
+    cwrites( "Init started\n" );
+    ++invoked;
+
+    // home up, clear
+    swritech( '\x1a' );
+    // wait a bit
+    DELAY(STD);
+
+    // a bit of Dante to set the mood
+    swrites( "\n\nSpem relinquunt qui huc intrasti!\n\n\r" );
+
+    // start by spawning the idle process
+    whom = spawn( idle, PRIO_LOWEST, '.', 0 );
+    if( whom < 0 ) {
+        cwrites( "init, spawn() of idle failed!!!\n" );
+    }
+
+    /*
+    ** Start all the other users
+    */
+    spawnTests(arg1, arg2);
 
 
     // Users W through Z are spawned elsewhere
