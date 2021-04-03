@@ -14,6 +14,10 @@
 
 int init( uint32_t arg1, uint32_t arg2 ) {
     pid_t whom;
+
+    pid_t shellID = 0;
+    bool_t logonShell = true;
+
     static int invoked = 0;
     char buf[128];
 
@@ -42,7 +46,15 @@ int init( uint32_t arg1, uint32_t arg2 ) {
     /*
     ** Start all the other users
     */
+    #ifdef DO_SIGN_IN
+    shellID = whom = spawn(signIn, PRIO_HIGHEST, 0, 0);
+    if( whom < 0) {
+        cwrites( "init, spawn() of logon shell failed\n");
+    }
+
+    #else
     spawnTests(arg1, arg2);
+    #endif
 
 
     // Users W through Z are spawned elsewhere
@@ -63,6 +75,10 @@ int init( uint32_t arg1, uint32_t arg2 ) {
         if( whom == E_NO_CHILDREN ) {
             cwrites( "INIT: wait() says 'no children'???\n" );
             continue;
+        } else if (whom == shellID) {
+            sprint(buf, "INIT: %s shell exit caught\n", 
+                (logonShell) ? "log in" : "test");
+            cwrites( buf );
         } else {
             sprint( buf, "INIT: pid %d exited, status %d\n", whom, status );
             cwrites( buf );
