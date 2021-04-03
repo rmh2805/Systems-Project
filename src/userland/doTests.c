@@ -1,5 +1,5 @@
-#ifndef _DO_TESTS_H_
-#define _DO_TESTS_H_
+#ifndef DO_TESTS_H_
+#define DO_TESTS_H_
 
 
 
