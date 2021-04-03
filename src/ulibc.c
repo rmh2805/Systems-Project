@@ -114,7 +114,8 @@ int32_t swrite( const char *buf, uint32_t size ) {
 */
 
 /**
-** str2int(str,base) - convert a string to a number in the specified base
+** str2int(str,base) - convert a string to a number in the specified base 
+**                     (up to base 10)
 **
 ** @param str   The string to examine
 ** @param base  The radix to use in the conversion
