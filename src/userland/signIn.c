@@ -12,8 +12,6 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
     uid_t nUID = 0;
     
     //==================<Notify Start and San Check>==================//
-    cwrites("Sign in shell started\n");
-
     if(getuid() != UID_ROOT) {
         cwrites("SIGN IN: **ERROR** sign in shell started as non-root user, exiting\n");
         exit(E_NO_PERMISSION);
@@ -23,7 +21,7 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
     
     //==================<Grab the next line for UID>==================//
     while (true) {
-        swrites("Enter your (decimal) uid: ");
+        swrites("========================================\r\nEnter your (decimal) uid: ");
 
         result = readLn(CHAN_SIO, iBuf, nIBuf, true);
         
@@ -61,6 +59,7 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
     }
     
     //===============<Set UID and Spawn Test Generator>===============//
+    swrites("\r\n");
     setuid(nUID);
 
     return spawn(testShell, PRIO_STD, 0, 0);

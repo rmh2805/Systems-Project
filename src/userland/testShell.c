@@ -8,8 +8,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
     char oBuf[oBufSz];
 
     int32_t nRead = 0;
-
-    cwrites("Test shell started\n");
+    
     swrites("Test shell started\r\n");
 
     while (true) {

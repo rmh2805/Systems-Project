@@ -76,9 +76,27 @@ int init( uint32_t arg1, uint32_t arg2 ) {
             cwrites( "INIT: wait() says 'no children'???\n" );
             continue;
         } else if (whom == shellID) {
-            sprint(buf, "INIT: %s shell exit caught\n", 
-                (logonShell) ? "log in" : "test");
-            cwrites( buf );
+            if(status < 0) {
+                cwrites("INIT: shell returned error, spawning new login\n");
+                
+                shellID = whom = spawn(signIn, PRIO_HIGHEST, 0, 0);
+                if( whom < 0) {
+                    cwrites( "init, spawn() of logon shell failed\n");
+                }
+            } else if(logonShell) {
+                sprint(buf, "INIT: tracking primary shell (pid %d)\n", status);
+                shellID = status;
+                logonShell = false;
+            } else {
+                cwrites("INIT: main shell returned, spawning new login\n");
+                
+                shellID = whom = spawn(signIn, PRIO_HIGHEST, 0, 0);
+                if( whom < 0) {
+                    cwrites( "init, spawn() of logon shell failed\n");
+                }
+                
+                logonShell = true;
+            }
         } else {
             sprint( buf, "INIT: pid %d exited, status %d\n", whom, status );
             cwrites( buf );
