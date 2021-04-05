@@ -125,47 +125,57 @@ int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
     uint32_t i = 0;
     int32_t result;
     
+    char inCh = 0;
+    
     buf[length - 1] = 0; //set last byte to null just in case
     
     while(i < length - 1) {
-        result = read(chan, &(buf[i]), 1);  //Read a char to the next idx
+        result = read(chan, &(inCh), 1);  //Read a char to the next idx
         
         
         if(result == 0) {
             continue;
         } else if (result < 0) {
-            break;
+            return result;
         }
         
-        switch(buf[i]) {
+        switch(inCh) {
             case '\b':
                 if(i >= 1) {
+                    if(doEcho) {
+                        write(chan, &inCh, 1);
+                    }
+                    
                     i -= 1;
                 }
-                break;
+                
             case '\0':
             case '\r':
+                continue;
+            
             case '\n':
                 break;
+            
             default:
-                result = i + 1;
                 if(doEcho) {
-                    write(chan, &(buf[i]), 1);
+                    write(chan, &inCh, 1);
                 }
         }
         
-        if(buf[i] == '\n') {
+        if(inCh == '\n') {
             break;
         }
         
-        i += 1;
+        buf[i++] = inCh;
     }
     
     if(doEcho) {
-            write(chan, "\r\n", 3);
+        write(chan, "\r\n", 3);
     }
     
-    return result;
+    buf[i] = 0;
+    
+    return i;
 }
 
 /*
