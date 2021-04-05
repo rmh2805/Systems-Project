@@ -9,10 +9,10 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
 
     int32_t nRead = 0;
 
-    swrites("Test shell started\r\nTry help for a list of commands");
+    swrites("Test shell started\r\nTry help for a list of commands\r\n\n");
 
     while (true) {
-        swrites("\r\n$ ");
+        swrites("$ ");
         nRead = readLn(CHAN_SIO, iBuf, iBufSz, true);
         if(nRead < 0) {
             cwrites("TEST SHELL: **ERROR** encountered on line read\n");

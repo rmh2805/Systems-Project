@@ -143,7 +143,7 @@ int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
             case '\b':
                 if(i >= 1) {
                     if(doEcho) {
-                        write(chan, &inCh, 1);
+                        write(chan, "\b \b", 3);
                     }
                     
                     i -= 1;
