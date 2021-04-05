@@ -12,6 +12,8 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
     uid_t nUID = 0;
     
     //==================<Notify Start and San Check>==================//
+    swrites("\r\n========================================\r\n");
+
     if(getuid() != UID_ROOT) {
         cwrites("SIGN IN: **ERROR** sign in shell started as non-root user, exiting\n");
         exit(E_NO_PERMISSION);
@@ -20,8 +22,9 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
     sleep(100); //delay to wait out initial serial prints 
     
     //==================<Grab the next line for UID>==================//
+
     while (true) {
-        swrites("========================================\r\nEnter your (decimal) uid: ");
+        swrites("Enter your (decimal) uid: ");
 
         result = readLn(CHAN_SIO, iBuf, nIBuf, true);
         
