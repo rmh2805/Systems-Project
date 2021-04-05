@@ -125,6 +125,8 @@ int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
     uint32_t i = 0;
     int32_t result;
     
+    buf[length - 1] = 0; //set last byte to null just in case
+    
     while(i < length - 1) {
         result = read(chan, &(buf[i]), 1);  //Read a char to the next idx
         
