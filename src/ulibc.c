@@ -196,7 +196,10 @@ int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
 int str2int( register const char *str, register int base ) {
     register int num = 0;
     register char bchar = '9';
+    register char ch = 0;
     int sign = 1;
+
+
 
     // check for leading '-'
     if( *str == '-' ) {
@@ -210,9 +213,17 @@ int str2int( register const char *str, register int base ) {
 
     // iterate through the characters
     while( *str ) {
-        if( *str < '0' || *str > bchar )
+        ch = *str;
+
+        if(ch >= 'a' && ch <= 'z') {
+            ch = ch - 'a' + '9' + 1;
+        } else if(ch >= 'A' && ch <= 'Z') {
+            ch = ch - 'A' + '9' + 1;
+        }
+
+        if( ch < '0' || ch > bchar )
             break;
-        num = num * base + *str - '0';
+        num = num * base + ch - '0';
         ++str;
     }
 
