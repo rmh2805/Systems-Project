@@ -107,6 +107,77 @@ int32_t swrite( const char *buf, uint32_t size ) {
    return( write(CHAN_SIO,buf,size) );
 }
 
+/**
+** readLn - read into a buffer from a stream to the next newline or end 
+**          of buffer
+**
+** usage:   n = readLn(channel,buf,length,doEcho)
+**
+** @param chan   I/O stream to read from
+** @param buf    Buffer to read into
+** @param length Maximum capacity of the buffer
+** @param doEcho Should the input be echoed on `chan`
+**
+** @returns  The count of bytes transferred, or an error code
+*/
+int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
+    
+    uint32_t i = 0;
+    int32_t result;
+    
+    char inCh = 0;
+    
+    buf[length - 1] = 0; //set last byte to null just in case
+    
+    while(i < length - 1) {
+        result = read(chan, &(inCh), 1);  //Read a char to the next idx
+        
+        
+        if(result == 0) {
+            continue;
+        } else if (result < 0) {
+            return result;
+        }
+        
+        switch(inCh) {
+            case '\b':
+                if(i >= 1) {
+                    if(doEcho) {
+                        write(chan, &inCh, 1);
+                    }
+                    
+                    i -= 1;
+                }
+                
+            case '\0':
+            case '\r':
+                continue;
+            
+            case '\n':
+                break;
+            
+            default:
+                if(doEcho) {
+                    write(chan, &inCh, 1);
+                }
+        }
+        
+        if(inCh == '\n') {
+            break;
+        }
+        
+        buf[i++] = inCh;
+    }
+    
+    if(doEcho) {
+        write(chan, "\r\n", 3);
+    }
+    
+    buf[i] = 0;
+    
+    return i;
+}
+
 /*
 **********************************************
 ** STRING MANIPULATION FUNCTIONS
@@ -114,7 +185,8 @@ int32_t swrite( const char *buf, uint32_t size ) {
 */
 
 /**
-** str2int(str,base) - convert a string to a number in the specified base
+** str2int(str,base) - convert a string to a number in the specified base 
+**                     (up to base 10)
 **
 ** @param str   The string to examine
 ** @param base  The radix to use in the conversion

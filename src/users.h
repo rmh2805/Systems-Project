@@ -130,6 +130,8 @@
 #define SPAWN_M_2
 #define SPAWN_M_3
 
+#define DO_SIGN_IN
+
 // #define DO_IDLE_PRINT
 
 //

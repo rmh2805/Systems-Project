@@ -277,7 +277,8 @@ users.o: userland/userI.c userland/userW.c userland/userJ.c userland/userY.c
 users.o: userland/main4.c userland/userX.c userland/main5.c userland/userP.c
 users.o: userland/userQ.c userland/userR.c userland/userS.c userland/main6.c
 users.o: userland/userV.c userland/mUser1.c userland/mUser2.c
-users.o: userland/mUser3.c userland/init.c userland/idle.c
+users.o: userland/mUser3.c userland/signIn.c userland/init.c
+users.o: userland/doTests.c userland/idle.c
 ulibc.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
 ulibc.o: process.h stacks.h queues.h klib.h
 ulibs.o: syscalls.h common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
