@@ -405,7 +405,8 @@ static void _sys_spawn( uint32_t args[4] ) {
     }
 
     // create the process
-    pcb_t *pcb = _proc_create( args, _next_pid++, _current->pid );
+    pcb_t *pcb = _proc_create( args, _next_pid++, _current->pid, 
+                                _current->uid, _current->gid );
     if( pcb == NULL ) {
         RET(_current) = E_NO_MEMORY;
         return;
@@ -499,12 +500,62 @@ static void _sys_wait( uint32_t args[4] ) {
     return;
 }
 
+/**
+** _sys_getuid - retrieves the uid of this process
+** 
+** implements:
+**    uid_t getuid( void );
+*/
 static void _sys_getuid ( uint32_t args[4] ) {
     RET(_current) = _current->uid;
 }
 
-static void _sys_getgid (uint32_t args[4] ) {
+/**
+** _sys_getgid - retrieves the gid of the current process
+** 
+** implements:
+**    gid_t getgid( void );
+*/
+static void _sys_getgid ( uint32_t args[4] ) {
     RET(_current) = _current->gid;
+}
+
+/**
+** _sys_setuid - attempts to modify the uid of the current process
+** 
+** implements:
+**    uint32_t setuid( uid_t uid );
+*/
+static void _sys_setuid ( uint32_t args[4] ) {
+    uid_t uid = args[0];
+    
+    if (_current->uid == uid) { // Report success for same user
+        RET(_current) = E_SUCCESS;
+    } else if (_current->uid != UID_ROOT) { // Return no permissions if non-root user
+        RET(_current) = E_NO_PERMISSION;
+    } else { // Otherwise update uid, set default gid, and return success
+        _current->uid = uid;
+        _current->gid = GID_USER;
+        RET(_current) = E_SUCCESS;
+    }
+}
+
+
+/**
+** _sys_setgid - attempts to modify the uid of the current process
+** 
+** implements:
+**    uint32_t setuid( uid_t uid );
+*/
+static void _sys_setgid ( uint32_t args[4] ) {
+    gid_t gid = args[0];
+    // If this is the user's or the open gid perform the change and return success
+    if (gid == GID_USER || gid == GID_OPEN) {
+        _current->gid = gid;
+        RET(_current) = E_SUCCESS;
+    } else { // Otherwise return lack of permission
+        RET(_current) = E_NO_PERMISSION;
+    }
 }
 
 /*
@@ -545,6 +596,8 @@ void _sys_init( void ) {
     
     _syscalls[ SYS_getuid ]   = _sys_getuid;
     _syscalls[ SYS_getgid ]   = _sys_getgid;
+    _syscalls[ SYS_setuid ]   = _sys_setuid;
+    _syscalls[ SYS_setgid ]   = _sys_setgid;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );

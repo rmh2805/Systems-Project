@@ -37,9 +37,11 @@
 // Multi user syscall definitions
 #define SYS_getuid    12
 #define SYS_getgid    13
+#define SYS_setuid    14
+#define SYS_setgid    15
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
-#define N_SYSCALLS    14
+#define N_SYSCALLS    16
 
 // dummy system call code for testing our ISR
 #define SYS_bogus     0xbad

@@ -191,23 +191,46 @@ int32_t wait( int32_t *status );
 */
 void bogus( void );
 
- /**
- ** getgid - retrieve the group id of this process
- **
- ** usage: getgid();
- **
- ** @return The current gid number of this process
- */
+/**
+** getuid - retrieve the user id of this process
+** 
+** usage: getuid();
+** 
+** @return The current uid number of this process
+*/
+uid_t getuid( void );
+
+/**
+** getgid - retrieve the group id of this process
+**
+** usage: getgid();
+**
+** @return The current gid number of this process
+*/
 gid_t getgid( void );
 
 /**
- ** getuid - retrieve the user id of this process
- ** 
- ** usage: getuid();
- ** 
- ** @return The current uid number of this process
- */
-uid_t getuid( void );
+** setuid - set the user id of this process
+* 
+* usage: setuid( uid_t uid );
+* 
+* @param uid The new uid
+* 
+* @return 0 on success, < 0 on failure (E_NO_PERMISSION if lacking permission)
+*/
+int32_t setuid( uid_t uid );
+
+
+/**
+** setgid - set the group id of this process
+* 
+* usage: setgid( gid_t gid );
+* 
+* @param gid The new gid
+* 
+* @return 0 on success, < 0 on failure (E_NO_PERMISSION if lacking permission)
+*/
+int32_t setgid( gid_t gid );
 
 /*
 **********************************************
