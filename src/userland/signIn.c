@@ -63,7 +63,7 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
     //===============<Set UID and Spawn Test Generator>===============//
     setuid(nUID);
 
-    return spawn(spawnTests, PRIO_HIGHEST, 0, 0);
+    return spawn(testShell, PRIO_STD, 0, 0);
 }
 
 #endif

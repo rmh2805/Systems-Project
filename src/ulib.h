@@ -334,6 +334,18 @@ int str2int( register const char *str, register int base );
 uint32_t strlen( const char *str );
 
 /**
+** strTrim(dst, src) - Copy the contents of src to dst, stripping leading and
+**                     trailing whitespace
+** 
+** @param dst The destination buffer
+** @param src The source string
+**
+** @return The number of bytes written to dst
+** 
+*/
+int32_t strTrim(register char * dst, register const char * src);
+
+/**
 ** strcpy(dst,src) - copy a NUL-terminated string
 **
 ** @param dst The destination buffer

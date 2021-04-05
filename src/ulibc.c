@@ -248,6 +248,34 @@ uint32_t strlen( register const char *str ) {
     return( len );
 }
 
+
+#define chIsWS(ch) (ch == ' ' || ch == '\t' || ch == '\a' || ch == '\r' || ch == '\n')
+
+/**
+** strTrim(dst, src) - Copy the contents of src to dst, stripping leading and
+**                     trailing whitespace
+** 
+** @param dst The destination buffer
+** @param src The source string
+**
+** @return The number of bytes written to dst
+** 
+*/
+int32_t strTrim(register char * dst, register const char * src) {
+    register int32_t count = 0;
+
+    while(*src == ' ' || *src == '\t' || *src == '\a' || *src == '\r' || *src == '\n') {
+        src++;
+    }
+    while((*dst++ = *src++)) {
+        count++;
+    }
+
+    return count;
+
+}
+
+
 /**
 ** strcpy(dst,src) - copy a NUL-terminated string
 **

@@ -56,7 +56,7 @@ int32_t userY( uint32_t, uint32_t ); int32_t userZ( uint32_t, uint32_t );
 
 int32_t mUser1(uint32_t, uint32_t ); int32_t mUser2(uint32_t, uint32_t );
 
-int32_t signIn(uint32_t, uint32_t );
+int32_t signIn(uint32_t, uint32_t ); int32_t testShell(uint32_t , uint32_t );
 
 /*
 ** The user processes
@@ -148,6 +148,7 @@ int32_t signIn(uint32_t, uint32_t );
 
 #if defined(DO_SIGN_IN)
 #include "userland/signIn.c"
+#include "userland/testShell.c"
 #endif
 
 /*
