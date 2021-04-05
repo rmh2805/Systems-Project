@@ -161,6 +161,10 @@ int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
         i += 1;
     }
     
+    if(doEcho) {
+            write(chan, "\r\n", 3);
+    }
+    
     return result;
 }
 

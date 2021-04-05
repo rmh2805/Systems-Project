@@ -21,7 +21,9 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
 
     int32_t result = readLn(CHAN_SIO, iBuf, nIBuf, true);
     
-
+    
+    
+    
     //uid_t uid = (uid_t) str2int(iBuf, 10);
     sprint(oBuf, "\r\n%s\r\n", iBuf);
     swrites(oBuf);
