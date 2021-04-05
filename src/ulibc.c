@@ -107,6 +107,61 @@ int32_t swrite( const char *buf, uint32_t size ) {
    return( write(CHAN_SIO,buf,size) );
 }
 
+/**
+** readLn - read into a buffer from a stream to the next newline or end 
+**          of buffer
+**
+** usage:   n = readLn(channel,buf,length,doEcho)
+**
+** @param chan   I/O stream to read from
+** @param buf    Buffer to read into
+** @param length Maximum capacity of the buffer
+** @param doEcho Should the input be echoed on `chan`
+**
+** @returns  The count of bytes transferred, or an error code
+*/
+int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
+    
+    uint32_t i = 0;
+    int32_t result;
+    
+    while(i < length - 1) {
+        result = read(chan, &(buf[i]), 1);  //Read a char to the next idx
+        
+        
+        if(result == 0) {
+            continue;
+        } else if (result < 0) {
+            break;
+        }
+        
+        switch(buf[i]) {
+            case '\b':
+                if(i >= 1) {
+                    i -= 1;
+                }
+                break;
+            case '\0':
+            case '\r':
+            case '\n':
+                break;
+            default:
+                result = i + 1;
+                if(doEcho) {
+                    write(chan, &(buf[i]), 1);
+                }
+        }
+        
+        if(buf[i] == '\n') {
+            break;
+        }
+        
+        i += 1;
+    }
+    
+    return result;
+}
+
 /*
 **********************************************
 ** STRING MANIPULATION FUNCTIONS
