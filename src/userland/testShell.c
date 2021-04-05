@@ -13,23 +13,22 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
     swrites("Test shell started\r\n");
 
     while (true) {
+        swrites("$ ");
         nRead = readLn(CHAN_SIO, iBuf, iBufSz, true);
         if(nRead < 0) {
             cwrites("TEST SHELL: **ERROR** encountered on line read\n");
             continue;
         }
 
-        int32_t trimLen = strTrim(oBuf, iBuf);
+        nRead = strTrim(oBuf, iBuf);
+        if(nRead == 0) {
+            continue;
+        }
 
-        swrites("Trimmed: \"");
-        swrites(oBuf);
-        sprint(oBuf, "\"\r\nInput:   \"%s\"\r\n", iBuf);
-        swrites(oBuf);
-        sprint(oBuf, "Trimmed Length: %d\r\n", trimLen);
-        swrites(oBuf);
-        sprint(oBuf, "Source Length: %d\r\n", strlen(iBuf));
-        swrites(oBuf);
-        swrites("\r\n");
+        if(strcmp(iBuf, "exit") == 0) {
+            exit(0);
+        }
+
     }
 
     return E_SUCCESS;
