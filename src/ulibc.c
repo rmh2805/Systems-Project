@@ -264,11 +264,24 @@ uint32_t strlen( register const char *str ) {
 int32_t strTrim(register char * dst, register const char * src) {
     register int32_t count = 0;
 
-    while(*src == ' ' || *src == '\t' || *src == '\a' || *src == '\r' || *src == '\n') {
+    while(chIsWS(*src)) {
         src++;
     }
     while((*dst++ = *src++)) {
         count++;
+    }
+
+    // //If there's only one character, it's not WS (all leading WS stripped)
+    // if(count <= 1) { 
+    //     return count;
+    // }
+    
+    dst -= 2; //roll back to and over the null terminator
+
+
+    while(chIsWS(*dst)) {
+        *dst-- = 0;
+        --count;
     }
 
     return count;
