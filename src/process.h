@@ -83,6 +83,14 @@ typedef struct context {
     uint32_t eflags;
 } context_t;
 
+/*
+ * Simple FD structure
+ */
+typedef struct fd_s {
+    uint32_t inode_id;
+    uint32_t offset;
+} fd_t;
+
 //#define PCB_FILLER
 
 // the process control block
@@ -121,6 +129,7 @@ typedef struct pcb_s {
     // filler, to round us up to 32 bytes
     // adjust this as fields are added/removed/changed
 } pcb_t;
+
 
 /*
 ** Globals

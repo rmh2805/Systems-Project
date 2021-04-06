@@ -60,4 +60,17 @@ typedef union {
 
 typedef block_t uint32_t;
 
+/*
+ * Going to use the already existing read/write syscalls 
+ */
+
+/*
+ * fopen
+ *  store inode address
+ *  index is implicet (array of descriptors)
+ *  offset into file 
+ *  2 32 bit integers
+ */
+// Store FD inside PCB
+
 #endif /* FS_H_*/
