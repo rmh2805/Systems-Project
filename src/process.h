@@ -128,9 +128,6 @@ typedef struct pcb_s {
     uint8_t ticks;          // ticks remaining in current slice
 
     fd_t files[MAX_OPEN_FILES]; // File descriptors
-
-    // filler, to round us up to 32 bytes
-    // adjust this as fields are added/removed/changed
 } pcb_t;
 
 
