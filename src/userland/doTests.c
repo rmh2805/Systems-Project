@@ -23,135 +23,123 @@
 /**
  ** spawnTests - spawns all of the top level tests (moved from baseline init)
  ** 
- ** @param arg1 Takes parent's arg1
- ** @param arg2 Takes parent's arg2
+ ** @param arg1 Which test bank (0: baseline, 1: multi-user)
+ ** @param arg2 Test identifier
  **
- ** @return Potential exit status
+ ** @return spawned process ID
  */
-int spawnTests(uint32_t arg1, uint32_t arg2) {
-    char ch = '+';
+int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
     pid_t whom;
 
-    // set up for users A, B, and C initially
-#ifdef SPAWN_A
-    whom = spawn( main1, PRIO_STD, 'A', 30 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user A failed\n" );
-    }
-    swritech( ch );
-#endif
+    char ch = '+';
 
-#ifdef SPAWN_B
-    whom = spawn( main1, PRIO_STD, 'B', 30 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user B failed\n" );
-    }
-    swritech( ch );
-#endif
-
-#ifdef SPAWN_C
-    // "main1 C 30"
-    whom = spawn( main1, PRIO_STD, 'C', 30 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user C failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // Users D and E are like A-C, but uses main2 instead
-
-#ifdef SPAWN_D
-    // "main2 D 20"
-    whom = spawn( main2, PRIO_STD, 'D', 20 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user D failed\n" );
-    }
-    swritech( ch );
-#endif
-
-#ifdef SPAWN_E
-    // "main2 E 20"
-    whom = spawn( main2, PRIO_STD, 'E', 20 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user E failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // F and G behave the same way: report, sleep, exit
-    // F sleeps for 20 seconds; G sleeps for 10 seconds
-
-#ifdef SPAWN_F
-    // "main3 F 20"
-    whom = spawn( main3, PRIO_STD, 'F', 20 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user F failed\n" );
-    }
-    swritech( ch );
-#endif
-
-#ifdef SPAWN_G
-    // "main3 G 10"
-    whom = spawn( main3, PRIO_STD, 'G', 10 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user G failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // User H tests reparenting of orphaned children
+    int32_t (*entry)(uint32_t, uint32_t);
+    prio_t prio;
+    uint32_t ch1;
+    uint32_t ch2;
     
-#ifdef SPAWN_H
-    // "userH H 4"
-    whom = spawn( userH, PRIO_STD, 'H', 4 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user H failed\n" );
+
+    switch(arg1) {
+        case 0:
+            switch(arg2) {
+                case 'A':
+                    entry = main1;
+                    prio = PRIO_STD;
+                    ch1 = 'A';
+                    ch2 = 30;
+                    break;
+
+                case 'B':
+                    entry = main1;
+                    prio = PRIO_STD;
+                    ch1 = 'B';
+                    ch2 = 30;
+                    break;
+
+                case 'C':
+                    entry = main1;
+                    prio = PRIO_STD;
+                    ch1 = 'C';
+                    ch2 = 30;
+                    break;
+
+                case 'D':
+                    entry = main2;
+                    prio = PRIO_STD;
+                    ch1 = 'D';
+                    ch2 = 20;
+                    break;
+                
+                case 'E':
+                    entry = main2;
+                    prio = PRIO_STD;
+                    ch1 = 'E';
+                    ch2 = 20;
+                    break;
+
+                case 'F':
+                    entry = main3;
+                    prio = PRIO_STD;
+                    ch1 = 'F';
+                    ch2 = 20;
+                    break;
+
+                case 'G':
+                    entry = main3;
+                    prio = PRIO_STD;
+                    ch1 = 'G';
+                    ch2 = 10;
+                    break;
+
+                case 'H':
+                    entry = userH;
+                    prio = PRIO_STD;
+                    ch1 = 'H';
+                    ch2 = 4;
+                    break;
+
+                case 'I':
+                    entry = userI;
+                    prio = PRIO_STD;
+                    ch1 = 'I';
+                    ch2 = 0;
+                    break;
+
+                case 'J':
+                    entry = userJ;
+                    prio = PRIO_STD;
+                    ch1 = 'J';
+                    ch2 = 0;
+                    break;
+
+                case 'K':
+                    entry = main4;
+                    prio = PRIO_STD;
+                    ch1 = 'K';
+                    ch2 = 17;
+                    break;
+
+                case 'L':
+                    entry = main4;
+                    prio = PRIO_STD;
+                    ch1 = 'L';
+                    ch2 = 31;
+                    break;
+
+                case 'M':
+                    entry = main5;
+                    prio = PRIO_STD;
+                    ch1 = 'M';
+                    ch2 = 5;
+                    break;
+
+            }
+            break;
+        case 1:
+            break;
+        default:
+            return E_FAILURE;
     }
-    swritech( ch );
-#endif
-
-    // User I spawns several children, kills one, and waits for all
-    
-#ifdef SPAWN_I
-    // "userI I"
-    whom = spawn( userI, PRIO_STD, 'I', 0 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user I failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // User J tries to spawn 2 * N_PROCS children
-
-#ifdef SPAWN_J
-    // "userJ J"
-    whom = spawn( userJ, PRIO_STD, 'J', 0 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user J failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // Users K and L iterate spawning copies of userX and sleeping
-    // for varying amounts of time.
-
-#ifdef SPAWN_K
-    // "main4 K 17"
-    whom = spawn( main4, PRIO_STD, 'K', 17 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user K failed\n" );
-    }
-    swritech( ch );
-#endif
-
-#ifdef SPAWN_L
-    // "main4 L 31"
-    whom = spawn( main4, PRIO_STD, 'L', 31 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user L failed\n" );
-    }
-    swritech( ch );
-#endif
 
     // Users M and N spawn copies of userW and userZ
 

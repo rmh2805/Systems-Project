@@ -212,6 +212,10 @@ qemu: usb.image
 	qemu-system-x86_64 -serial mon:stdio usb.image
 	@echo ""
 
+qemu-nox: usb.image
+	qemu-system-x86_64 -nographic usb.image
+	@echo ""
+
 #
 # Create a printable namelist from the prog.o file
 #
