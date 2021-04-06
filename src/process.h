@@ -85,6 +85,7 @@ typedef struct context {
 
 /*
  * Simple FD structure
+ * 8 bytes
  */
 typedef struct fd_s {
     uint32_t inode_id;
@@ -116,8 +117,8 @@ typedef struct pcb_s {
     pid_t pid;              // unique PID for this process
     pid_t ppid;             // PID of the parent
     
-    gid_t gid;           // group ID of this process
-    uid_t uid;           // user ID of this process
+    gid_t gid;              // group ID of this process
+    uid_t uid;              // user ID of this process
 
     // one-byte values
     state_t state;          // current state (see common.h)
@@ -125,6 +126,8 @@ typedef struct pcb_s {
 
     uint8_t quantum;        // quantum for this process
     uint8_t ticks;          // ticks remaining in current slice
+
+    fd_t files[4];          // File descriptors
 
     // filler, to round us up to 32 bytes
     // adjust this as fields are added/removed/changed
