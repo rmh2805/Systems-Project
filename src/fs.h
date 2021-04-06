@@ -1,15 +1,17 @@
 #ifndef FS_H_
 #define FS_H_
 
+#include "common.h"
+
 // Block size
 #define BLOCK_SIZE 512
 
 // Default size of char buffers
-#define BUF_SIZE BLOCK_SIZE
+#define FS_BUF_SIZE BLOCK_SIZE
 
-//#define MAX_FILENAME_SIZE 128
+#define MAX_FILENAME_SIZE 12
 
-//#define MAX_OPEN_FILES 128
+#define MAX_OPEN_FILES 4
 
 //#define MAX_DISK_SIZE (1 << 28) // 256 MB
 
@@ -20,6 +22,19 @@
 #define NUM_DIRECT_POINTERS 14
 
 #define INODES_PER_BLOCK 2
+
+typedef uint32_t block_t;
+
+typedef struct {
+        char name[12];
+        block_t block;
+} dirBlock_t;
+
+// Each is 16 bytes
+typedef union {
+    block_t blocks[4];
+    dirBlock_t dir;
+} data_u;
 
 /*
  * This structure will contain a variety of data 
@@ -43,22 +58,11 @@ struct inode {
     uint8_t pad[3]; // 3 bytes
 
     // Indirect Pointers 4 bytes
-    block_t *extBlock; // Points to a block
+    block_t extBlock; // Points to a block
 
     // Direct Pointers - each point to a block 
     data_u direct_pointers[NUM_DIRECT_POINTERS]; // (14 + 2) * 16 = 256 bytes per inode
 };
-
-// Each is 16 bytes
-typedef union {
-    block_t * blocks[4];
-    struct dir {
-        char name[12];
-        block_t * block;
-    }
-} data_u;
-
-typedef block_t uint32_t;
 
 /*
  * Going to use the already existing read/write syscalls 

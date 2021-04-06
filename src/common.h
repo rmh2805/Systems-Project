@@ -155,6 +155,11 @@ typedef int status_t;
 #define E_NO_CHILDREN   (-10)
 
 /*
+** Additional module things
+*/
+#include "fs.h"
+
+/*
 ** Additional OS-only or user-only things
 */
 

@@ -127,7 +127,7 @@ typedef struct pcb_s {
     uint8_t quantum;        // quantum for this process
     uint8_t ticks;          // ticks remaining in current slice
 
-    fd_t files[4];          // File descriptors
+    fd_t files[MAX_OPEN_FILES]; // File descriptors
 
     // filler, to round us up to 32 bytes
     // adjust this as fields are added/removed/changed

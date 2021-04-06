@@ -241,42 +241,45 @@ depend:
 bootstrap.o: bootstrap.h
 startup.o: bootstrap.h
 isr_stubs.o: bootstrap.h
-cio.o: cio.h klib.h common.h kdefs.h kmem.h compat.h support.h kernel.h
+cio.o: cio.h klib.h common.h fs.h kdefs.h kmem.h compat.h support.h kernel.h
 cio.o: x86arch.h process.h stacks.h queues.h x86pic.h
-support.o: support.h klib.h common.h kdefs.h cio.h kmem.h compat.h kernel.h
-support.o: x86arch.h process.h stacks.h queues.h x86pic.h bootstrap.h
-clock.o: x86arch.h x86pic.h x86pit.h common.h kdefs.h cio.h kmem.h compat.h
-clock.o: support.h kernel.h process.h stacks.h queues.h klib.h clock.h
-clock.o: scheduler.h
-kernel.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
-kernel.o: process.h stacks.h queues.h klib.h clock.h bootstrap.h syscalls.h
-kernel.o: sio.h scheduler.h users.h
-klibc.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
-klibc.o: process.h stacks.h queues.h klib.h
-kmem.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
-kmem.o: process.h stacks.h queues.h klib.h bootstrap.h
-process.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+support.o: support.h klib.h common.h fs.h kdefs.h cio.h kmem.h compat.h
+support.o: kernel.h x86arch.h process.h stacks.h queues.h x86pic.h
+support.o: bootstrap.h
+clock.o: x86arch.h x86pic.h x86pit.h common.h fs.h kdefs.h cio.h kmem.h
+clock.o: compat.h support.h kernel.h process.h stacks.h queues.h klib.h
+clock.o: clock.h scheduler.h
+kernel.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+kernel.o: x86arch.h process.h stacks.h queues.h klib.h clock.h bootstrap.h
+kernel.o: syscalls.h sio.h scheduler.h users.h
+klibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+klibc.o: x86arch.h process.h stacks.h queues.h klib.h
+kmem.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+kmem.o: x86arch.h process.h stacks.h queues.h klib.h bootstrap.h
+process.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 process.o: x86arch.h process.h stacks.h queues.h klib.h bootstrap.h
 process.o: scheduler.h
-queues.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
-queues.o: process.h stacks.h queues.h klib.h
-scheduler.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+queues.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+queues.o: x86arch.h process.h stacks.h queues.h klib.h
+scheduler.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 scheduler.o: x86arch.h process.h stacks.h queues.h klib.h syscalls.h
-sio.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
-sio.o: process.h stacks.h queues.h klib.h ./uart.h x86pic.h sio.h scheduler.h
-stacks.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
-stacks.o: process.h stacks.h queues.h klib.h
-syscalls.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+sio.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+sio.o: x86arch.h process.h stacks.h queues.h klib.h ./uart.h x86pic.h sio.h
+sio.o: scheduler.h
+stacks.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+stacks.o: x86arch.h process.h stacks.h queues.h klib.h
+syscalls.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 syscalls.o: x86arch.h process.h stacks.h queues.h klib.h x86pic.h ./uart.h
 syscalls.o: bootstrap.h syscalls.h scheduler.h clock.h sio.h
-users.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
-users.o: process.h stacks.h queues.h klib.h users.h userland/main1.c
-users.o: userland/main2.c userland/main3.c userland/userH.c userland/userZ.c
-users.o: userland/userI.c userland/userW.c userland/userJ.c userland/userY.c
-users.o: userland/main4.c userland/userX.c userland/main5.c userland/userP.c
-users.o: userland/userQ.c userland/userR.c userland/userS.c userland/main6.c
-users.o: userland/userV.c userland/mUser1.c userland/init.c userland/idle.c
-ulibc.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
-ulibc.o: process.h stacks.h queues.h klib.h
-ulibs.o: syscalls.h common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-ulibs.o: x86arch.h process.h stacks.h queues.h klib.h
+users.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+users.o: x86arch.h process.h stacks.h queues.h klib.h users.h
+users.o: userland/main1.c userland/main2.c userland/main3.c userland/userH.c
+users.o: userland/userZ.c userland/userI.c userland/userW.c userland/userJ.c
+users.o: userland/userY.c userland/main4.c userland/userX.c userland/main5.c
+users.o: userland/userP.c userland/userQ.c userland/userR.c userland/userS.c
+users.o: userland/main6.c userland/userV.c userland/mUser1.c userland/init.c
+users.o: userland/idle.c
+ulibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+ulibc.o: x86arch.h process.h stacks.h queues.h klib.h
+ulibs.o: syscalls.h common.h fs.h kdefs.h cio.h kmem.h compat.h support.h
+ulibs.o: kernel.h x86arch.h process.h stacks.h queues.h klib.h
