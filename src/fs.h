@@ -77,16 +77,41 @@ struct inode {
  */
 
 /*
- * fopen
- *  Check that we can open a new file (fd available)
- *  Grab file's inode id from provided path
- *      return error on directory
- *      return error(?) on undefined file (possibly create file)
- *  Set next free process FD with inode's ID and 0 offset
- *  Return FD index + 2 (chanel number)
+ *  - fOpen
+ *      - Check that we can open a new file (fd available)
+ *      - Grab file's inode id from provided path
+ *          - return error on directory
+ *          - return error(?) on undefined file (possibly call fCreate)
+ *      - Set next free process FD with inode's ID and 0 offset
+ *      - Return FD index + 2 (chanel number)
+ *
+ *  - fClose
+ *      - null out the proper FD
+ *  
+ *  - fCreate
+ *      - creates a new inode reference within a directory
+ *      - Fail on overwrite
+ *      - Takes a name and a type (file, directory, link)
+ *
+ *  - fRm
+ *      - removes an inode reference from a directory
+ *      - fail on free root, self reference ('.') or parent ('..')
+ *      - fail on rm last link to non-empty directory
+ *      - if that was the final reference to an inode, also free the referenced 
+ *      inode and its associated blocks
+ * 
+ *  - getInode
+ *      - Get the metadata of an inode at the end of a path
+ * 
+ *  - dirName
+ *      - Handling indirect directory listings
+ * 
+ *  - _fs_read(fd_t fd, char* buf, uint32_t length)
+ *      - Returns number of bytes read
+ *      - links heavily into the driver
  */
 
-
+//todo describe _fs_write
 
 // In FS module: _fs_read(), _fs_write()
 
