@@ -33,24 +33,25 @@ struct inode {
     // Permission information
     uid_t uid;
     gid_t gid; 
-    uint32_t permissions;
-    uint32_t nodeType;
+    uint32_t permissions: 24;
+    uint32_t nodeType: 8;
 
-    uint8_t lock; // Spinlock? 
-    
     // Direct Pointers - each point to a block
-    data_u direct_pointers[DIRECT_POINTER_SIZE]; // 15 * 4 = 60 bytes
+    data_u direct_pointers[DIRECT_POINTER_SIZE]; // * 16 = 
 
     // Indirect Pointers
-    block_t *extBlock;
-    uint32_t pad;
+    block_t *extBlock; // Points to a block
+
+    // Padding + lock = 4
+    uint8_t lock;
+    uint8_t pad[3];
 };
 
-// Each is 20 bytes
+// Each is 16 bytes
 typedef union {
-    block_t * blocks[5];
+    block_t * blocks[4];
     struct dir {
-        char name[16];
+        char name[12];
         block_t * block;
     }
 } data_u;
