@@ -25,17 +25,16 @@
  */
 struct inode {
     // Meta Data
-    unsigned short mode; // This is the same as umode_t
-    uint32_t size; 
     uint32_t id;
-    enum inode_type type;
     uint32_t nBlocks;
     uint32_t nBytes;
+    uint32_t nRefs;
 
     // Permission information
     uid_t uid;
     gid_t gid; 
     uint32_t permissions;
+    uint32_t nodeType;
 
     uint8_t lock; // Spinlock? 
     
@@ -43,6 +42,8 @@ struct inode {
     data_u direct_pointers[DIRECT_POINTER_SIZE]; // 15 * 4 = 60 bytes
 
     // Indirect Pointers
+    block_t *extBlock;
+    uint32_t pad;
 };
 
 // Each is 20 bytes
@@ -54,14 +55,6 @@ typedef union {
     }
 } data_u;
 
-
-struct block_t {
-
-};
-
-enum inode_type {
-    NORMAL_FILE,
-    NORMAL_DIR,
-}
+typedef block_t uint32_t;
 
 #endif /* FS_H_*/
