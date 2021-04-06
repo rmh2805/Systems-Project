@@ -69,12 +69,27 @@ struct inode {
  */
 
 /*
- * fopen
- *  store inode address
- *  index is implicet (array of descriptors)
- *  offset into file 
- *  2 32 bit integers
+ * Unused id == 0
+ * Root id   == 1
+ * 
+ * "device" 0 is reserved
+ * boot device as 1
  */
+
+/*
+ * fopen
+ *  Check that we can open a new file (fd available)
+ *  Grab file's inode id from provided path
+ *      return error on directory
+ *      return error(?) on undefined file (possibly create file)
+ *  Set next free process FD with inode's ID and 0 offset
+ *  Return FD index + 2 (chanel number)
+ */
+
+
+
+// In FS module: _fs_read(), _fs_write()
+
 // Store FD inside PCB
 
 #endif /* FS_H_*/
