@@ -21,39 +21,28 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
         }
 
         nRead = strTrim(iBuf, iBuf);
-        if(nRead == 0) {
+        if(nRead == 0) {    // Skip empty commands
             continue;
-        }
-
-        if(strcmp(iBuf, "help") == 0) {
+        } else if(strcmp(iBuf, "help") == 0) {  // Print command lists
             swrites("\r\nMain test shell help:\r\n");
             swrites("\thelp: prints this screen\r\n");
             swrites("\tlogout: return to sign in\r\n");
+            swrites("\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
             swrites("\tlist [bank]: List all tests (if bank is specified, all tests in it)\r\n");
             swrites("\ttest <bank> <test>: perform test x from bank n\r\n");
 
-            continue;
-        }
 
-        if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
-            strcmp(iBuf, "logout") == 0 || strcmp(iBuf, "`") == 0) {
+        } else if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
+            strcmp(iBuf, "logout") == 0 || strcmp(iBuf, "`") == 0) {    // Exit
             swrites("Exiting\r\n");
             exit(0);
 
-            continue;
-        }
-
-        if(nRead < 4) {
-            swrites("Unrecognized command, try \"help\" for a list of commands\r\n");
-            continue;
-        }
-
-        if(strncmp(iBuf, "list", 4) == 0) {
+        } else if(strncmp(iBuf, "list", 4) == 0) {  // list tests
             char* tmp = &iBuf[4];
             while(*tmp == ' ') tmp++;
             listTests(CHAN_SIO, *tmp);
 
-        } else if(strncmp(iBuf, "test", 4) == 0) {
+        } else if(strncmp(iBuf, "test", 4) == 0) {  // Test Spawning
             // Gather test parameters (bank and selector)
             char* tmp = &iBuf[4];
 
@@ -92,7 +81,26 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             cwrites(oBuf);
             swrites("\r\n");
 
-        } else {
+        } else if (strncmp(iBuf, "setgid", 6) == 0) {
+            int32_t result = 0;
+            gid_t gid = GID_USER;
+
+            nRead = strTrim(oBuf, &iBuf[6]);
+            if(nRead > 0) {
+                gid = str2int(oBuf, 10);
+            }
+
+            result = setgid(gid);
+
+            if(result < 0) {
+                sprint(oBuf, "Failed to set GID to %d (exit code %d)\r\n", gid, result);
+            } else {
+                sprint(oBuf, "Set GID to %d (exit code %d)\r\n", gid, result);
+            }
+
+            swrites(oBuf);
+
+        } else {    //Unknown Command
             swrites("Unrecognized command, try \"help\" for a list of commands\r\n");
         }
 
