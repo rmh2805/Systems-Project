@@ -85,6 +85,7 @@ int init( uint32_t arg1, uint32_t arg2 ) {
                 }
             } else if(logonShell) {
                 sprint(buf, "INIT: tracking primary shell (pid %d)\n", status);
+                cwrites(buf);
                 shellID = status;
                 logonShell = false;
             } else {
