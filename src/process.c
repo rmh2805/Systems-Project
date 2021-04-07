@@ -512,8 +512,8 @@ void _active_dump( const char *msg, bool_t all ) {
             }
 
             // things that are always printed
-            __cio_printf( " #%d: %d/%d %d", i, pcb->pid, pcb->ppid,
-                          pcb->state );
+            __cio_printf( " #%d: %d/%d %d %d %d", i, pcb->pid, pcb->ppid, 
+                            pcb->uid, pcb->gid, pcb->state );
             // do we want more info?
             if( all ) {
                 __cio_printf( " stk %08x EIP %08x\n",
