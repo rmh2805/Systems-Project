@@ -225,11 +225,62 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
 
 void listTests(int chan, char bank) {
     char oBuf[96];
+    bool_t didPrint = false;
     
     if(bank == '0' || bank == 0) {
-        sprint(oBuf, "Baseline tests (bank 0):\r\n");
+        didPrint = true;
+
+        sprint(oBuf, "\tBaseline tests (bank 0):\r\n");
         write(chan, oBuf, strlen(oBuf));
-        sprint(oBuf, "\tA, B, C: Print out name a finite nr of times w/ delays\r\n");
+        sprint(oBuf, "\t\tA, B, C: Print out name a finite nr of times w/ delays\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t   D, E: Like A-C, but also checks write's return\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t   F, G: Report, sleep (10 and 20 secs) and exit\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      H: Test orphan reparenting\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      I: Test killing children\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      J: Test overflow proc table\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t   K, L: Iterate spawning user X and sleeping\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t   M, N: Test various syscalls through children\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      P: Iterates reporting time and sleeping\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      Q: Tests a bad syscall\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      R: Echo SIO forever (NO EXIT!!!)\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      S: Sleep forever (NO EXIT!!!)\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t   T, U: Spawn user W copies and then wait or kill them\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t   V: Play with process priority\r\n\r\n");
+        write(chan, oBuf, strlen(oBuf));
+    }
+
+    if(bank == '1' || bank == 0) {
+        didPrint = true;
+
+        sprint(oBuf, "\tMulti User tests (bank 1):\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t1: Print own uid and gid\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t2: Test modifying own uid and gid\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t3: Test uid/gid inheretence\r\n");
+        write(chan, oBuf, strlen(oBuf));
+    }
+
+    if(!didPrint || bank == 0) {
+        sprint(oBuf, "\tValid Banks:\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t0: Baseline tests\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t1: Multi-User tests\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 

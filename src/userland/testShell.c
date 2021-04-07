@@ -29,8 +29,8 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("\r\nMain test shell help:\r\n");
             swrites("\thelp: prints this screen\r\n");
             swrites("\tlogout: return to sign in\r\n");
-            swrites("\tlist [n]: List all tests (if n is specified, all tests in that bank)\r\n");
-            swrites("\ttest n x: perform test x from bank n\r\n");
+            swrites("\tlist [bank]: List all tests (if bank is specified, all tests in it)\r\n");
+            swrites("\ttest <bank> <test>: perform test x from bank n\r\n");
 
             continue;
         }
@@ -49,13 +49,10 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
         }
 
         if(strncmp(iBuf, "list", 4) == 0) {
-            if(nRead == 4) {
-                listTests(CHAN_SIO, 0);
-            }
-
             char* tmp = &iBuf[4];
             while(*tmp == ' ') tmp++;
             listTests(CHAN_SIO, *tmp);
+
         } else if(strncmp(iBuf, "test", 4) == 0) {
             // Gather test parameters (bank and selector)
             char* tmp = &iBuf[4];
