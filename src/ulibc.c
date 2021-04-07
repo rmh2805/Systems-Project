@@ -309,6 +309,25 @@ char *strcpy( register char *dst, register const char *src ) {
 }
 
 /**
+** strncpy(dst,src, n) - copy a NUL-terminated string
+**
+** @param dst The destination buffer
+** @param src The source buffer
+** @param n The max number of bytes to copy
+**
+** @return The dst parameter
+**
+** NOTE:  Will not guarantee null termination
+*/
+char *strncpy(register char *dst, register const char *src, register uint32_t n) {
+    register char *tmp = dst;
+
+    while((*dst++ = *src++) && n--);
+
+    return (tmp);
+}
+
+/**
 ** strcat(dst,src) - append one string to another
 **
 ** @param dst The destination buffer
