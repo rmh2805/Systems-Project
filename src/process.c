@@ -201,6 +201,8 @@ void _pcb_cleanup( pcb_t *pcb ) {
         _stk_free( pcb->stack );
     }
 
+    --_active_procs;
+
     // release the PCB
     _pcb_free( pcb );
 }
