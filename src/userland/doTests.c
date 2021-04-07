@@ -223,12 +223,15 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
     return spawn(entry, prio, ch1, ch2);
 }
 
-void listTests(int chan) {
+void listTests(int chan, char bank) {
     char oBuf[96];
+    
+    if(bank == '0' || bank == 0) {
+        sprint(oBuf, "Baseline tests (bank 0):\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\tA, B, C: Print out name a finite nr of times w/ delays\r\n");
+        write(chan, oBuf, strlen(oBuf));
+    }
 
-    sprint(oBuf, "Baseline tests (bank 0):\r\n");
-    write(chan, oBuf, strlen(oBuf));
-    sprint(oBuf, "\tA, B, C: Print out name a finite nr of times w/ delays\r\n");
-    write(chan, oBuf, strlen(oBuf));
 }
 #endif
