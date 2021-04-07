@@ -322,7 +322,7 @@ char *strcpy( register char *dst, register const char *src ) {
 char *strncpy(register char *dst, register const char *src, register uint32_t n) {
     register char *tmp = dst;
 
-    while((*dst++ = *src++) && n--);
+    while((*dst++ = *src++) && --n);
 
     return (tmp);
 }
@@ -360,6 +360,24 @@ char *strcat( register char *dst, register const char *src ) {
 int strcmp( register const char *s1, register const char *s2 ) {
 
     while( *s1 != 0 && (*s1 == *s2) )
+        ++s1, ++s2;
+
+    return( *(const unsigned char *)s1 - *(const unsigned char *)s2 );
+}
+
+/**
+** strncmp(s1,s2,n) - compare up to the first n characters of two NUL-terminated 
+**                    strings
+**
+** @param s1 The first source string
+** @param s2 The second source string
+** @param n The max nr of characters to compare
+**
+** @return negative if s1 < s2, zero if equal, and positive if s1 > s2
+*/
+int strncmp( register const char *s1, register const char *s2, register uint32_t n) {
+
+    while( *s1 != 0 && (*s1 == *s2)  && --n)
         ++s1, ++s2;
 
     return( *(const unsigned char *)s1 - *(const unsigned char *)s2 );

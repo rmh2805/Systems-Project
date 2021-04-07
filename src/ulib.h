@@ -395,6 +395,18 @@ char *strcat( register char *dst, register const char *src );
 int strcmp( register const char *s1, register const char *s2 );
 
 /**
+** strncmp(s1,s2,n) - compare up to the first n characters of two NUL-terminated 
+**                    strings
+**
+** @param s1 The first source string
+** @param s2 The second source string
+** @param n The max nr of characters to compare
+**
+** @return negative if s1 < s2, zero if equal, and positive if s1 > s2
+*/
+int strncmp( register const char *s1, register const char *s2, register uint32_t n);
+
+/**
 ** pad(dst,extra,padchar) - generate a padding string
 **
 ** @param dst     Pointer to where the padding should begin
