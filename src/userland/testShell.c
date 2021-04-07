@@ -90,6 +90,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
 
             sprint(oBuf, "SHELL: Test process (pid %d) returned status %d\r\n", whom, status);
             cwrites(oBuf);
+            swrites("\r\n");
 
         } else {
             swrites("Unrecognized command, try \"help\" for a list of commands\r\n");
