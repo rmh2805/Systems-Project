@@ -23,16 +23,12 @@
 /**
  ** spawnTests - spawns all of the top level tests (moved from baseline init)
  ** 
- ** @param arg1 Which test bank (0: baseline, 1: multi-user)
- ** @param arg2 Test identifier
+ ** @param arg1 char, test bank selector (0: baseline, 1: multi-user)
+ ** @param arg2 char, test selector
  **
  ** @return spawned process ID
  */
 int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
-    pid_t whom;
-
-    char ch = '+';
-
     int32_t (*entry)(uint32_t, uint32_t);
     prio_t prio;
     uint32_t ch1;
@@ -40,7 +36,7 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
     
 
     switch(arg1) {
-        case 0:
+        case '0': // Baseline tests
             switch(arg2) {
                 case 'A':
                     entry = main1;
@@ -133,152 +129,106 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
                     ch2 = 5;
                     break;
 
+                case 'N':
+                    entry = main5;
+                    prio = PRIO_STD;
+                    ch1 = 'N';
+                    ch2 = (1 << 8) + 5;
+                    break;
+
+                case 'P':
+                    entry = userP;
+                    prio = PRIO_STD;
+                    ch1 = 'P';
+                    ch2 = (3 << 8) + 2;
+                    break;
+
+                case 'Q':
+                    entry = userQ;
+                    prio = PRIO_STD;
+                    ch1 = 'Q';
+                    ch2 = 0;
+                    break;
+
+                case 'R':
+                    entry = userR;
+                    prio = PRIO_STD;
+                    ch1 = 'R';
+                    ch2 = 10;
+                    break;
+
+                case 'S':
+                    entry = userS;
+                    prio = PRIO_STD;
+                    ch1 = 'S';
+                    ch2 = 20;
+                    break;
+
+                case 'T':
+                    entry = main6;
+                    prio = PRIO_STD;
+                    ch1 = 'T';
+                    ch2 = (1 << 8) + 6;
+                    break;
+                
+                case 'U':
+                    entry = main6;
+                    prio = PRIO_STD;
+                    ch1 = 'U';
+                    ch2 = 6;
+                    break;
+
+                case 'V':
+                    entry = userV;
+                    prio = PRIO_STD;
+                    ch1 = 'V';
+                    ch2 = (10 << 8) + 5;
+                    break;
+                
+                default:
+                    return E_FAILURE;
             }
             break;
-        case 1:
+        case '1': // Multi-user tests
+            switch(arg2) {
+                case '1':
+                    entry = mUser1;
+                    prio = PRIO_STD;
+                    ch1 = 1;
+                    ch2 = 0;
+                    break;
+
+                case '2':
+                    entry = mUser2;
+                    prio = PRIO_STD;
+                    ch1 = 2;
+                    ch2 = 0;
+                    break;
+
+                case '3':
+                    entry = mUser3;
+                    prio = PRIO_STD;
+                    ch1 = 3;
+                    ch2 = 0;
+                    break;
+                
+                default:
+                    return E_FAILURE;
+            }
             break;
-        default:
+        default: // Unknown test banks
             return E_FAILURE;
-    }
+    } 
 
-    // Users M and N spawn copies of userW and userZ
-
-#ifdef SPAWN_M
-    // "main5 M 5"
-    whom = spawn( main5, PRIO_STD, 'M', 5 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user M failed\n" );
-    }
-    swritech( ch );
-#endif
-
-#ifdef SPAWN_N
-    // "main5 N (1 << 8) | 5"
-    whom = spawn( main5, PRIO_STD, 'N', (1 << 8) + 5 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user N failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // There is no user O
-
-    // User P iterates, reporting system time and sleeping
-
-#ifdef SPAWN_P
-    // "userP P 3<<8 + 2"
-    whom = spawn( userP, PRIO_STD, 'P', (3 << 8) + 2 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user P failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // User Q tries to execute a bad system call
-
-#ifdef SPAWN_Q
-    // "userQ Q"
-    whom = spawn( userQ, PRIO_STD, 'Q', 0 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user Q failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // User R reads from the SIO one character at a time, forever
-
-#ifdef SPAWN_R
-    // "userR 10"
-    whom = spawn( userR, PRIO_STD, 'R', 10 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user R failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // User S loops forever, sleeping on each iteration
-
-#ifdef SPAWN_S
-    // "userS 20"
-    whom = spawn( userS, PRIO_STD, 'S', 20 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user S failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // Users T and U run main6(); they spawn copies of userW,
-    // then wait for them all or kill them all
-
-#ifdef SPAWN_T
-    // User T:  wait for any child each time
-    // "main6 T 1 << 8 + 6"
-    whom = spawn( main6, PRIO_STD, 'T', (1 << 8) + 6 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user T failed\n" );
-    }
-    swritech( ch );
-#endif
-
-#ifdef SPAWN_U
-    // User U:  kill all children
-    // "main6 U 6"
-    whom = spawn( main6, PRIO_STD, 'U', 6 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user U failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // User V plays with its process priority a lot
-
-#ifdef SPAWN_V
-    // User V:  get and set priority
-    // "userV V 10 << 8 + 5"
-    whom = spawn( userV, PRIO_HIGHEST, 'V', (10 << 8) + 5 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() user V failed\n" );
-    }
-    swritech( ch );
-#endif
-
-    // M User 1 performs tests on the getters for gid and uid
-
-#ifdef SPAWN_M_1
-    // M User 1: get and display uid and gid
-    whom = spawn( mUser1, PRIO_HIGHEST, 1, 0 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() M User 1 failed\n" );
-    }
-    swritech( ch );
-
-#endif
-
-    // M User 2 plays with basic setting of uid and gid, both legal and illegal
-
-#ifdef SPAWN_M_2
-    // M User 2: Test changing gid and uid
-    whom = spawn( mUser2, PRIO_HIGHEST, 2, 0 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() M User 2 failed\n" );
-    }
-    swritech( ch );
-
-#endif
-
-    // M User 3 tests inheretence of uid and gid by child processes
-
-#ifdef SPAWN_M_3
-    // M User 3: test inhereting gid and uid
-    whom = spawn( mUser3, PRIO_HIGHEST, 3, 0 );
-    if( whom < 0 ) {
-        cwrites( "init, spawn() M User 3 failed\n" );
-    }
-    swritech( ch );
-
-#endif
-
-    return E_SUCCESS;
+    return spawn(entry, prio, ch1, ch2);
 }
 
+void listTests(int chan) {
+    char oBuf[96];
+
+    sprint(oBuf, "Baseline tests (bank 0):\r\n");
+    write(chan, oBuf, strlen(oBuf));
+    sprint(oBuf, "\tA, B, C: Print out name a finite nr of times w/ delays\r\n");
+    write(chan, oBuf, strlen(oBuf));
+}
 #endif
