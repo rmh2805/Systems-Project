@@ -47,6 +47,8 @@ unsigned int	curr_x, curr_y;
 unsigned int	min_x, min_y;
 unsigned int	max_x, max_y;
 
+bool_t			_cio_last_ret;
+
 // pointer to input notification function
 static void (*__c_notify)(int);
 
@@ -166,12 +168,15 @@ void __cio_putchar( unsigned int c ){
 	switch( c & 0xff ){
 	case '\n':
 		/*
-		** Erase to the end of the line, then move to new line
-		** (actual scroll is delayed until next output appears).
+		** Erase to the end of the line (unless preceded by carriage return), 
+		** then move to new line (actual scroll is delayed until next output 
+		** appears).
 		*/
-		while( curr_x <= scroll_max_x ){
-			__c_putchar_at( curr_x, curr_y, ' ' );
-			curr_x += 1;
+		if(!_cio_last_ret) {
+			while( curr_x <= scroll_max_x ){
+				__c_putchar_at( curr_x, curr_y, ' ' );
+				curr_x += 1;
+			}
 		}
 		curr_x = scroll_min_x;
 		curr_y += 1;
@@ -191,6 +196,9 @@ void __cio_putchar( unsigned int c ){
 		break;
 	}
 	__c_setcursor();
+
+	
+	_cio_last_ret = ((c & 0xff) == '\r');
 }
 #endif
 
@@ -633,6 +641,11 @@ void __cio_init( void (*fcn)(int) ){
 	scroll_min_y = SCREEN_MIN_Y;
 	scroll_max_x = SCREEN_MAX_X;
 	scroll_max_y = SCREEN_MAX_Y;
+
+	/*
+	** Start tracking for windows-style newlines
+	*/
+	_cio_last_ret = false;
 
 	/*
 	** Initial cursor location
