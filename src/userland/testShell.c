@@ -24,7 +24,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
         if(nRead == 0) {    // Skip empty commands
             continue;
         } else if(strcmp(iBuf, "help") == 0) {  // Print command lists
-            swrites("\r\nMain test shell help:\r\n");
+            swrites("Main test shell help:\r\n");
             swrites("\thelp: prints this screen\r\n");
             swrites("\tlogout: return to sign in\r\n");
             swrites("\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
@@ -62,7 +62,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             pid_t whom, test = spawnTests(ch1, *tmp);
 
             if(test < 0) {
-                sprint(oBuf, "SHELL: **ERROR** Failure to spawn test (spawn returned %d)\r\n", whom);
+                sprint(oBuf, "SHELL: **ERROR** Failure to spawn test (spawn returned %d)\r\n", test);
                 cwrites(oBuf);
                 swrites(&oBuf[7]);
                 continue;
@@ -79,7 +79,6 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
 
             sprint(oBuf, "SHELL: Test process (pid %d) returned status %d\r\n", whom, status);
             cwrites(oBuf);
-            swrites("\r\n");
 
         } else if (strncmp(iBuf, "setgid", 6) == 0) {
             int32_t result = 0;
@@ -103,6 +102,8 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
         } else {    //Unknown Command
             swrites("Unrecognized command, try \"help\" for a list of commands\r\n");
         }
+        
+        swrites("\r\n");
 
     }
 

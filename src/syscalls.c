@@ -295,6 +295,13 @@ static void _sys_kill( uint32_t args[4] ) {
         return;
     }
     
+    // Can only kill your own procs (unless root)
+    if(_current->uid != 0 && _current->uid != pcb->uid) {
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+    
+    
     // how we process the victim depends on its current state:
     switch( pcb->state ) {
     

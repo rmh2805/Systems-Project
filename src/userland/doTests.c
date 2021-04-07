@@ -214,6 +214,13 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
                     ch1 = 3;
                     ch2 = 0;
                     break;
+                    
+                case '4':
+                    entry = mUser4;
+                    prio = PRIO_STD;
+                    ch1 = 4;
+                    ch2 = 0;
+                    break;
                 
                 default:
                     return E_FAILURE;
@@ -261,7 +268,7 @@ void listTests(int chan, char bank) {
         write(chan, oBuf, strlen(oBuf));
         sprint(oBuf, "\t\t   T, U: Spawn user W copies and then wait or kill them\r\n");
         write(chan, oBuf, strlen(oBuf));
-        sprint(oBuf, "\t\t   V: Play with process priority\r\n\r\n");
+        sprint(oBuf, "\t\t      V: Play with process priority\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 
@@ -270,22 +277,23 @@ void listTests(int chan, char bank) {
 
         sprint(oBuf, "\tMulti User tests (bank 1):\r\n");
         write(chan, oBuf, strlen(oBuf));
-        sprint(oBuf, "\t\t1: Print own uid and gid\r\n");
+        sprint(oBuf, "\t\t      1: Print own uid and gid\r\n");
         write(chan, oBuf, strlen(oBuf));
-        sprint(oBuf, "\t\t2: Test modifying own uid and gid\r\n");
+        sprint(oBuf, "\t\t      2: Test modifying own uid and gid\r\n");
         write(chan, oBuf, strlen(oBuf));
-        sprint(oBuf, "\t\t3: Test uid/gid inheretence\r\n");
+        sprint(oBuf, "\t\t      3: Test uid/gid inheretence\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      4: Test restrictions on kill\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 
     if(!didPrint || bank == 0) {
         sprint(oBuf, "\tValid Banks:\r\n");
         write(chan, oBuf, strlen(oBuf));
-        sprint(oBuf, "\t\t0: Baseline tests\r\n");
+        sprint(oBuf, "\t\t      0: Baseline tests\r\n");
         write(chan, oBuf, strlen(oBuf));
-        sprint(oBuf, "\t\t1: Multi-User tests\r\n");
+        sprint(oBuf, "\t\t      1: Multi-User tests\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
-
 }
 #endif
