@@ -73,9 +73,9 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
                 continue;
             }
 
-            pid_t whom = spawnTests(ch1, *tmp);
+            pid_t whom, test = spawnTests(ch1, *tmp);
 
-            if(whom < 0) {
+            if(test < 0) {
                 sprint(oBuf, "SHELL: **ERROR** Failure to spawn test (spawn returned %d)\r\n", whom);
                 cwrites(oBuf);
                 swrites(&oBuf[7]);
@@ -87,7 +87,9 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             cwrites(oBuf);
 
             status_t status;
-            whom = wait(&status);
+            do {    // Wait for test process to return
+                whom = wait(&status);
+            } while (whom != test);
 
             sprint(oBuf, "SHELL: Test process (pid %d) returned status %d\r\n", whom, status);
             cwrites(oBuf);
