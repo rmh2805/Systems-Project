@@ -37,6 +37,9 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
 
     switch(arg1) {
         case '0': // Baseline tests
+            if(arg2 >= 'a' && arg2 <= 'z') 
+                arg2 = arg2 - 'a' + 'A';
+
             switch(arg2) {
                 case 'A':
                     entry = main1;
