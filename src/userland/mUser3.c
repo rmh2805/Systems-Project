@@ -25,6 +25,8 @@ int mUser3(uint32_t arg1, uint32_t arg2) {
         if( whom < 0 ) {
             cwrites( "M user 3, spawn() failed\n" );
             swrites( "M user 3, spawn() failed\r\n" );
+        } else {
+            wait(NULL);
         }
 
         
@@ -42,6 +44,8 @@ int mUser3(uint32_t arg1, uint32_t arg2) {
         if( whom < 0 ) {
             cwrites( "M user 3, spawn() failed\n" );
             swrites( "M user 3, spawn() failed\r\n" );
+        } else {
+            wait(NULL);
         }
     }
 
@@ -56,6 +60,8 @@ int mUser3(uint32_t arg1, uint32_t arg2) {
     if( whom < 0 ) {
         cwrites( "M user 3, spawn() failed\n" );
         swrites( "M user 3, spawn() failed\r\n" );
+    } else {
+        wait(NULL);
     }
 
     return (E_SUCCESS);
