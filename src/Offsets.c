@@ -80,11 +80,17 @@ int main( void ) {
     printf( "   pid:\t\t%d\n", (char *)&pcb.pid - (char *)&pcb );
     printf( "   ppid:\t%d\n", (char *)&pcb.ppid - (char *)&pcb );
 
+    printf( "   uid:\t\t%d\n", (char *) &pcb.uid - (char *)&pcb );
+    printf( "   gid:\t\t%d\n", (char *) &pcb.gid - (char *)&pcb );
+
     printf( "   state:\t%d\n", (char *)&pcb.state - (char *)&pcb );
     printf( "   priority:\t%d\n", (char *)&pcb.priority - (char *)&pcb );
     printf( "   quantum:\t%d\n",(char *)&pcb.quantum - (char *)&pcb);
     printf( "   ticks:\t%d\n",(char *)&pcb.ticks - (char *)&pcb);
+
+#ifdef PCB_FILLER
     printf( "   filler:\t%d\n",(char *)&pcb.filler - (char *)&pcb);
+#endif
 
     return( 0 );
 }
