@@ -8,7 +8,6 @@ int mUser1(uint32_t arg1, uint32_t arg2) {
     
     sprint(buf, "M User %d.%d reports uid %d\r\nM User %d.%d reports gid %0d\r\n", 
             arg1, arg2, (uint32_t)uid, arg1, arg2, (uint32_t) gid);
-    cwrites(buf);
     swrites(buf);
     
     return (0);
