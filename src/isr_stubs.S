@@ -184,9 +184,9 @@ __isr_restore:
         // EBX still points to the current process' PCB
 
         xorl    %eax, %eax
-        movw    18(%ebx), %ax   // PPID
+        movw    22(%ebx), %ax   // PPID
         pushl   %eax
-        movw    16(%ebx), %ax   // PID
+        movw    20(%ebx), %ax   // PID
         pushl   %eax
 
         movl    _system_time, %eax      // current time, lower half

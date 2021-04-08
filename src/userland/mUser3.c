@@ -4,13 +4,11 @@
 int mUser3(uint32_t arg1, uint32_t arg2) {
     int32_t result = setgid(GID_OPEN);
     if (result < 0) {
-        cwrites("M User 3 reporting failure to change gid\n");
-        swrites("M User 3 reporting failure to change gid\n");
+        swrites("M User 3 reporting failure to change gid\r\n");
         return (-1);
     }
 
-    cwrites("\nM User 3 reporting initial values\n");
-    swrites("M User 3 reporting initial values\n");
+    swrites("M User 3 reporting initial values\r\n");
 
     
 
@@ -21,12 +19,14 @@ int mUser3(uint32_t arg1, uint32_t arg2) {
     if(uid == UID_ROOT) {
         // Test inhereting group membership as group
 
-        cwrites("\nM User 3 testing group inheretence as root\n");
-        swrites("M User 3 testing group inheretence as root\n");
+        swrites("M User 3 testing group inheretence as root\r\n");
         
         whom = spawn( mUser1, PRIO_HIGHEST, arg1, ++arg2 );
         if( whom < 0 ) {
             cwrites( "M user 3, spawn() failed\n" );
+            swrites( "M user 3, spawn() failed\r\n" );
+        } else {
+            wait(NULL);
         }
 
         
@@ -34,32 +34,34 @@ int mUser3(uint32_t arg1, uint32_t arg2) {
         
         result = setuid(100);
         if (result < 0) {
-            cwrites("M User 3 reporting failure to change uid\n");
-            swrites("M User 3 reporting failure to change uid\n");
+            swrites("M User 3 reporting failure to change uid\r\n");
             return (-1);
         }
 
-        cwrites("\nM User 3 testing changed user inheretence\n");
-        swrites("M User 3 testing changed user inheretence\n");
+        swrites("M User 3 testing changed user inheretence\r\n");
         
         whom = spawn( mUser1, PRIO_HIGHEST, arg1, ++arg2 );
         if( whom < 0 ) {
             cwrites( "M user 3, spawn() failed\n" );
+            swrites( "M user 3, spawn() failed\r\n" );
+        } else {
+            wait(NULL);
         }
     }
 
     result = setgid(GID_OPEN);
     if (result < 0) {
-        cwrites("M User 3 reporting failure to change gid\n");
-        swrites("M User 3 reporting failure to change gid\n");
+        swrites("M User 3 reporting failure to change gid\r\n");
         return (-1);
     }
-    cwrites("\nM User 3 testing group inheretence as user\n");
-    swrites("M User 3 testing group inheretence as user\n");
+    swrites("M User 3 testing group inheretence as user\r\n");
     
     whom = spawn( mUser1, PRIO_HIGHEST, arg1, ++arg2 );
     if( whom < 0 ) {
         cwrites( "M user 3, spawn() failed\n" );
+        swrites( "M user 3, spawn() failed\r\n" );
+    } else {
+        wait(NULL);
     }
 
     return (E_SUCCESS);
