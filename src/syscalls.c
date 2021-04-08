@@ -25,6 +25,8 @@
 #include "cio.h"
 #include "sio.h"
 
+#include "fs.h"
+
 // copied from ulib.h
 extern void exit_helper( void );
 
@@ -565,6 +567,43 @@ static void _sys_setgid ( uint32_t args[4] ) {
     }
 }
 
+/**
+ ** _sys_fopen - attempts to open a file and store its FD in the PCBs block
+ **
+ ** implements: 
+ **    uint32_t fopen(char * path);
+ */
+static void _sys_fopen( uint32_t args[4] ) {
+    char * path = args[0]; // Get path given to user
+    // Check if process has available files
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+        if(_current->files[i].inode_id == 0) {
+            break;
+        } else if (i == MAX_OPEN_FILES - 1) {
+            RET(_current) = E_FILE_LIMIT; // ERROR NO FILES AVAILABLE
+            return;
+        }       
+    }
+    uint32_t inode_id;
+    // get inode_id here from somehwere using path 
+    //   NEED TO HAVE DRIVER RUNNING
+    //     GOTO WORKING DIR OR ROOT 
+    //       THEN SEARCH FOR CHILD DIR AND KEEP GOING UNTIL FIND FILE INODE
+    //          CHECK IF YOU CAN OPEN IT (PERMISSIONS) AND IT EXISTS
+    //   THEN SET INODE locally as the INODE_ID
+    // Setup fd_t in process
+    uint32_t fd;
+    for(fd = 0; fd < MAX_OPEN_FILES; fd++;) {
+        if(_current->files[fd].inode_id == 0) {
+            _current->files[fd].inode_id = inode_id;
+            _current->files[fd].offset = 0;
+            break;
+        } 
+    }
+    RET(_current) = fd = fd + 2; // Add channel (2) How do I return this? 
+    //RET(_current) = E_SUCCESS; 
+}
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -605,6 +644,8 @@ void _sys_init( void ) {
     _syscalls[ SYS_getgid ]   = _sys_getgid;
     _syscalls[ SYS_setuid ]   = _sys_setuid;
     _syscalls[ SYS_setgid ]   = _sys_setgid;
+
+    _syscalls[ SYS_fopen ]    = _sys_fopen;
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );

@@ -284,6 +284,11 @@ pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid,
     pcb->state    = New;        // initial state
     pcb->priority = args[1];    // process priority
     pcb->quantum  = Q_STD;      // allotted time slice
+    // Set all File fd_ts to zero
+    for (int i = 0; i < MAX_OPEN_FILES; i++) {
+        pcb->files[i].inode_id = 0;
+        pcb->files[i].offset = 0;
+    }
 
     /*
     ** Set up the initial process stack
