@@ -574,7 +574,7 @@ static void _sys_setgid ( uint32_t args[4] ) {
  **    uint32_t fopen(char * path);
  */
 static void _sys_fopen( uint32_t args[4] ) {
-    char * path = args[0]; // Get path given to user
+    char * path; // Get path given to user
     // Check if process has available files
     for (int i = 0; i < MAX_OPEN_FILES; i++) {
         if(_current->files[i].inode_id == 0) {
@@ -584,7 +584,6 @@ static void _sys_fopen( uint32_t args[4] ) {
             return;
         }       
     }
-    uint32_t inode_id;
     // get inode_id here from somehwere using path 
     //   NEED TO HAVE DRIVER RUNNING
     //     GOTO WORKING DIR OR ROOT 
@@ -592,16 +591,25 @@ static void _sys_fopen( uint32_t args[4] ) {
     //          CHECK IF YOU CAN OPEN IT (PERMISSIONS) AND IT EXISTS
     //   THEN SET INODE locally as the INODE_ID
     // Setup fd_t in process
+    uint32_t inode_id;
+    if (args[0][0] != '/') { // We don't have an absolute path
+        // Need to str cat the current working dir to given path
+    }
+    //token = tokenize(path, '/')
+    //for(int i = 0; i < num_tokens; i++) {
+    //fetch_inode_rec(path, target_file);
+    //  This would be a recurisive Disk driver functoin that would snag 
+    //  Each inode and its children? 
+
     uint32_t fd;
     for(fd = 0; fd < MAX_OPEN_FILES; fd++;) {
         if(_current->files[fd].inode_id == 0) {
             _current->files[fd].inode_id = inode_id;
             _current->files[fd].offset = 0;
             break;
-        } 
+        }
     }
     RET(_current) = fd = fd + 2; // Add channel (2) How do I return this? 
-    //RET(_current) = E_SUCCESS; 
 }
 
 /*
