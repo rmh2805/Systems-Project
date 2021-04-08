@@ -201,6 +201,8 @@ void _pcb_cleanup( pcb_t *pcb ) {
         _stk_free( pcb->stack );
     }
 
+    --_active_procs;
+
     // release the PCB
     _pcb_free( pcb );
 }
@@ -258,7 +260,8 @@ void _proc_init( void ) {
 ** @return Pointer to the new process' PCB, or NULL if memory could
 **         not be allocated for the PCB or the stack
 */
-pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid ) {
+pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid, 
+                        uid_t uid, gid_t gid ) {
 
     // allocate the necessary data structures
     pcb_t *pcb = _pcb_alloc();
@@ -276,6 +279,8 @@ pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid ) {
     pcb->stack    = stack;      // user runtime stack
     pcb->pid      = pid;        // unique PID
     pcb->ppid     = ppid;       // parent's PID
+    pcb->gid      = gid;        // provided gid
+    pcb->uid      = uid;        // provided uid
     pcb->state    = New;        // initial state
     pcb->priority = args[1];    // process priority
     pcb->quantum  = Q_STD;      // allotted time slice
@@ -507,8 +512,8 @@ void _active_dump( const char *msg, bool_t all ) {
             }
 
             // things that are always printed
-            __cio_printf( " #%d: %d/%d %d", i, pcb->pid, pcb->ppid,
-                          pcb->state );
+            __cio_printf( " #%d: %d/%d %d %d %d", i, pcb->pid, pcb->ppid, 
+                            pcb->uid, pcb->gid, pcb->state );
             // do we want more info?
             if( all ) {
                 __cio_printf( " stk %08x EIP %08x\n",

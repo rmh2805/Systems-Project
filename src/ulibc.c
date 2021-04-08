@@ -107,6 +107,77 @@ int32_t swrite( const char *buf, uint32_t size ) {
    return( write(CHAN_SIO,buf,size) );
 }
 
+/**
+** readLn - read into a buffer from a stream to the next newline or end 
+**          of buffer
+**
+** usage:   n = readLn(channel,buf,length,doEcho)
+**
+** @param chan   I/O stream to read from
+** @param buf    Buffer to read into
+** @param length Maximum capacity of the buffer
+** @param doEcho Should the input be echoed on `chan`
+**
+** @returns  The count of bytes transferred, or an error code
+*/
+int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
+    
+    uint32_t i = 0;
+    int32_t result;
+    
+    char inCh = 0;
+    
+    buf[length - 1] = 0; //set last byte to null just in case
+    
+    while(i < length - 1) {
+        result = read(chan, &(inCh), 1);  //Read a char to the next idx
+        
+        
+        if(result == 0) {
+            continue;
+        } else if (result < 0) {
+            return result;
+        }
+        
+        switch(inCh) {
+            case '\b':
+                if(i >= 1) {
+                    if(doEcho) {
+                        write(chan, "\b \b", 3);
+                    }
+                    
+                    i -= 1;
+                }
+                
+            case '\0':
+            case '\r':
+                continue;
+            
+            case '\n':
+                break;
+            
+            default:
+                if(doEcho) {
+                    write(chan, &inCh, 1);
+                }
+        }
+        
+        if(inCh == '\n') {
+            break;
+        }
+        
+        buf[i++] = inCh;
+    }
+    
+    if(doEcho) {
+        write(chan, "\r\n", 3);
+    }
+    
+    buf[i] = 0;
+    
+    return i;
+}
+
 /*
 **********************************************
 ** STRING MANIPULATION FUNCTIONS
@@ -114,7 +185,8 @@ int32_t swrite( const char *buf, uint32_t size ) {
 */
 
 /**
-** str2int(str,base) - convert a string to a number in the specified base
+** str2int(str,base) - convert a string to a number in the specified base 
+**                     (up to base 10)
 **
 ** @param str   The string to examine
 ** @param base  The radix to use in the conversion
@@ -124,7 +196,10 @@ int32_t swrite( const char *buf, uint32_t size ) {
 int str2int( register const char *str, register int base ) {
     register int num = 0;
     register char bchar = '9';
+    register char ch = 0;
     int sign = 1;
+
+
 
     // check for leading '-'
     if( *str == '-' ) {
@@ -138,9 +213,17 @@ int str2int( register const char *str, register int base ) {
 
     // iterate through the characters
     while( *str ) {
-        if( *str < '0' || *str > bchar )
+        ch = *str;
+
+        if(ch >= 'a' && ch <= 'z') {
+            ch = ch - 'a' + '9' + 1;
+        } else if(ch >= 'A' && ch <= 'Z') {
+            ch = ch - 'A' + '9' + 1;
+        }
+
+        if( ch < '0' || ch > bchar )
             break;
-        num = num * base + *str - '0';
+        num = num * base + ch - '0';
         ++str;
     }
 
@@ -165,6 +248,47 @@ uint32_t strlen( register const char *str ) {
     return( len );
 }
 
+
+#define chIsWS(ch) (ch == ' ' || ch == '\t' || ch == '\a' || ch == '\r' || ch == '\n')
+
+/**
+** strTrim(dst, src) - Copy the contents of src to dst, stripping leading and
+**                     trailing whitespace
+** 
+** @param dst The destination buffer
+** @param src The source string
+**
+** @return The number of bytes written to dst
+** 
+*/
+int32_t strTrim(register char * dst, register const char * src) {
+    register int32_t count = 0;
+
+    while(chIsWS(*src)) {
+        src++;
+    }
+    while((*dst++ = *src++)) {
+        count++;
+    }
+
+    // //If there's only one character, it's not WS (all leading WS stripped)
+    // if(count <= 1) { 
+    //     return count;
+    // }
+    
+    dst -= 2; //roll back to and over the null terminator
+
+
+    while(chIsWS(*dst)) {
+        *dst-- = 0;
+        --count;
+    }
+
+    return count;
+
+}
+
+
 /**
 ** strcpy(dst,src) - copy a NUL-terminated string
 **
@@ -182,6 +306,25 @@ char *strcpy( register char *dst, register const char *src ) {
         ;
 
     return( tmp );
+}
+
+/**
+** strncpy(dst,src, n) - copy a NUL-terminated string
+**
+** @param dst The destination buffer
+** @param src The source buffer
+** @param n The max number of bytes to copy
+**
+** @return The dst parameter
+**
+** NOTE:  Will not guarantee null termination
+*/
+char *strncpy(register char *dst, register const char *src, register uint32_t n) {
+    register char *tmp = dst;
+
+    while((*dst++ = *src++) && --n);
+
+    return (tmp);
 }
 
 /**
@@ -217,6 +360,24 @@ char *strcat( register char *dst, register const char *src ) {
 int strcmp( register const char *s1, register const char *s2 ) {
 
     while( *s1 != 0 && (*s1 == *s2) )
+        ++s1, ++s2;
+
+    return( *(const unsigned char *)s1 - *(const unsigned char *)s2 );
+}
+
+/**
+** strncmp(s1,s2,n) - compare up to the first n characters of two NUL-terminated 
+**                    strings
+**
+** @param s1 The first source string
+** @param s2 The second source string
+** @param n The max nr of characters to compare
+**
+** @return negative if s1 < s2, zero if equal, and positive if s1 > s2
+*/
+int strncmp( register const char *s1, register const char *s2, register uint32_t n) {
+
+    while( *s1 != 0 && (*s1 == *s2)  && --n)
         ++s1, ++s2;
 
     return( *(const unsigned char *)s1 - *(const unsigned char *)s2 );

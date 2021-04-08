@@ -54,7 +54,10 @@ int32_t userU( uint32_t, uint32_t ); int32_t userV( uint32_t, uint32_t );
 int32_t userW( uint32_t, uint32_t ); int32_t userX( uint32_t, uint32_t );
 int32_t userY( uint32_t, uint32_t ); int32_t userZ( uint32_t, uint32_t );
 
-int32_t mUser1( uint32_t, uint32_t );
+int32_t mUser1(uint32_t, uint32_t ); int32_t mUser2(uint32_t, uint32_t );
+int32_t mUser3(uint32_t, uint32_t ); int32_t mUser4(uint32_t, uint32_t );
+
+int32_t signIn(uint32_t, uint32_t ); int32_t testShell(uint32_t , uint32_t );
 
 /*
 ** The user processes
@@ -67,73 +70,31 @@ int32_t mUser1( uint32_t, uint32_t );
 ** contain CPP include guards, so multiple inclusion of a source
 ** file shouldn't cause problems.
 */
-
-#if defined(SPAWN_A) || defined(SPAWN_B) || defined(SPAWN_C)
 #include "userland/main1.c"
-#endif
-
-#if defined(SPAWN_D) || defined(SPAWN_E)
 #include "userland/main2.c"
-#endif
-
-#if defined(SPAWN_F) || defined(SPAWN_G)
 #include "userland/main3.c"
-#endif
-
-#if defined(SPAWN_H)
-#include "userland/userH.c"
-#include "userland/userZ.c"
-#endif
-
-#if defined(SPAWN_I)
-#include "userland/userI.c"
-#include "userland/userW.c"
-#endif
-
-#if defined(SPAWN_J)
-#include "userland/userJ.c"
-#include "userland/userY.c"
-#endif
-
-#if defined(SPAWN_K) || defined(SPAWN_L)
 #include "userland/main4.c"
-#include "userland/userX.c"
-#endif
-
-#if defined(SPAWN_M) || defined(SPAWN_N)
 #include "userland/main5.c"
-#include "userland/userW.c"
-#include "userland/userZ.c"
-#endif
-
-#if defined(SPAWN_P)
-#include "userland/userP.c"
-#endif
-
-#if defined(SPAWN_Q)
-#include "userland/userQ.c"
-#endif
-
-#if defined(SPAWN_R)
-#include "userland/userR.c"
-#endif
-
-#if defined(SPAWN_S)
-#include "userland/userS.c"
-#endif
-
-#if defined(SPAWN_T) || defined(SPAWN_U)
 #include "userland/main6.c"
-#include "userland/userW.c"
-#endif
 
-#if defined(SPAWN_V)
+#include "userland/userH.c"
+#include "userland/userI.c"
+#include "userland/userJ.c"
+#include "userland/userP.c"
+#include "userland/userQ.c"
+#include "userland/userR.c"
+#include "userland/userS.c"
 #include "userland/userV.c"
-#endif
+#include "userland/userW.c"
+#include "userland/userX.c"
+#include "userland/userY.c"
+#include "userland/userZ.c"
 
-#if defined(SPAWN_M_1)
 #include "userland/mUser1.c"
-#endif
+#include "userland/mUser2.c"
+#include "userland/mUser3.c"
+#include "userland/mUser4.c"
+
 
 /*
 ** System processes - these should always be included here
@@ -142,3 +103,7 @@ int32_t mUser1( uint32_t, uint32_t );
 #include "userland/init.c"
 
 #include "userland/idle.c"
+
+#include "userland/signIn.c"
+
+#include "userland/testShell.c"

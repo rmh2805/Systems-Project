@@ -1,0 +1,41 @@
+Sizes of basic types:
+	char 1 short 2 int 4 long 4 long long 8
+
+Sizes of our types:
+	int8_t  1 uint8_t  1	int16_t 2 uint16_t 2
+	int32_t 4 uint32_t 4	int64_t 8 uint64_t 8
+	stack_t 16384
+
+Offsets into context_t (72 bytes):
+   ss:		0
+   gs:		4
+   fs:		8
+   es:		12
+   ds:		16
+   edi:		20
+   esi:		24
+   ebp:		28
+   esp:		32
+   ebx:		36
+   edx:		40
+   ecx:		44
+   eax:		48
+   vector:	52
+   code:	56
+   eip:		60
+   cs:		64
+   eflags:	68
+
+Offsets into pcb_t (32 bytes):
+   context:	0
+   stack:	4
+   exit_status:	12
+   event:	16
+   pid:		20
+   ppid:	22
+   uid:		26
+   gid:		24
+   state:	28
+   priority:	29
+   quantum:	30
+   ticks:	31
