@@ -43,7 +43,7 @@ typedef union {
  * This structure will contain a variety of data 
  * relating to a file/directory in the FS.
  */
-struct inode {
+typedef struct inode_s {
     // Meta Data 16 bytes
     _inode_id_t id;
     uint32_t nBlocks;
@@ -65,7 +65,7 @@ struct inode {
 
     // Direct Pointers - each point to a block 
     data_u direct_pointers[NUM_DIRECT_POINTERS]; // (14 + 2) * 16 = 256 bytes per inode
-};
+} inode_t;
 
 /*
  * Going to use the already existing read/write syscalls 

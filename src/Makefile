@@ -199,6 +199,9 @@ BuildImage:	BuildImage.c
 Offsets:	Offsets.c
 	$(CC) -mx32 -std=c99 $(INCLUDES) -o Offsets Offsets.c
 
+MakeFSImage: MakeFSImage.c
+	$(CC) -o MakeFSImage MakeFSImage.c
+
 #
 # Clean out this directory
 #
