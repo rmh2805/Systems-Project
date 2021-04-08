@@ -109,9 +109,20 @@ struct inode {
  *  - _fs_read(fd_t fd, char* buf, uint32_t length)
  *      - Returns number of bytes read
  *      - links heavily into the driver
+ *
+ *  - fs_init() 
+ *     specifies beginning of data section
  */
 
 //todo describe _fs_write
+//
+// TODO 
+// DISK ORG:
+//   INODES BLOCKS
+//   BITMAPS 
+//   DATA BLOCKS
+//
+//   Don't need to worry about unknown end of disk! 
 
 // In FS module: _fs_read(), _fs_write()
 
