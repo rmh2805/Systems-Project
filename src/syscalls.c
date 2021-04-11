@@ -567,74 +567,198 @@ static void _sys_setgid ( uint32_t args[4] ) {
     }
 }
 
+static uint32_t _sys_seekFile( char* path, _inode_id_t * currentDir) {
+    // Get starting inode 
+    *currentDir = _current->wDir;
+    if(path[0] == '/') {
+        // *currentDir = root
+        path++;
+    }
+
+
+    char nextName[12];
+    //while(*path) {
+        // path = getNextEntry(path, nextName);
+
+        // if (nextName not in currentDir->files) {
+        //  return error
+        //} else {
+        //  *currentDir = currentDir->files[nextName]
+        //}
+
+        //If (path && isFile(*currentDir)) {
+        //    return error
+        //}
+    //}
+
+    return E_FAILURE;
+}
+
 /**
  ** _sys_fopen - attempts to open a file and store its FD in the PCBs block
  **
  ** implements: 
- **    uint32_t fopen(char * path);
+ **    int32_t fopen(char * path);
  */
 static void _sys_fopen( uint32_t args[4] ) {
-    char * path; // Get path given to user
+    char * path = (char*) args[0]; // Get path given to user
+    uint32_t fdIdx;
+
     // Check if process has available files
-    for (int i = 0; i < MAX_OPEN_FILES; i++) {
-        if(_current->files[i].inode_id == 0) {
+    for (fdIdx = 0; fdIdx < MAX_OPEN_FILES; fdIdx++) {
+        if(_current->files[fdIdx].inode_id.devID == 0 && 
+            _current->files[fdIdx].inode_id.idx == 0) {
             break;
-        } else if (i == MAX_OPEN_FILES - 1) {
+        } else if (fdIdx == MAX_OPEN_FILES - 1) {
             RET(_current) = E_FILE_LIMIT; // ERROR NO FILES AVAILABLE
             return;
         }       
     }
-    // get inode_id here from somehwere using path 
-    //   NEED TO HAVE DRIVER RUNNING
-    //     GOTO WORKING DIR OR ROOT 
-    //       THEN SEARCH FOR CHILD DIR AND KEEP GOING UNTIL FIND FILE INODE
-    //          CHECK IF YOU CAN OPEN IT (PERMISSIONS) AND IT EXISTS
-    //   THEN SET INODE locally as the INODE_ID
-    // Setup fd_t in process
-    uint32_t inode_id;
-    if (args[0][0] != '/') { // We don't have an absolute path
-        // Need to str cat the current working dir to given path
-    }
-    //token = tokenize(path, '/')
-    //for(int i = 0; i < num_tokens; i++) {
-    //fetch_inode_rec(path, target_file);
-    //  This would be a recurisive Disk driver functoin that would snag 
-    //  Each inode and its children? 
 
-    uint32_t fd;
-    for(fd = 0; fd < MAX_OPEN_FILES; fd++;) {
-        if(_current->files[fd].inode_id == 0) {
-            _current->files[fd].inode_id = inode_id;
-            _current->files[fd].offset = 0;
-            break;
-        }
+    _inode_id_t currentDir;
+    int32_t result = _sys_seekFile(path, &currentDir);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
     }
-    RET(_current) = fd = fd + 2; // Add channel (2) How do I return this? 
+
+    _current->files[fdIdx].inode_id = currentDir;
+    _current->files[fdIdx].offset = 0;
+
+    RET(_current) = fdIdx + 2; // Add channel (2) How do I return this? 
 }
 
-
+/**
+ ** _sys_fclose - attempts to close an opened file
+ **
+ ** implements: 
+ **    int32_t fclose(uint32_t chanNr);
+ */
 static void _sys_fclose (uint32_t args[4]) {
+    uint32_t fdIdx;
 
+    if(args[0] < 2 || args[0] > 5) {
+        //return error for OOB file descriptor
+    }
+
+    fdIdx = args[0] - 2;
+
+    if(_current->files[fdIdx].inode_id.devID == 0 && 
+            _current->files[fdIdx].inode_id.idx == 0) {
+        //return error on unopened file
+    }
+
+    _current->files[fdIdx].inode_id.devID = 0;
+    _current->files[fdIdx].inode_id.idx = 0;
+
+    RET(_current) = E_SUCCESS;
 }
 
+/**
+ ** _sys_fcreate - attempts to create a file/dir after the provided path
+ **
+ ** implements: 
+ **    int32_t fcreate(char * path, char * name, bool_t isFile);
+ */
 static void _sys_fcreate  (uint32_t args[4]) {
+    char * path = (char*) args[0];
+    char * name = (char*) args[1];
+    bool_t isFile = (bool_t) args[2];
+
+    _inode_id_t currentDir;
+    int32_t result = _sys_seekFile(path, &currentDir);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
+
+    /*
+    if(isFile(currentDir)) {
+        return error (create file in a file)
+    }
+
+    if(name in currentDir.files) {
+        return error (name taken)
+    }
+    */
+
+   /*
+   ** - Find the next available inode on disk (return failure if none)
+   ** - Write a basic inode of the proper type to that empty slot
+   ** - Write a reference to the new inode in the parent directory
+   */
+
+    RET(_current) = E_SUCCESS;
 
 }
 
+/**
+ ** _sys_fremove - attempts to remove the file/dir at the end of the path
+ **
+ ** implements: 
+ **    int32_t fremove(char * path, char * name);
+ */
 static void _sys_fremove (uint32_t args[4]) {
-
+    /*
+    ** - Get the directory at the end of path (fail on non-driectory or seek failure)
+    ** - Find files[name] (tgt) in final directory (fail in non-existent)
+    ** - if tgt is directory, check that directory is empty or this is not final reference (return error else)
+    ** - tgt.references -= 1
+    **      - if tgt.references == 0, free tgt (inode and associated data blocks)
+    ** - Remove files[name] from parent directory
+    ** - parent.subDirs -= 1
+    */
 }
 
+/**
+ ** _sys_fmove - attempts to remove the file/dir at the end of the path
+ **
+ ** implements: 
+ **    int32_t fremove(char * sPath, char * sName, char * dPath, char* dName);
+ */
 static void _sys_fmove (uint32_t args[4]) {
-
+    /*
+    ** - Seek on both paths (ensuring they end at directories)
+    ** - dst.files[dname] = src.files[sname]
+    ** - src.files[sname].references ++
+    ** - _sys_fremove()
+    */
 }
 
+/**
+ ** _sys_getinode - attempts to retrieve the inode at the end of path
+ **
+ ** implements: 
+ **    int32_t fremove(char * Path, inode_t * inode);
+ */
 static void _sys_getinode (uint32_t args[4]) {
+    char* path = args[0];
+    inode_t * inode = args[1];
 
+    _inode_id_t currentDir;
+    int32_t result = _sys_seekFile(path, &currentDir);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
+
+    // *inode = readFromDisk(currentDir)
+
+    return E_SUCCESS;
 }
 
+/**
+ ** _sys_getdirname - attempts to retrieve a subdirectory name after end of path
+ **
+ ** implements: 
+ **    int32_t dirname(char * path, char* buf, uint32_t subDirNr);
+ */
 static void _sys_dirname (uint32_t args[4]) {
-
+    /*
+    ** - Grab the dir at end of path from disk
+    **      - san check, grabbed dir with safe nr of subdirs
+    ** - Write the subDirNr^th sub directory name from the inode to buf
+    */
 }
 
 /*
