@@ -612,6 +612,31 @@ static void _sys_fopen( uint32_t args[4] ) {
     RET(_current) = fd = fd + 2; // Add channel (2) How do I return this? 
 }
 
+
+static void _sys_fclose (uint32_t args[4]) {
+
+}
+
+static void _sys_fcreate  (uint32_t args[4]) {
+
+}
+
+static void _sys_fremove (uint32_t args[4]) {
+
+}
+
+static void _sys_fmove (uint32_t args[4]) {
+
+}
+
+static void _sys_getinode (uint32_t args[4]) {
+
+}
+
+static void _sys_dirname (uint32_t args[4]) {
+
+}
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -654,6 +679,19 @@ void _sys_init( void ) {
     _syscalls[ SYS_setgid ]   = _sys_setgid;
 
     _syscalls[ SYS_fopen ]    = _sys_fopen;
+    _syscalls[ SYS_fclose ]   = _sys_fclose;
+    _syscalls[ SYS_fcreate]   = _sys_fcreate;
+    _syscalls[ SYS_fremove ]  = _sys_fremove;
+    _syscalls[ SYS_fmove ]    = _sys_fmove;
+    _syscalls[ SYS_getinode ] = _sys_getinode;
+    _syscalls[ SYS_dirname]   = _sys_dirname;
+
+
+    /*
+#define SYS_fmove     20
+#define SYS_getinode  21
+#define SYS_dirname   22
+    */
 
     // install the second-stage ISR
     __install_isr( INT_VEC_SYSCALL, _sys_isr );

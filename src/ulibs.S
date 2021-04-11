@@ -57,7 +57,14 @@ SYSCALL(getuid)
 SYSCALL(setuid)
 SYSCALL(setgid)
 
+// Filesystem
 SYSCALL(fopen)
+SYSCALL(fclose)
+SYSCALL(fcreate)
+SYSCALL(fremove)
+SYSCALL(fmove)
+SYSCALL(getinode)
+SYSCALL(getdirname)
 
 /*
 ** This is a bogus system call; it's here so that we can test
