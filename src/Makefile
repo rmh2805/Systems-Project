@@ -199,6 +199,9 @@ BuildImage:	BuildImage.c
 Offsets:	Offsets.c
 	$(CC) -mx32 -std=c99 $(INCLUDES) -o Offsets Offsets.c
 
+MakeFSImage: MakeFSImage.c
+	$(CC) -o MakeFSImage MakeFSImage.c
+
 #
 # Clean out this directory
 #
@@ -210,6 +213,11 @@ realclean:	clean
 
 qemu: usb.image
 	qemu-system-x86_64 -serial mon:stdio usb.image
+	@echo ""
+
+qemu-nox: usb.image
+	qemu-system-x86_64 -nographic usb.image
+	@echo ""
 
 #
 # Create a printable namelist from the prog.o file
@@ -273,12 +281,14 @@ syscalls.o: x86arch.h process.h stacks.h queues.h klib.h x86pic.h ./uart.h
 syscalls.o: bootstrap.h syscalls.h scheduler.h clock.h sio.h
 users.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 users.o: x86arch.h process.h stacks.h queues.h klib.h users.h
-users.o: userland/main1.c userland/main2.c userland/main3.c userland/userH.c
-users.o: userland/userZ.c userland/userI.c userland/userW.c userland/userJ.c
-users.o: userland/userY.c userland/main4.c userland/userX.c userland/main5.c
-users.o: userland/userP.c userland/userQ.c userland/userR.c userland/userS.c
-users.o: userland/main6.c userland/userV.c userland/mUser1.c userland/init.c
-users.o: userland/idle.c
+users.o: userland/main1.c userland/main2.c userland/main3.c userland/main4.c
+users.o: userland/main5.c userland/main6.c userland/userH.c userland/userI.c
+users.o: userland/userJ.c userland/userP.c userland/userQ.c userland/userR.c
+users.o: userland/userS.c userland/userV.c userland/userW.c userland/userX.c
+users.o: userland/userY.c userland/userZ.c userland/mUser1.c
+users.o: userland/mUser2.c userland/mUser3.c userland/mUser4.c
+users.o: userland/init.c userland/doTests.c userland/idle.c userland/signIn.c
+users.o: userland/testShell.c
 ulibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 ulibc.o: x86arch.h process.h stacks.h queues.h klib.h
 ulibs.o: syscalls.h common.h fs.h kdefs.h cio.h kmem.h compat.h support.h

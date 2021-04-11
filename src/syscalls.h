@@ -37,9 +37,20 @@
 // Multi user syscall definitions
 #define SYS_getuid    12
 #define SYS_getgid    13
+#define SYS_setuid    14
+#define SYS_setgid    15
+
+// FS syscall definitions
+#define SYS_fopen     16
+#define SYS_fclose    17
+#define SYS_fcreate   18
+#define SYS_fremove   19
+#define SYS_fmove     20
+#define SYS_getinode  21
+#define SYS_dirname   22
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
-#define N_SYSCALLS    14
+#define N_SYSCALLS    23
 
 // dummy system call code for testing our ISR
 #define SYS_bogus     0xbad

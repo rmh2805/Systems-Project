@@ -13,7 +13,10 @@ int idle( uint32_t arg1, uint32_t arg2 ) {
     pid_t me;
     time_t now;
     char buf[128];
+    
+    #ifdef DO_IDLE_PRINT
     char ch = '.';
+    #endif
 
     // ignore the command-line arguments
     (void) arg1;
@@ -27,14 +30,19 @@ int idle( uint32_t arg1, uint32_t arg2 ) {
     sprint( buf, "Idle [%d] started at %d\n", me, (int32_t) now );
     cwrites( buf );
 
+    #ifdef DO_IDLE_PRINT
     write( CHAN_SIO, &ch, 1 );
+    #endif
 
     // idle() should never block - it must always be available
     // for dispatching when we need to pick a new current process
 
     for(;;) {
         DELAY(LONG);
+
+        #ifdef DO_IDLE_PRINT
         write( CHAN_SIO, &ch, 1 );
+        #endif
     }
 
     // we should never reach this point!

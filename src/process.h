@@ -214,11 +214,14 @@ void _proc_init( void );
 ** @param args   Entry point, priority, and command-line arguments
 ** @param pid    PID for new process
 ** @param ppid   PID of parent process
+** @param uid    UID for the new process
+** @param gid    GID for the new process
 **
 ** @return Pointer to the new process' PCB, or NULL if memory could
 **         not be allocated for the PCB or the stack
 */
-pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid );
+pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid, 
+						uid_t uid, gid_t gid );
 
 /*
 ** Debugging/tracing routines

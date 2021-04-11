@@ -191,23 +191,46 @@ int32_t wait( int32_t *status );
 */
 void bogus( void );
 
- /**
- ** getgid - retrieve the group id of this process
- **
- ** usage: getgid();
- **
- ** @return The current gid number of this process
- */
+/**
+** getuid - retrieve the user id of this process
+** 
+** usage: getuid();
+** 
+** @return The current uid number of this process
+*/
+uid_t getuid( void );
+
+/**
+** getgid - retrieve the group id of this process
+**
+** usage: getgid();
+**
+** @return The current gid number of this process
+*/
 gid_t getgid( void );
 
 /**
- ** getuid - retrieve the user id of this process
- ** 
- ** usage: getuid();
- ** 
- ** @return The current uid number of this process
- */
-uid_t getuid( void );
+** setuid - set the user id of this process
+* 
+* usage: setuid( uid_t uid );
+* 
+* @param uid The new uid
+* 
+* @return 0 on success, < 0 on failure (E_NO_PERMISSION if lacking permission)
+*/
+int32_t setuid( uid_t uid );
+
+
+/**
+** setgid - set the group id of this process
+* 
+* usage: setgid( gid_t gid );
+* 
+* @param gid The new gid
+* 
+* @return 0 on success, < 0 on failure (E_NO_PERMISSION if lacking permission)
+*/
+int32_t setgid( gid_t gid );
 
 /*
 **********************************************
@@ -270,6 +293,21 @@ int32_t swrites( const char *str );
 */
 int32_t swrite( const char *buf, uint32_t size );
 
+/**
+** readLn - read into a buffer from a stream to the next newline or end 
+**          of buffer
+**
+** usage:   n = readLn(channel,buf,length,doEcho)
+**
+** @param chan   I/O stream to read from
+** @param buf    Buffer to read into
+** @param length Maximum capacity of the buffer
+** @param doEcho Should the input be echoed on `chan`
+**
+** @returns  The count of bytes transferred, or an error code
+*/
+int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho);
+
 /*
 **********************************************
 ** STRING MANIPULATION FUNCTIONS
@@ -296,6 +334,18 @@ int str2int( register const char *str, register int base );
 uint32_t strlen( const char *str );
 
 /**
+** strTrim(dst, src) - Copy the contents of src to dst, stripping leading and
+**                     trailing whitespace
+** 
+** @param dst The destination buffer
+** @param src The source string
+**
+** @return The number of bytes written to dst
+** 
+*/
+int32_t strTrim(register char * dst, register const char * src);
+
+/**
 ** strcpy(dst,src) - copy a NUL-terminated string
 **
 ** @param dst The destination buffer
@@ -306,6 +356,21 @@ uint32_t strlen( const char *str );
 ** NOTE:  assumes dst is large enough to hold the copied string
 */
 char *strcpy( register char *dst, register const char *src );
+
+/**
+** strncpy(dst,src, n) - copy a NUL-terminated string
+**
+** @param dst The destination buffer
+** @param src The source buffer
+** @param n The max number of bytes to copy
+**
+** @return The dst parameter
+**
+** NOTE:  Will not guarantee null termination
+*/
+char *strncpy(register char *dst, register const char *src, register uint32_t n);
+
+
 
 /**
 ** strcat(dst,src) - append one string to another
@@ -328,6 +393,18 @@ char *strcat( register char *dst, register const char *src );
 ** @return negative if s1 < s2, zero if equal, and positive if s1 > s2
 */
 int strcmp( register const char *s1, register const char *s2 );
+
+/**
+** strncmp(s1,s2,n) - compare up to the first n characters of two NUL-terminated 
+**                    strings
+**
+** @param s1 The first source string
+** @param s2 The second source string
+** @param n The max nr of characters to compare
+**
+** @return negative if s1 < s2, zero if equal, and positive if s1 > s2
+*/
+int strncmp( register const char *s1, register const char *s2, register uint32_t n);
 
 /**
 ** pad(dst,extra,padchar) - generate a padding string

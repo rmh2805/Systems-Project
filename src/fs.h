@@ -21,28 +21,31 @@
 
 #define NUM_DIRECT_POINTERS 14
 
-#define INODES_PER_BLOCK 2
-
 typedef uint32_t block_t;
 
 typedef struct {
+    uint32_t devID : 8;
+    uint32_t idx : 24;
+} _inode_id_t;
+
+typedef struct {
         char name[12];
-        block_t block;
-} dirBlock_t;
+        _inode_id_t block;
+} dirEnt_t;
 
 // Each is 16 bytes
 typedef union {
     block_t blocks[4];
-    dirBlock_t dir;
+    dirEnt_t dir;
 } data_u;
 
 /*
  * This structure will contain a variety of data 
  * relating to a file/directory in the FS.
  */
-struct inode {
+typedef struct inode_s {
     // Meta Data 16 bytes
-    uint32_t id;
+    _inode_id_t id;
     uint32_t nBlocks;
     uint32_t nBytes;
     uint32_t nRefs;
@@ -62,7 +65,7 @@ struct inode {
 
     // Direct Pointers - each point to a block 
     data_u direct_pointers[NUM_DIRECT_POINTERS]; // (14 + 2) * 16 = 256 bytes per inode
-};
+} inode_t;
 
 /*
  * Going to use the already existing read/write syscalls 
@@ -109,9 +112,20 @@ struct inode {
  *  - _fs_read(fd_t fd, char* buf, uint32_t length)
  *      - Returns number of bytes read
  *      - links heavily into the driver
+ *
+ *  - fs_init() 
+ *     specifies beginning of data section
  */
 
 //todo describe _fs_write
+//
+// TODO 
+// DISK ORG:
+//   INODES BLOCKS
+//   BITMAPS 
+//   DATA BLOCKS
+//
+//   Don't need to worry about unknown end of disk! 
 
 // In FS module: _fs_read(), _fs_write()
 
