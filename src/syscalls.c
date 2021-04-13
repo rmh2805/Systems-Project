@@ -576,7 +576,7 @@ static uint32_t _sys_seekFile( char* path, _inode_id_t * currentDir) {
     }
 
 
-    char nextName[12];
+    // char nextName[12];
     //while(*path) {
         // path = getNextEntry(path, nextName);
 
@@ -662,8 +662,8 @@ static void _sys_fclose (uint32_t args[4]) {
  */
 static void _sys_fcreate  (uint32_t args[4]) {
     char * path = (char*) args[0];
-    char * name = (char*) args[1];
-    bool_t isFile = (bool_t) args[2];
+    // char * name = (char*) args[1];
+    // bool_t isFile = (bool_t) args[2];
 
     _inode_id_t currentDir;
     int32_t result = _sys_seekFile(path, &currentDir);
@@ -732,8 +732,8 @@ static void _sys_fmove (uint32_t args[4]) {
  **    int32_t fremove(char * Path, inode_t * inode);
  */
 static void _sys_getinode (uint32_t args[4]) {
-    char* path = args[0];
-    inode_t * inode = args[1];
+    char* path = (char *) args[0];
+    // inode_t * inode = (inode_t *) args[1];
 
     _inode_id_t currentDir;
     int32_t result = _sys_seekFile(path, &currentDir);
@@ -744,7 +744,8 @@ static void _sys_getinode (uint32_t args[4]) {
 
     // *inode = readFromDisk(currentDir)
 
-    return E_SUCCESS;
+    RET(_current) = E_FAILURE;
+    return;
 }
 
 /**
@@ -783,7 +784,7 @@ void _sys_init( void ) {
     ** code and function address is correct even if the
     ** codes change.
     */
-
+    
     _syscalls[ SYS_exit ]     = _sys_exit;
     _syscalls[ SYS_read ]     = _sys_read;
     _syscalls[ SYS_write ]    = _sys_write;

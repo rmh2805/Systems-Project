@@ -64,7 +64,7 @@ SYSCALL(fcreate)
 SYSCALL(fremove)
 SYSCALL(fmove)
 SYSCALL(getinode)
-SYSCALL(getdirname)
+SYSCALL(dirname)
 
 /*
 ** This is a bogus system call; it's here so that we can test
