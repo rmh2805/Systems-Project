@@ -77,11 +77,11 @@ int main(int argc, char** argv) {
     uint32_t excessMap = (mapBlocks * BLOCK_SIZE * 8) - dataBlocks;
 
     //For now, print stats out for debugging
-    printf("disk blocks:  %u\n", diskBlocks);
-    printf("inode blocks: %u\n", inodeBlocks);
-    printf("map blocks:   %u\n", mapBlocks);
-    printf("data blocks:  %u\n", dataBlocks);
-    printf("excess map:   %u\n", excessMap);
+    printf("disk blocks:     %u\n", diskBlocks);
+    printf("inode blocks:    %u\n", inodeBlocks);
+    printf("map blocks:      %u\n", mapBlocks);
+    printf("data blocks:     %u\n", dataBlocks);
+    printf("excess map bits: %u\n", excessMap);
     
     
     fclose(outF);
