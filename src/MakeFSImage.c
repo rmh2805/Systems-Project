@@ -41,6 +41,12 @@ int main(int argc, char** argv) {
     
     oFileName = argv[1];
     
+    FILE * outF = fopen(oFileName, "wb");
+    if(outF == (FILE *) -1) {
+        fprintf(stderr, "Failed to open file %s", oFileName);
+        exit(-1);
+    }
+
     diskSize = decStr2int(argv[2]) * 1024;
     nInodes = decStr2int(argv[3]);
     
@@ -50,12 +56,31 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    //Calculate regions on the disk
     uint32_t inodeBlocks = nInodes / INODES_PER_BLOCK;
     if(nInodes % INODES_PER_BLOCK != 0) {
         ++inodeBlocks;
     }
 
+    uint32_t diskBlocks = diskSize/BLOCK_SIZE;
+    if(diskSize % BLOCK_SIZE != 0) {
+        ++diskBlocks;
+    }
+
+    //simple solution, just increment map blocks until you have enough 
+    uint32_t mapBlocks = 0, dataBlocks = diskBlocks - inodeBlocks; 
+    while(mapBlocks * BLOCK_SIZE * 8 < dataBlocks) {
+        ++mapBlocks;
+        --dataBlocks;
+    }
+
+    //For now, print stats out for debugging
+    printf("disk blocks:  %u\n", diskBlocks);
     printf("inode blocks: %u\n", inodeBlocks);
+    printf("map blocks:   %u\n", mapBlocks);
+    printf("data blocks:  %u\n", dataBlocks);
     
+    
+    fclose(outF);
     return 0;
 }
