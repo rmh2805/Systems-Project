@@ -10,3 +10,4 @@ src/.vscode
 *.nll
 *.lst
 *.dis
+src/MakeFSImage
