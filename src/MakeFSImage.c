@@ -5,7 +5,7 @@
 
 #include <stdio.h>
 
-#define INODES_PER_BLOCK ((int32_t)(sizeof(inode_t) / BLOCK_SIZE))
+#define INODES_PER_BLOCK ((int32_t)(BLOCK_SIZE / sizeof(inode_t)))
 
 uint32_t diskSize, nInodes;
 char * oFileName;
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    printf("inode blocks: %u\n", INODES_PER_BLOCK);
+    printf("inode blocks: %u\n", nInodes / INODES_PER_BLOCK);
     
     return 0;
 }
