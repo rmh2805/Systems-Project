@@ -44,19 +44,19 @@ typedef union {
  * relating to a file/directory in the FS.
  */
 typedef struct inode_s {
-    // Meta Data 16 bytes
+    // Meta Data (16 bytes)
     _inode_id_t id;
     uint32_t nBlocks;
     uint32_t nBytes;
     uint32_t nRefs;
 
-    // Permission information 8 bytes
-    uid_t uid;
-    gid_t gid; 
+    // Permission information (8 bytes)
     uint32_t permissions: 24;
     uint32_t nodeType: 8;
+    uid_t uid;
+    gid_t gid; 
 
-    // Lock + Padding 4 bytes
+    // Lock + Padding (4 bytes)
     uint8_t lock; // 1 byte
     uint8_t pad[3]; // 3 bytes
 
@@ -64,7 +64,7 @@ typedef struct inode_s {
     block_t extBlock; // Points to a block
 
     // Direct Pointers - each point to a block 
-    data_u direct_pointers[NUM_DIRECT_POINTERS]; // (14 + 2) * 16 = 256 bytes per inode
+    data_u direct_pointers[NUM_DIRECT_POINTERS]; // 32 + 14 * 16 = 256 bytes per inode
 } inode_t;
 
 /*
