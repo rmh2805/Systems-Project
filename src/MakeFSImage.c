@@ -12,7 +12,7 @@ char * oFileName;
 char * pgmName;
 
 void printUsage(bool_t isErr) {
-    fprintf((isErr) ? stderr : stdout, "Usage: %s <output file> <disk size> <nInodes>\n", pgmName);
+    fprintf((isErr) ? stderr : stdout, "Usage: %s <output file> <disk size (kiB)> <nInodes>\n", pgmName);
 }
 
 int32_t decStr2int(char * str) {
@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
     
     oFileName = argv[1];
     
-    diskSize = decStr2int(argv[2]);
+    diskSize = decStr2int(argv[2]) * 1024;
     nInodes = decStr2int(argv[3]);
     
     if(diskSize == 0 || nInodes == 0 || diskSize < nInodes * sizeof(inode_t)) {
