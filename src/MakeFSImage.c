@@ -50,7 +50,12 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    printf("inode blocks: %u\n", nInodes / INODES_PER_BLOCK);
+    uint32_t inodeBlocks = nInodes / INODES_PER_BLOCK;
+    if(nInodes % INODES_PER_BLOCK != 0) {
+        ++inodeBlocks;
+    }
+
+    printf("inode blocks: %u\n", inodeBlocks);
     
     return 0;
 }
