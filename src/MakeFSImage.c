@@ -117,20 +117,11 @@ int main(int argc, char** argv) {
         fwrite(blockBuf, BLOCK_SIZE, 1, outF);
     }
     
-    uint32_t lastB = 0;
-    uint32_t prevB = 0;
-    uint32_t yonkB = 0;
     for(size_t off = 0; off < excessMap; off++) {
         uint32_t mapIdx = BLOCK_SIZE - (off/8 + 1);
         uint32_t bit = off % 8;
         blockBuf[mapIdx] |= 1 << bit;
-        
-        yonkB = prevB;
-        prevB = lastB;
-        lastB = bit;
     }
-    
-    printf("%u, %u, %u\n", lastB, prevB, yonkB);
         
     fwrite(blockBuf, BLOCK_SIZE, 1, outF);
     
