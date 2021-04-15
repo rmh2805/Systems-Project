@@ -33,6 +33,11 @@ int32_t decStr2int(char * str) {
 int main(int argc, char** argv) {
     pgmName = argv[ 0 ];
     
+    if(INODES_PER_BLOCK < 1) {
+        fprintf(stderr, "ERROR: less than 1 inode per block\n");
+        return -1;
+    }
+    
     // Parse arguments
     if(argc != 5) {
         printUsage(true);
@@ -43,7 +48,7 @@ int main(int argc, char** argv) {
     
     FILE * outF = fopen(oFileName, "wb");
     if(outF == (FILE *) -1) {
-        fprintf(stderr, "Failed to open file %s", oFileName);
+        fprintf(stderr, "Failed to open file %s\n", oFileName);
         exit(-1);
     }
 
@@ -51,7 +56,7 @@ int main(int argc, char** argv) {
     nInodes = decStr2int(argv[3]);
     devId = decStr2int(argv[4]);
     
-    if(diskSize == 0 || nInodes == 0 || diskSize < nInodes * sizeof(inode_t)) {
+    if(diskSize == 0 || nInodes < 2 || diskSize < nInodes * sizeof(inode_t)) {
         fprintf(stderr, "Disk size (%u bytes) not enough to store %u inodes (need at least %u bytes)\n", 
                 diskSize, nInodes, nInodes * sizeof(inode_t));
         return -1;
@@ -86,11 +91,33 @@ int main(int argc, char** argv) {
     
     // Create the metadata inode
     inode_t metaNode;
+    
+    for(size_t i = 0; i < sizeof(metaNode); i++) {
+        ((char*) &metaNode)[i] = 0;
+    }
+    
     metaNode.id = (_inode_id_t) {devId, 0};
     metaNode.nBlocks = mapBlocks;
     metaNode.nodeType = INODE_META_TYPE;
     metaNode.nBytes = diskSize;
     metaNode.nRefs = nInodes;
+    
+    // Create device root inode
+    inode_t rootNode;
+    
+    for(size_t i = 0; i < sizeof(rootNode); i++) {
+        ((char*) &rootNode)[i] = 0;
+    }
+    
+    rootNode.id = (_inode_id_t) {devId, 1};
+    rootNode.nBlocks = 0;
+    rootNode.nBytes = 1;
+    rootNode.nRefs = 1;
+    rootNode.nodeType = INODE_DIR_TYPE;
+    rootNode.direct_pointers[0].dir.name[0] = '.';
+    rootNode.direct_pointers[0].dir.name[1] = '.';
+    rootNode.direct_pointers[0].dir.name[2] = 0;
+    rootNode.direct_pointers[0].dir.block = rootNode.id;
     
     // Write out the inode array
     uint8_t blockBuf[BLOCK_SIZE];
@@ -102,13 +129,31 @@ int main(int argc, char** argv) {
         blockBuf[i] = ((char *) &metaNode)[i];
     }
     
+    if(INODES_PER_BLOCK > 1) {
+        for(size_t i = 0; i < sizeof(rootNode); i++) {
+            blockBuf[sizeof(metaNode) + i] = ((char *) &rootNode)[i];
+        }
+    }
+    
     fwrite(blockBuf, BLOCK_SIZE, 1, outF);
+    
+    if(INODES_PER_BLOCK == 1) {
+        for(size_t i = 0; i < BLOCK_SIZE; i++) {
+            blockBuf[i] = 0;
+        }
+    
+        for(size_t i = 0; i < sizeof(rootNode); i++) {
+            blockBuf[i] = ((char *) &rootNode)[i];
+        }
+        
+        fwrite(blockBuf, BLOCK_SIZE, 1, outF);
+    }
     
     for(size_t i = 0; i < BLOCK_SIZE; i++) {
         blockBuf[i] = 0;
     }
     
-    for(size_t i = 1; i < inodeBlocks; i++) {
+    for(size_t i = (INODES_PER_BLOCK == 1) ? 2 : 1; i < inodeBlocks; i++) {
         fwrite(blockBuf, BLOCK_SIZE, 1, outF);
     }
     

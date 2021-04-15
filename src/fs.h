@@ -47,8 +47,8 @@ typedef struct inode_s {
     // Meta Data (16 bytes)
     _inode_id_t id;
     uint32_t nBlocks;
-    uint32_t nBytes;
-    uint32_t nRefs;
+    uint32_t nBytes;  // Either number of file bytes or number of subdirectories
+    uint32_t nRefs;  // Number of inodes referencing this one
 
     // Permission information (8 bytes)
     uint32_t permissions: 24;
