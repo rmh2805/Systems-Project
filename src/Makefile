@@ -85,6 +85,8 @@ DBG_OPTIONS = -DTRACE_CX -DCONSOLE_SHELL -DDEBUG_UNEXP_INTS
 
 USER_OPTIONS = $(GEN_OPTIONS) $(DBG_OPTIONS)
 
+OS_LOAD = 0x14000
+
 #
 # YOU SHOULD NOT NEED TO CHANGE ANYTHING BELOW THIS POINT!!!
 #
@@ -162,19 +164,19 @@ LDFLAGS = -melf_i386 -no-pie
 #
 
 usb.image: bootstrap.b prog.b prog.nl BuildImage prog.dis 
-	./BuildImage -d usb -o usb.image -b bootstrap.b prog.b 0x11400
+	./BuildImage -d usb -o usb.image -b bootstrap.b prog.b $(OS_LOAD)
 
 floppy.image: bootstrap.b prog.b prog.nl BuildImage prog.dis 
-	./BuildImage -d floppy -o floppy.image -b bootstrap.b prog.b 0x11400
+	./BuildImage -d floppy -o floppy.image -b bootstrap.b prog.b $(OS_LOAD)
 
 prog.out: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o prog.out $(OBJECTS)
 
 prog.o:	$(OBJECTS)
-	$(LD) $(LDFLAGS) -o prog.o -Ttext 0x11400 $(OBJECTS) $(A_LIBS)
+	$(LD) $(LDFLAGS) -o prog.o -Ttext $(OS_LOAD) $(OBJECTS) $(A_LIBS)
 
 prog.b:	prog.o
-	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext 0x11400 prog.o
+	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
 #
 # Targets for copying bootable image onto boot devices
