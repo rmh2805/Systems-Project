@@ -7,12 +7,12 @@
 
 #define INODES_PER_BLOCK ((int32_t)(BLOCK_SIZE / sizeof(inode_t)))
 
-uint32_t diskSize, nInodes;
+uint32_t diskSize, nInodes, devId;
 char * oFileName;
 char * pgmName;
 
 void printUsage(bool_t isErr) {
-    fprintf((isErr) ? stderr : stdout, "Usage: %s <output file> <disk size (kiB)> <nInodes>\n", pgmName);
+    fprintf((isErr) ? stderr : stdout, "Usage: %s <output file> <disk size (kiB)> <nInodes> <device ID>\n", pgmName);
 }
 
 int32_t decStr2int(char * str) {
@@ -31,10 +31,10 @@ int32_t decStr2int(char * str) {
 }
 
 int main(int argc, char** argv) {
-        pgmName = argv[ 0 ];
+    pgmName = argv[ 0 ];
     
     // Parse arguments
-    if(argc != 4) {
+    if(argc != 5) {
         printUsage(true);
         return -1;
     }
@@ -49,6 +49,7 @@ int main(int argc, char** argv) {
 
     diskSize = decStr2int(argv[2]) * 1024;
     nInodes = decStr2int(argv[3]);
+    devId = decStr2int(argv[4]);
     
     if(diskSize == 0 || nInodes == 0 || diskSize < nInodes * sizeof(inode_t)) {
         fprintf(stderr, "Disk size (%u bytes) not enough to store %u inodes (need at least %u bytes)\n", 
@@ -56,7 +57,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    //Calculate regions on the disk
+    // Calculate regions on the disk
     uint32_t inodeBlocks = nInodes / INODES_PER_BLOCK;
     if(nInodes % INODES_PER_BLOCK != 0) {
         ++inodeBlocks;
@@ -67,7 +68,7 @@ int main(int argc, char** argv) {
         ++diskBlocks;
     }
 
-    //simple solution, just increment map blocks until you have enough 
+    // Simple solution, just increment map blocks until you have enough 
     uint32_t mapBlocks = 0, dataBlocks = diskBlocks - inodeBlocks; 
     while(mapBlocks * BLOCK_SIZE * 8 < dataBlocks) {
         ++mapBlocks;
@@ -76,13 +77,71 @@ int main(int argc, char** argv) {
 
     uint32_t excessMap = (mapBlocks * BLOCK_SIZE * 8) - dataBlocks;
 
-    //For now, print stats out for debugging
+    // For now, print stats out for debugging
     printf("disk blocks:     %u\n", diskBlocks);
     printf("inode blocks:    %u\n", inodeBlocks);
     printf("map blocks:      %u\n", mapBlocks);
     printf("data blocks:     %u\n", dataBlocks);
     printf("excess map bits: %u\n", excessMap);
     
+    // Create the metadata inode
+    inode_t metaNode;
+    metaNode.id = (_inode_id_t) {devId, 0};
+    metaNode.nBlocks = mapBlocks;
+    metaNode.nodeType = INODE_META_TYPE;
+    metaNode.nBytes = diskSize;
+    metaNode.nRefs = nInodes;
+    
+    // Write out the inode array
+    uint8_t blockBuf[BLOCK_SIZE];
+    for(size_t i = 0; i < BLOCK_SIZE; i++) {
+        blockBuf[i] = 0;
+    }
+    
+    for(size_t i = 0; i < sizeof(metaNode); i++) {
+        blockBuf[i] = ((char *) &metaNode)[i];
+    }
+    
+    fwrite(blockBuf, BLOCK_SIZE, 1, outF);
+    
+    for(size_t i = 0; i < BLOCK_SIZE; i++) {
+        blockBuf[i] = 0;
+    }
+    
+    for(size_t i = 1; i < inodeBlocks; i++) {
+        fwrite(blockBuf, BLOCK_SIZE, 1, outF);
+    }
+    
+    // Write out the bitmap
+    for(size_t i = 0; i < mapBlocks - 1; i++) {
+        fwrite(blockBuf, BLOCK_SIZE, 1, outF);
+    }
+    
+    uint32_t lastB = 0;
+    uint32_t prevB = 0;
+    uint32_t yonkB = 0;
+    for(size_t off = 0; off < excessMap; off++) {
+        uint32_t mapIdx = BLOCK_SIZE - (off/8 + 1);
+        uint32_t bit = off % 8;
+        blockBuf[mapIdx] |= 1 << bit;
+        
+        yonkB = prevB;
+        prevB = lastB;
+        lastB = bit;
+    }
+    
+    printf("%u, %u, %u\n", lastB, prevB, yonkB);
+        
+    fwrite(blockBuf, BLOCK_SIZE, 1, outF);
+    
+    for(size_t i = 0; i < BLOCK_SIZE; i++) {
+        blockBuf[i] = 0;
+    }
+    
+    // Null out the data blocks
+    for(size_t i = 0; i < dataBlocks; i++) {
+        fwrite(blockBuf, BLOCK_SIZE, 1, outF);
+    }
     
     fclose(outF);
     return 0;

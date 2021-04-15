@@ -67,6 +67,10 @@ typedef struct inode_s {
     data_u direct_pointers[NUM_DIRECT_POINTERS]; // 32 + 14 * 16 = 256 bytes per inode
 } inode_t;
 
+#define INODE_DIR_TYPE 1
+#define INODE_FILE_TYPE 2
+#define INODE_META_TYPE 3
+
 /*
  * Going to use the already existing read/write syscalls 
  */
