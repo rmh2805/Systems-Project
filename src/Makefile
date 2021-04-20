@@ -168,7 +168,7 @@ usb.image: bootstrap.b prog.b prog.nl BuildImage prog.dis fs.img
 	./BuildImage -d usb -o usb.image -b bootstrap.b fs.img $(FS_LOAD) prog.b $(OS_LOAD)
 
 floppy.image: bootstrap.b prog.b prog.nl BuildImage prog.dis 
-	./BuildImage -d floppy -o floppy.image -b bootstrap.b prog.b $(OS_LOAD)
+	./BuildImage -d floppy -o floppy.image -b bootstrap.b fs.img $(FS_LOAD) prog.b $(OS_LOAD)
 
 prog.out: $(OBJECTS)
 	$(LD) $(LDFLAGS) -o prog.out $(OBJECTS)
