@@ -3,7 +3,7 @@
 static driverInterface_t disks[MAX_DISKS];
 static uint8_t driveMap[MAX_DISKS];
 
-void _fs_init() {
+void _fs_init( void ) {
     __cio_puts( " FS:" );
 
     for(unsigned int i = 0; i < MAX_DISKS; i++) {

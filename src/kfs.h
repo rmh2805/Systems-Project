@@ -2,13 +2,14 @@
 #ifndef  KFS_H_
 #define  KFS_H_
 
+#define SP_KERNEL_SRC
 #include "common.h"
 #include "process.h"
 #include "driverInterface.h"
 
 #define MAX_DISKS 10
 
-void _fs_init();
+void _fs_init(void);
 
 /**
  * Register a device for read and write

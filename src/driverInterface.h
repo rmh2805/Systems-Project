@@ -11,28 +11,9 @@
 
 #include "common.h"
 
-/*
-** General (C and/or assembly) definitions
-**
-** This section of the header file contains definitions that can be
-** used in either C or assembly-language source code.
-*/
-
-#ifndef SP_ASM_SRC
-
-/*
-** Start of C-only definitions
-**
-** Anything that should not be visible to something other than
-** the C compiler should be put here.
-*/
-
 typedef struct driverInterface_s {
     int (* readBlock)(uint32_t blockNr, char* buf, uint8_t devId);
     int (* writeBlock)(uint32_t blockNr, char* buf, uint8_t devId);
 } driverInterface_t;
-
-#endif
-/* SP_ASM_SRC */
 
 #endif
