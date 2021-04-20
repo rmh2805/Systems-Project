@@ -27,10 +27,10 @@
 ** the C compiler should be put here.
 */
 
-typedef struct devInterface_s {
+typedef struct driverInterface_s {
     int (* readBlock)(uint32_t blockNr, char* buf, uint8_t devId);
     int (* writeBlock)(uint32_t blockNr, char* buf, uint8_t devId);
-} devInterface_t;
+} driverInterface_t;
 
 #endif
 /* SP_ASM_SRC */
