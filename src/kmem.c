@@ -293,6 +293,7 @@ void _km_init( void ) {
 
     // if there are no entries, we have nothing to do!
     if( entries < 1 ) {  // note: entries == -1 could occur!
+    __cio_puts( " **noEntries** " );
         return;
     }
 

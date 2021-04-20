@@ -56,13 +56,18 @@ bootstrap.S or bootstrap.h, its name is also given.
 	|                  ^  |
 	|  Bootstrap stack |  |
 	-----------------------
-	|                     | 0x0bc00
+	| RAM Disk            |	0x0bc00
+	|                     |
+	<     . . .           >
+	|                     |
+	-----------------------
+	|                     | 0x0fc00
 	|                     |
 	|                     |
 	<     . . .           >
 	| OS stack            |
 	-----------------------
-	| Operating System    | 0x10000  TARGET_ADDRESS, TARGET_STACK
+	| Operating System    | 0x14000  TARGET_ADDRESS, TARGET_STACK
 	|   (size varies)     |
 	|                     |
 	<     . . .           >
