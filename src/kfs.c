@@ -27,7 +27,7 @@ int _fs_registerDev(driverInterface_t interface) {
 
     unsigned int nextFree;
     for(nextFree = 0; nextFree < MAX_DISKS; nextFree++) {
-        if(disks[nextFree].driveNr != 0) {
+        if(disks[nextFree].fsNr != 0) {
             break;
         }
     }
