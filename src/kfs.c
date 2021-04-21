@@ -1,13 +1,12 @@
 #include "kfs.h"
 
 static driverInterface_t disks[MAX_DISKS];
-static uint8_t driveMap[MAX_DISKS];
 
 void _fs_init( void ) {
     __cio_puts( " FS:" );
 
     for(unsigned int i = 0; i < MAX_DISKS; i++) {
-        driveMap[i] = 0;
+        disks[i].fsNr = 0;
     }
 
     __cio_puts( " done" );
@@ -28,7 +27,7 @@ int _fs_registerDev(driverInterface_t interface) {
 
     unsigned int nextFree;
     for(nextFree = 0; nextFree < MAX_DISKS; nextFree++) {
-        if(driveMap[nextFree] != 0) {
+        if(disks[nextFree].driveNr != 0) {
             break;
         }
     }
@@ -37,12 +36,14 @@ int _fs_registerDev(driverInterface_t interface) {
     }
 
     // Read the metadata inode (inode index 0) from this device to determine its 
-    // FS number
+    // FS number:
+    //  interface.fsNr = fsNr
 
     // If this device shares a number with an already present device, return 
-    // failure
+    // failure: 
+    //  if(interface.fsNr == disks[i].fsNr) return failure;
 
-    // Otherwise, driveMap[nextFree] <- driveNr, disks[nextFree] <- interface
+    // disks[nextDisk] = interface
 
     return E_FAILURE;
 }
