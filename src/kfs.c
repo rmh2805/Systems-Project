@@ -27,7 +27,7 @@ int _fs_registerDev(driverInterface_t interface) {
 
     unsigned int nextFree;
     for(nextFree = 0; nextFree < MAX_DISKS; nextFree++) {
-        if(disks[nextFree].fsNr != 0) {
+        if(disks[nextFree].fsNr == 0) {
             break;
         }
     }
@@ -42,10 +42,14 @@ int _fs_registerDev(driverInterface_t interface) {
     // If this device shares a number with an already present device, return 
     // failure: 
     //  if(interface.fsNr == disks[i].fsNr) return failure;
+    for(int i = 0; i < MAX_DISKS; i++) {
+        if(interface.fsNr == disks[i].fsNr) {
+            return E_FAILURE;
+        }
+    }
 
-    // disks[nextDisk] = interface
-
-    return E_FAILURE;
+    disks[nextDisk] = interface
+    return nextDisk;
 }
 
 /**
@@ -58,6 +62,17 @@ int _fs_registerDev(driverInterface_t interface) {
  * @returns The number of bytes read from disk
  */
 int _fs_read(fd_t file, char * buf, uint32_t len) {
+    // Get inode_id from fd_t, and follow that to find inode offset. Read that inode in
+    // and take either top or bottom 256. Then follow its pointersjjj
+    // fd_t->inode_id & offset 
+    // inode_id is a inode_id_t which contains idx, devID
+    
+    uint8_t devID = fd_t.inode_id.devID;
+    // Read in inode for file! 
+    disks[devID].readBlock(fd_t
+
+    // Read in each direct pointers data into our buffer! 
+    
 
     return E_FAILURE;
 }
