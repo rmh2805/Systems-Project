@@ -48,8 +48,8 @@ int _fs_registerDev(driverInterface_t interface) {
         }
     }
 
-    disks[nextDisk] = interface
-    return nextDisk;
+    disks[nextFree] = interface
+    return nextFree;
 }
 
 /**
@@ -66,15 +66,50 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
     // and take either top or bottom 256. Then follow its pointersjjj
     // fd_t->inode_id & offset 
     // inode_id is a inode_id_t which contains idx, devID
+
+    // char * block = | 512 bytes of inodes | 512 blocks of garbage |
+    // | 512 Bytes of inodes | = | 0 - 255 inode1 | 256 - 511 inode2 |
     
     uint8_t devID = fd_t.inode_id.devID;
     // Read in inode for file! 
-    disks[devID].readBlock(fd_t
+    char * inode_block = _km_slice_alloc(); // Get 1024 bytes for our buffer
+    if (inode_block == NULL) {
+        return E_NO_MEMORY;
+    }
+    disks[devID].readBlock(fd_t.inode_id.idx, inode_block, devID); // Read our first 512 bytes
 
-    // Read in each direct pointers data into our buffer! 
-    
+    // Get data and setup an inode
+    void * tmp = (void *)inode_block;
+    inode_t * inode;
+    if(fd_t.inode_idx % 2 == 0) {// Its even
+        inode = (inode_t *)tmp; // Map the first 256 bytes
+    } else { // Its odd so we want the second inode in the block
+        inode = (inode_t *)(tmp + 256); // If we want the second block add 256 
+    }
 
-    return E_FAILURE;
+    char * block = _km_slice_alloc(); // Get 1024 bytes for our buffer
+    if (block == NULL) {
+        return E_NO_MEMORY;
+    }
+    uint32_t nextBlock = 0;
+    int i;
+    for(i = 0; i < inode->nBytes; i++) {
+        if(i == len) {
+            break; // We filled the buffer leave now
+        }
+        if(i % 512 == 0) { // We are at a multiple of 512, get a new block
+            disks[devID].readBlock(inode->direct_pointers[nextBlock/4][nextBlock%4], block, devID); 
+            nextBlock++;
+        }
+        buf[i] = (char)block[i%512] // Just do a basic char copy
+        if(block[i%512] == EOF) { // Reached end of file leave now
+            break;
+        }
+    }
+
+    _km_slice_free(block);
+    _km_slice_free(inode_block);
+    return i;
 }
 
 /**
