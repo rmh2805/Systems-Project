@@ -4,6 +4,7 @@
 #define SP_KERNEL_SRC
 #include "common.h"
 #include "driverInterface.h"
+#include "kfs.h"
 
 #define DISK_LOAD_POINT 0x0bc00
 
