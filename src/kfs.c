@@ -8,6 +8,9 @@ void _fs_init( void ) {
     __cio_puts( " FS:" );
 
     inode_buffer = _km_slice_alloc(); // Get 1024 bytes for our buffer
+
+    //todo Check that inode_buffer is properly allocated
+
     data_buffer = inode_buffer + 512; // Set data_buffer to the second half
     for(unsigned int i = 0; i < MAX_DISKS; i++) {
         disks[i].fsNr = 0;
