@@ -567,7 +567,7 @@ static void _sys_setgid ( uint32_t args[4] ) {
     }
 }
 
-static uint32_t _sys_seekFile( char* path, _inode_id_t * currentDir) {
+static uint32_t _sys_seekFile( char* path, inode_id_t * currentDir) {
     // Get starting inode 
     *currentDir = _current->wDir;
     if(path[0] == '/') {
@@ -615,7 +615,7 @@ static void _sys_fopen( uint32_t args[4] ) {
         }       
     }
 
-    _inode_id_t currentDir;
+    inode_id_t currentDir;
     int32_t result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;
@@ -665,7 +665,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // char * name = (char*) args[1];
     // bool_t isFile = (bool_t) args[2];
 
-    _inode_id_t currentDir;
+    inode_id_t currentDir;
     int32_t result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;
@@ -735,7 +735,7 @@ static void _sys_getinode (uint32_t args[4]) {
     char* path = (char *) args[0];
     // inode_t * inode = (inode_t *) args[1];
 
-    _inode_id_t currentDir;
+    inode_id_t currentDir;
     int32_t result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;

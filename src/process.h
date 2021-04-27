@@ -88,7 +88,7 @@ typedef struct context {
  * 8 bytes
  */
 typedef struct fd_s {
-    _inode_id_t inode_id;
+    inode_id_t inode_id;
     uint32_t offset;
 } fd_t;
 
@@ -108,7 +108,7 @@ typedef struct pcb_s {
     context_t *context;     // pointer to context save area on stack
     stack_t *stack;         // pointer to process stack
 
-    _inode_id_t wDir;          // ID of the working directory's inode
+    inode_id_t wDir;          // ID of the working directory's inode
 
     int32_t exit_status;    // termination status, for parent's use
     event_t event;          // what this process is waiting for

@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
         ((char*) &metaNode)[i] = 0;
     }
     
-    metaNode.id = (_inode_id_t) {devId, 0};
+    metaNode.id = (inode_id_t) {devId, 0};
     metaNode.nBlocks = mapBlocks;
     metaNode.nodeType = INODE_META_TYPE;
     metaNode.nBytes = diskSize;
@@ -109,7 +109,7 @@ int main(int argc, char** argv) {
         ((char*) &rootNode)[i] = 0;
     }
     
-    rootNode.id = (_inode_id_t) {devId, 1};
+    rootNode.id = (inode_id_t) {devId, 1};
     rootNode.nBlocks = 0;
     rootNode.nBytes = 1;
     rootNode.nRefs = 1;

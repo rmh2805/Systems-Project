@@ -26,11 +26,11 @@ typedef uint32_t block_t;
 typedef struct {
     uint32_t devID : 8;
     uint32_t idx : 24;
-} _inode_id_t;
+} inode_id_t;
 
 typedef struct {
         char name[12];
-        _inode_id_t block;
+        inode_id_t inode;
 } dirEnt_t;
 
 // Each is 16 bytes
@@ -45,7 +45,7 @@ typedef union {
  */
 typedef struct inode_s {
     // Meta Data (16 bytes)
-    _inode_id_t id;
+    inode_id_t id;
     uint32_t nBlocks;
     uint32_t nBytes;  // Either number of file bytes or number of subdirectories
     uint32_t nRefs;  // Number of inodes referencing this one
