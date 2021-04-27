@@ -212,6 +212,10 @@ qemu: usb.image
 	qemu-system-x86_64 -serial mon:stdio usb.image
 	@echo ""
 
+qemu-nox: usb.image
+	qemu-system-x86_64 -nographic usb.image
+	@echo ""
+
 #
 # Create a printable namelist from the prog.o file
 #
@@ -272,12 +276,14 @@ syscalls.o: x86arch.h process.h stacks.h queues.h klib.h x86pic.h ./uart.h
 syscalls.o: bootstrap.h syscalls.h scheduler.h clock.h sio.h
 users.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
 users.o: process.h stacks.h queues.h klib.h users.h userland/main1.c
-users.o: userland/main2.c userland/main3.c userland/userH.c userland/userZ.c
-users.o: userland/userI.c userland/userW.c userland/userJ.c userland/userY.c
-users.o: userland/main4.c userland/userX.c userland/main5.c userland/userP.c
-users.o: userland/userQ.c userland/userR.c userland/userS.c userland/main6.c
-users.o: userland/userV.c userland/mUser1.c userland/mUser2.c
-users.o: userland/mUser3.c userland/init.c userland/idle.c
+users.o: userland/main2.c userland/main3.c userland/main4.c userland/main5.c
+users.o: userland/main6.c userland/userH.c userland/userI.c userland/userJ.c
+users.o: userland/userP.c userland/userQ.c userland/userR.c userland/userS.c
+users.o: userland/userV.c userland/userW.c userland/userX.c userland/userY.c
+users.o: userland/userZ.c userland/mUser1.c userland/mUser2.c
+users.o: userland/mUser3.c userland/mUser4.c userland/init.c
+users.o: userland/doTests.c userland/idle.c userland/signIn.c
+users.o: userland/testShell.c
 ulibc.o: common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h x86arch.h
 ulibc.o: process.h stacks.h queues.h klib.h
 ulibs.o: syscalls.h common.h kdefs.h cio.h kmem.h compat.h support.h kernel.h

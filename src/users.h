@@ -76,15 +76,16 @@
 // userZ    X    .    .    .     .    X     X    .    X    X    .    .    .
 //
 //
-// Multi-user syscalls: getgid, getuid
+// Multi-user syscalls: getgid, getuid, setgid, setuid
+// Multi-user affected syscalls: spawn, kill
 //
 //                        Multi-user system calls in use
-//   fcn   ggid   guid   sgid   suid
-// ------  ----   ----   ----   ----
-// mUser1   x      x                
-// mUser2   x      x      x      x
-//
-//
+//   fcn   ggid guid sgid suid spawn kill
+// ------  ---- ---- ---- ---- ----- ----
+// mUser1   x    x
+// mUser2   x    x    x    x
+// mUser3   x    x    x    x     x
+// mUser4   x    x    x    x     x    x
 
 /*
 ** User process controls.
@@ -129,6 +130,8 @@
 #define SPAWN_M_1
 #define SPAWN_M_2
 #define SPAWN_M_3
+
+#define DO_SIGN_IN
 
 // #define DO_IDLE_PRINT
 
