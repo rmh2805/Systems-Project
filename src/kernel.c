@@ -20,6 +20,7 @@
 #include "cio.h"
 #include "sio.h"
 #include "kfs.h"
+#include "ramDiskDriver.h"
 #include "scheduler.h"
 #include "support.h"
 
@@ -135,7 +136,9 @@ void _init( void ) {
     _sched_init();
     _clk_init();
     _sio_init();
-    _fs_init();
+
+    _fs_init();     // Must come before driver inits
+    _rd_init();
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );

@@ -8,7 +8,7 @@
 
 #define DISK_LOAD_POINT 0x0bc00
 
-void _rd_init();
+void _rd_init(void);
 
 int _rd_readBlock(uint32_t blockNr, char* buf, uint8_t devId);
 int _rd_writeBlock(uint32_t blockNr, char* buf, uint8_t devId);

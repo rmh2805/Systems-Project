@@ -27,9 +27,8 @@ void _fs_init( void ) {
  * @returns The number this was registered as (error if return < 0)
  */
 int _fs_registerDev(driverInterface_t interface) {
-    
     if(interface.readBlock == NULL || interface.writeBlock == NULL) {
-            return E_FAILURE;
+            return E_BAD_PARAM;
     }
 
     unsigned int nextFree;
@@ -39,12 +38,15 @@ int _fs_registerDev(driverInterface_t interface) {
         }
     }
     if(nextFree == MAX_DISKS) {
-        return E_FAILURE; //Change to failure to allocate
+        return E_BAD_CHANNEL; //Change to failure to allocate
     }
 
     // Read the metadata inode (inode index 0) from this device to determine its 
     // FS number:
     //  interface.fsNr = fsNr
+    interface.readBlock(0, inode_buffer, interface.driverNr);
+    inode_t inode = *(inode_t*)(inode_buffer);
+    interface.fsNr = inode.id.devID;
 
     // If this device shares a number with an already present device, return 
     // failure: 
