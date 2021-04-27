@@ -1,0 +1,52 @@
+Our filesystem is structured in three sections along (512 byte) block boundaries
+
+The first section contains an array of inodes (as described in fs.h):
+```
+typedef struct {
+    uint32_t devID : 8;         // FS ID of the device containing this inode
+    uint32_t idx : 24;          // Node's index into its device's inode array
+} inode_id_t;
+
+typedef struct {
+        char name[12];          // File/Directory name string
+        inode_id_t inode;       // Reference to entry's primary inode
+} dirEnt_t;
+
+typedef union {
+    dirEnt_t dir;               // Directory entry
+    block_t blocks[4];          // Equal sized number of data blocks
+} data_u;
+
+typedef struct inode_s {
+    // Meta Data (16 bytes)
+    _inode_id_t id;     // Inode's ID (contains both device nr and inode index)
+    uint32_t nBlocks;   // The number of blocks allocated to this inode
+    uint32_t nBytes;    // Number of file bytes or number of directory entries
+    uint32_t nRefs;     // Number of inodes referencing this one
+
+    // Permission information (8 bytes)
+    uint32_t permissions: 24;   // File access permission bits
+    uint32_t nodeType: 8;       // File type field
+    uid_t uid;                  // File owner's UID
+    gid_t gid;                  // File owner's GID
+
+    // Lock + Padding (4 bytes)
+    uint8_t lock;       // Potential locking byte
+    uint8_t pad[3];     // Padding bytes to bring us to a power of 2 length
+
+    // Indirect Pointers (4 bytes)
+    block_t extBlock;   // Points to a block containing additional referends
+
+    // Direct Pointers - each point to a block 
+    data_u direct_pointers[NUM_DIRECT_POINTERS];    // References to data blocks
+} inode_t;
+```
+
+2 specially defined inodes will reside in the first 2 array entries. The first 
+(at index 0) is the metadata inode, which makes unique use of some fields:
+    - `nBlocks` contains the number of blocks dedicated to the data block allocation bitmap
+    - `nBytes` refers to the total disk size (in Bytes)
+    - `nRefs` refers to the total number of inodes in the array
+
+The second (at index 1) is the reserved root directory of the disk, and is an 
+otherwise normal directory inode
