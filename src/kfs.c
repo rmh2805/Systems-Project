@@ -81,6 +81,7 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
     
     uint8_t devID = file.inode_id.devID;
     uint32_t workingBlock = file.offset/512;
+    uint32_t bytes_read;
     // Read in inode for file! 
     disks[devID].readBlock(file.inode_id.idx, inode_buffer, devID); 
 
@@ -127,9 +128,7 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
 int _fs_write(fd_t file, char * buf, uint32_t len) {
 
     uint8_t devID = file.inode_id.devID;
-    uint32_t workingBlock = file.offset/512; // block in file we are starting to write
-    uint32_t total_blocks_to_write = len/512 + 1;
-    uint32_t workingOffset = file.offset % 512;
+    int num_written = 0;
 
     // So you need to read this block and start writing shit after that
     // THEN you write that whole block out. THEN you need to get the next block
@@ -141,22 +140,34 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
 
     void * tmp = (void *)inode_buffer;
     inode_t * inode;
-    if(file.inode_id.idx % 2 == 0) {// Its even
+    if(file.inode_id.idx % 2 == 0) { // Its even
         inode = (inode_t *)tmp; // Map the first 256 bytes
     } else { // Its odd so we want the second inode in the block
         inode = (inode_t *)(tmp + 256); // If we want the second block add 256 
     }
 
-    // We need to get the first block (via offset) 
-    // Then we need to go through each block for as long as we write and copy
-    // data over, and then when that fills up - we need to write that block out to disk
-    // So we need a read, then a write
-    for(int i = 0; i < total_blocks_to_write; i++) { // For each block
-        disks[devID].writeBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
-                           buf, devID); 
-        workingBlock++; // Goto next block
-        if// Need to increment buf
+    if(file.offset % 512 != 0) { // Then we don't have a not full block, so fill this one up
+        uint32_t curBlock = file.offset/512;
+        disks[devID].readBlock(inode->direct_pointers[curBlock/4].blocks[curBlock%4],
+                               data_buffer, devID); 
+        for(int i = 0; i < 512; i++) {
+            if(i == len) { // We are done write it out
+                break;
+            }
+            num_written++;
+            data_buffer[(i + file.offset)%512] = buf[i];
+        }
+        // write the first block back
+        disks[devID].readBlock(inode->direct_pointers[curBlock/4].blocks[curBlock%4],
+                               data_buffer, devID); 
+        if(num_written == len) {
+            return num_written;
+        }
     }
+
+    // For all other blocks, check if its allocated, if not allocate it, then write 512
+    // bytes for it, when its full or you are done write the block out and repeat. 
+
 
     return E_FAILURE;
 }
