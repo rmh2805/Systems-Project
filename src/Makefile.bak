@@ -285,6 +285,9 @@ syscalls.o: x86arch.h process.h stacks.h queues.h klib.h x86pic.h ./uart.h
 syscalls.o: bootstrap.h syscalls.h scheduler.h clock.h sio.h
 kfs.o: kfs.h common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 kfs.o: x86arch.h process.h stacks.h queues.h klib.h driverInterface.h
+ramDiskDriver.o: ramDiskDriver.h common.h fs.h kdefs.h cio.h kmem.h compat.h
+ramDiskDriver.o: support.h kernel.h x86arch.h process.h stacks.h queues.h
+ramDiskDriver.o: klib.h driverInterface.h kfs.h
 users.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 users.o: x86arch.h process.h stacks.h queues.h klib.h users.h
 users.o: userland/main1.c userland/main2.c userland/main3.c userland/main4.c

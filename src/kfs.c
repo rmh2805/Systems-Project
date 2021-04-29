@@ -221,3 +221,48 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
     inode->nBytes += num_written;
     return num_written;
 }
+
+/**
+ * Reads an inode from disk (Exposed)
+ * 
+ * @param id The inode id to access
+ * @param inode A return pointer for the grabbed inode
+ * 
+ * @return A standard exit status
+ */
+int _fs_getInode(inode_id_t id, inode_t * inode) {
+    if(id.devID == 0 && id.idx == 1) {  // Reassign default channel
+        id = (inode_id_t){disks[0].fsNr, 1};
+    }
+    
+    if(id.devID == 0) { // Return 0 if targeting a non-existent dev ID
+        return E_BAD_CHANNEL;
+    }
+    
+    uint32_t disk = 0;
+    for(; disk < MAX_DISKS; disk++) {
+        if(disks[disk].fsNr == id.devID) {
+            break;
+        }
+    }
+    if (disk == MAX_DISKS) return E_BAD_CHANNEL; // Ensure disk exists
+    
+    // Read the metadata node from disk
+    int result = disks[disk].readBlock(0, meta_buffer, disks[disk].driverNr);
+    if(result <= 0) return result; // Ensure meta read was successful
+    inode_t metaNode = *(inode_t*)(meta_buffer);
+    
+    // Check that this inode exists on this disk
+    if(id.idx >= metaNode.nRefs) return E_BAD_PARAM;
+    
+    // Read in the inode from disk
+    uint32_t idx = id.idx/(BLOCK_SIZE/sizeof(inode_t));
+    result = disks[disk].readBlock(idx, inode_buffer, disks[disk].driverNr);
+    if(result <= 0) return result; // Ensure read was successful
+    
+    // Copy the read inode to the return struct
+    idx = sizeof(inode_t) * id.idx % (BLOCK_SIZE/sizeof(inode_t));
+    *inode = *(inode_t*)(inode_buffer + idx);
+    
+    return E_SUCCESS;
+}
