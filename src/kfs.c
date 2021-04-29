@@ -257,11 +257,6 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
             // Update inode
             inode->nBlocks++;
             inode->direct_pointers[inode->nBlocks/4][inode->nBlocks%4] = curBlock;
-            ret = disks[devID].writeBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
-            if(ret < 0) {
-                __cio_printf( " ERROR: Unable to write inode back to disk! (_fs_write) (%d)", ret);
-                return num_written;
-            }
         } else if (i != 0) {
             // Read the block you're appending to into data buffer
             ret = disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
@@ -284,6 +279,11 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
     }
     // update inodes bytes
     inode->nBytes += num_written;
+    ret = disks[devID].writeBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
+    if(ret < 0) {
+        __cio_printf( " ERROR: Unable to write inode back to disk! (_fs_write) (%d)", ret);
+        return num_written;
+    }
     return num_written;
 }
 
