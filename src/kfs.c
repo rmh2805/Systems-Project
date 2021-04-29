@@ -13,7 +13,7 @@ void _fs_init( void ) {
 
     //todo Check that inode_buffer is properly allocated
 
-    data_buffer = inode_buffer + 512; // Set data_buffer to the second half
+    data_buffer = inode_buffer + BLOCK_SIZE; // Set data_buffer to the second half
     for(unsigned int i = 0; i < MAX_DISKS; i++) {
         disks[i].fsNr = 0;
     }
@@ -45,14 +45,12 @@ int _fs_registerDev(driverInterface_t interface) {
 
     // Read the metadata inode (inode index 0) from this device to determine its 
     // FS number:
-    //  interface.fsNr = fsNr
     interface.readBlock(0, inode_buffer, interface.driverNr);
     inode_t inode = *(inode_t*)(inode_buffer);
     interface.fsNr = inode.id.devID;
 
     // If this device shares a number with an already present device, return 
     // failure: 
-    //  if(interface.fsNr == disks[i].fsNr) return failure;
     for(int i = 0; i < MAX_DISKS; i++) {
         if(interface.fsNr == disks[i].fsNr) {
             return E_FAILURE;
@@ -73,16 +71,9 @@ int _fs_registerDev(driverInterface_t interface) {
  * @returns The number of bytes read from disk
  */
 int _fs_read(fd_t file, char * buf, uint32_t len) {
-    // Get inode_id from fd_t, and follow that to find inode offset. Read that inode in
-    // and take either top or bottom 256. Then follow its pointersjjj
-    // fd_t->inode_id & offset 
-    // inode_id is a inode_id_t which contains idx, devID
 
-    // char * block = | 512 bytes of inodes | 512 blocks of garbage |
-    // | 512 Bytes of inodes | = | 0 - 255 inode1 | 256 - 511 inode2 |
-    
     uint8_t devID = file.inode_id.devID;
-    uint32_t workingBlock = file.offset/512;
+    uint32_t workingBlock = file.offset/BLOCK_SIZE;
     uint32_t bytes_read;
     // Read in inode for file! 
     disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
@@ -93,7 +84,7 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
     if(file.inode_id.idx % 2 == 0) {// Its even
         inode = (inode_t *)tmp; // Map the first 256 bytes
     } else { // Its odd so we want the second inode in the block
-        inode = (inode_t *)(tmp + 256); // If we want the second block add 256 
+        inode = (inode_t *)(tmp + sizeof(inode_t)); // If we want the second block add 256 bytes
     }
 
     // Read starting block based on offset
@@ -101,18 +92,16 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
                            data_buffer, disks[devID].driverNr); 
     workingBlock++;
 
-    //uint32_t nextBlock = 0;
-    //int bytes_read = 0;
     for(bytes_read = 0; bytes_read < inode->nBytes; bytes_read++) {
         if(bytes_read == len) {
             break; // We filled the buffer leave now
         }
-        if(bytes_read % 512 == 0 && bytes_read != 0) { // At a multiple of 512, get a new block
+        if(bytes_read % BLOCK_SIZE == 0 && bytes_read != 0) { // At multiple of 512, get new block
             disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
                                    data_buffer, disks[devID].driverNr); 
             workingBlock++;
         }
-        buf[bytes_read] = (char)data_buffer[file.offset%512]; // Just do a basic copy
+        buf[bytes_read] = (char)data_buffer[file.offset % BLOCK_SIZE]; // Just do a basic copy
         file.offset++;
     }
     return bytes_read;
@@ -195,7 +184,7 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
     if(file.inode_id.idx % 2 == 0) { // Its even
         inode = (inode_t *)tmp; // Map the first 256 bytes
     } else { // Its odd so we want the second inode in the block
-        inode = (inode_t *)(tmp + 256); // If we want the second block add 256 
+        inode = (inode_t *)(tmp + sizeof(inode_t)); // If we want the second block add 256 
     }
 
     while(buffOffset < len) {
@@ -209,7 +198,7 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
             // Read the block you're appending to into data buffer
             disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
         }
-        while(i < 512) {
+        while(i < BLOCK_SIZE) {
             data_buffer[i++] = buf[buffOffset++];
         }
         num_written += (i - s);
