@@ -70,50 +70,56 @@ int _fs_registerDev(driverInterface_t interface) {
  * @returns The number of bytes read from disk
  */
 int _fs_read(fd_t file, char * buf, uint32_t len) {
-
     uint8_t devID = file.inode_id.devID;
-    uint32_t workingBlock = file.offset/BLOCK_SIZE;
     uint32_t bytes_read;
+    
+    
+    // Compute the disk index for devID;
+    uint32_t i = 0;
+    for(; i < MAX_DISKS; i++) {
+        if(devID == disks[i].fsNr) {
+            devID = i;
+            break;
+        }
+    }
+    if(i == MAX_DISKS) {
+        return E_BAD_CHANNEL;
+    }
+    
     // Read in inode for file! 
     int ret = disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
     if(ret < 0) {
         __cio_puts( " ERROR: Unable to read inode block from disk! (_fs_read)");
-        return E_FAILURE;
+        return ret;
     }
 
     // Get data and setup an inode
-    void * tmp = (void *)inode_buffer;
-    inode_t * inode;
-    if(file.inode_id.idx % 2 == 0) {// Its even
-        inode = (inode_t *)tmp; // Map the first 256 bytes
-    } else { // Its odd so we want the second inode in the block
-        inode = (inode_t *)(tmp + sizeof(inode_t)); // If we want the second block add 256 bytes
-    }
+    uint32_t idx = sizeof(inode_t) * (file.inode_id.idx % (BLOCK_SIZE/sizeof(inode_t)));
+    inode_t * inode = (inode_t *)(inode_buffer + idx);
 
-    // Read starting block based on offset
-    ret = disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
-                           data_buffer, disks[devID].driverNr); 
-    if(ret < 0) {
-        __cio_puts( " ERROR: Unable to read block from disk! (_fs_read)");
-        return E_FAILURE;
-    }
-    workingBlock++;
-
-    for(bytes_read = 0; bytes_read < inode->nBytes; bytes_read++) {
-        if(bytes_read == len) {
-            break; // We filled the buffer leave now
-        }
-        if(bytes_read % BLOCK_SIZE == 0 && bytes_read != 0) { // At multiple of 512, get new block
-            ret = disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
-                                   data_buffer, disks[devID].driverNr); 
+    // 
+    uint32_t blockIdx = file.offset / BLOCK_SIZE;
+    for(bytes_read = 0; bytes_read < len && bytes_read < inode->nBytes;) {
+        // Read next block from disk
+        if(blockIdx < NUM_DIRECT_POINTERS) {
+            ret = disks[devID].readBlock(inode->direct_pointers[blockIdx/4].blocks[blockIdx%4],
+                    data_buffer, disks[devID].driverNr);
             if(ret < 0) {
                 __cio_puts( " ERROR: Unable to read block from disk! (_fs_read)");
-                return E_FAILURE;
+                return ret;
             }
-            workingBlock++;
+        } else {
+            //todo implement indirect reads
+            return bytes_read;
         }
-        buf[bytes_read] = (char)data_buffer[file.offset % BLOCK_SIZE]; // Just do a basic copy
-        file.offset++;
+        
+        uint32_t blockIdx = file.offset % BLOCK_SIZE;
+        while(bytes_read < len && bytes_read < inode->nBytes && blockIdx < BLOCK_SIZE) {
+            buf[bytes_read++] = data_buffer[blockIdx++];
+        }
+        file.offset += (blockIdx - file.offset % BLOCK_SIZE); // update file offset
+        
+        blockIdx++;
     }
     return bytes_read;
 }
