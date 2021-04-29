@@ -3,11 +3,13 @@
 static driverInterface_t disks[MAX_DISKS];
 char * inode_buffer;
 char * data_buffer;
+char * meta_buffer;
 
 void _fs_init( void ) {
     __cio_puts( " FS:" );
 
     inode_buffer = _km_slice_alloc(); // Get 1024 bytes for our buffer
+    meta_buffer = _km_slice_alloc(); // We only are using the first 512 bytes
 
     //todo Check that inode_buffer is properly allocated
 
@@ -83,7 +85,7 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
     uint32_t workingBlock = file.offset/512;
     uint32_t bytes_read;
     // Read in inode for file! 
-    disks[devID].readBlock(file.inode_id.idx, inode_buffer, devID); 
+    disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
 
     // Get data and setup an inode
     void * tmp = (void *)inode_buffer;
@@ -96,7 +98,7 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
 
     // Read starting block based on offset
     disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
-                           data_buffer, devID); 
+                           data_buffer, disks[devID].driverNr); 
     workingBlock++;
 
     //uint32_t nextBlock = 0;
@@ -107,13 +109,66 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
         }
         if(bytes_read % 512 == 0 && bytes_read != 0) { // At a multiple of 512, get a new block
             disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
-                                   data_buffer, devID); 
+                                   data_buffer, disks[devID].driverNr); 
             workingBlock++;
         }
         buf[bytes_read] = (char)data_buffer[file.offset%512]; // Just do a basic copy
         file.offset++;
     }
     return bytes_read;
+}
+
+int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
+
+    disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    // Read in meta
+    inode_t metaNode = *(inode_t*)(meta_buffer);
+    
+    // Calculate nr of Inode blocks to determine start of map blocks 
+    uint32_t mapBase = metaNode.nRefs / (BLOCK_SIZE/sizeof(inode_t));
+    if(metaNode.nRefs % (BLOCK_SIZE/sizeof(inode_t)) != 0) {
+        mapBase += 1;
+    }
+    
+    for(uint32_t mapIdx = 0; mapIdx < metaNode.nBlocks; mapIdx++) {
+        disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+        for(uint32_t blockIdx; blockIdx < BLOCK_SIZE; blockIdx++) {
+            for(uint8_t bitPos = 0; bitPos < 8; bitPos++) {
+                uint8_t mask = 0x80 >> bitPos;
+                if((data_buffer[blockIdx] & mask) ^ mask) {
+                    data_buffer[blockIdx] |= mask;
+                    disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+                    *blockNr = (mapIdx * 8 * BLOCK_SIZE);
+                    *blockNr += blockIdx * 8;
+                    *blockNr += bitPos;
+                    return E_SUCCESS;
+                }
+            }
+        }
+    }
+    return E_FAILURE;
+}
+
+int _fs_free_block(uint8_t devID, uint32_t blockNr) {
+    disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    inode_t metaNode = *(inode_t*)(meta_buffer);
+
+    uint32_t mapBase = metaNode.nRefs / (BLOCK_SIZE/sizeof(inode_t));
+    if(metaNode.nRefs % (BLOCK_SIZE/sizeof(inode_t)) != 0) {
+        mapBase += 1;
+    }
+
+    uint32_t mapIdx = blockNr/(8*BLOCK_SIZE);
+    blockNr = blockNr % (8 * BLOCK_SIZE);
+    uint32_t blockIdx = blockNr / 8;
+    uint8_t bitPos = blockNr % 8;
+    
+    disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+    uint8_t bitMask = (0x80 >> bitPos) ^ 0xFF;
+    data_buffer[blockIdx] &= bitMask;
+    disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+    
+    return E_SUCCESS;
 }
 
 /**
@@ -128,16 +183,13 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
 int _fs_write(fd_t file, char * buf, uint32_t len) {
 
     uint8_t devID = file.inode_id.devID;
-    int num_written = 0;
+    uint32_t num_written = 0;
+    uint32_t buffOffset = 0;
 
-    // So you need to read this block and start writing shit after that
-    // THEN you write that whole block out. THEN you need to get the next block
-    // allocating it if necessary and then allocating it and moving forward and 
-    // filling that shit. To allocate the node you need to read the metanode (root) and
-    // make a new block! 
+    // Read Inode!
+    disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
 
-    disks[devID].readBlock(file.inode_id.idx, inode_buffer, devID); 
-
+    // Read in inode! 
     void * tmp = (void *)inode_buffer;
     inode_t * inode;
     if(file.inode_id.idx % 2 == 0) { // Its even
@@ -146,28 +198,26 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
         inode = (inode_t *)(tmp + 256); // If we want the second block add 256 
     }
 
-    if(file.offset % 512 != 0) { // Then we don't have a not full block, so fill this one up
-        uint32_t curBlock = file.offset/512;
-        disks[devID].readBlock(inode->direct_pointers[curBlock/4].blocks[curBlock%4],
-                               data_buffer, devID); 
-        for(int i = 0; i < 512; i++) {
-            if(i == len) { // We are done write it out
-                break;
-            }
-            num_written++;
-            data_buffer[(i + file.offset)%512] = buf[i];
+    while(buffOffset < len) {
+        uint32_t curBlock = file.offset/BLOCK_SIZE;
+        uint32_t i, s = i = file.offset % BLOCK_SIZE;
+        if(curBlock >= inode->nBlocks) {
+            // Allocate a new block
+            _fs_alloc_block(devID, &curBlock);
+            disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
+        } else if (i != 0) {
+            // Read the block you're appending to into data buffer
+            disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
         }
-        // write the first block back
-        disks[devID].readBlock(inode->direct_pointers[curBlock/4].blocks[curBlock%4],
-                               data_buffer, devID); 
-        if(num_written == len) {
-            return num_written;
+        while(i < 512) {
+            data_buffer[i++] = buf[buffOffset++];
         }
+        num_written += (i - s);
+        file.offset += (i - s);
+        // Write data_buffer out to disk
+        disks[devID].writeBlock(curBlock, data_buffer, disks[devID].driverNr); 
     }
-
-    // For all other blocks, check if its allocated, if not allocate it, then write 512
-    // bytes for it, when its full or you are done write the block out and repeat. 
-
-
-    return E_FAILURE;
+    // update inodes bytes
+    inode->nBytes += num_written;
+    return num_written;
 }
