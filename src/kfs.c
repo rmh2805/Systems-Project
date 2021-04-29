@@ -213,6 +213,19 @@ int _fs_free_block(uint8_t devID, uint32_t blockNr) {
 int _fs_write(fd_t file, char * buf, uint32_t len) {
 
     uint8_t devID = file.inode_id.devID;
+
+    // Compute the disk index for devID;
+    uint32_t i = 0;
+    for(; i < MAX_DISKS; i++) {
+        if(devID == disks[i].fsNr) {
+            devID = i;
+            break;
+        }
+    }
+    if(i == MAX_DISKS) {
+        return E_BAD_CHANNEL;
+    }
+
     uint32_t num_written = 0;
     uint32_t buffOffset = 0;
 
@@ -220,7 +233,7 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
     int ret = disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
     if(ret < 0) {
         __cio_puts( " ERROR: Unable to read inode block from disk! (_fs_write)");
-        return E_FAILURE;
+        return ret;
     }
 
     // Read in inode! 
@@ -241,14 +254,14 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
             ret = disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
             if(ret < 0) {
                 __cio_puts( " ERROR: Unable to read block from disk! (_fs_write)");
-                return E_FAILURE;
+                return ret;
             }
         } else if (i != 0) {
             // Read the block you're appending to into data buffer
             ret = disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
             if(ret < 0) {
                 __cio_puts( " ERROR: Unable to read block from disk! (_fs_write)");
-                return E_FAILURE;
+                return ret;
             }
         }
         while(i < BLOCK_SIZE) {
@@ -260,7 +273,7 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
         ret = disks[devID].writeBlock(curBlock, data_buffer, disks[devID].driverNr); 
         if(ret < 0) {
             __cio_puts( " ERROR: Unable to write block to disk! (_fs_write)");
-            return E_FAILURE;
+            return ret;
         }
     }
     // update inodes bytes
