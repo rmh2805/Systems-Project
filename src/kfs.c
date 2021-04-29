@@ -117,7 +117,7 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
         while(bytes_read < len && bytes_read < inode->nBytes && blockIdx < BLOCK_SIZE) {
             buf[bytes_read++] = data_buffer[blockIdx++];
         }
-        file.offset += (blockIdx - file.offset % BLOCK_SIZE); // update file offset
+        file.offset += (blockIdx - (file.offset % BLOCK_SIZE)); // update file offset
         
         blockIdx++;
     }
