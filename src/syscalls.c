@@ -26,6 +26,7 @@
 #include "sio.h"
 
 #include "fs.h"
+#include "kfs.h"
 
 // copied from ulib.h
 extern void exit_helper( void );
@@ -567,19 +568,58 @@ static void _sys_setgid ( uint32_t args[4] ) {
     }
 }
 
-static uint32_t _sys_seekFile( char* path, inode_id_t * currentDir) {
+static int _sys_seekFile( char* path, inode_id_t * currentDir) {
     // Get starting inode 
     *currentDir = _current->wDir;
     if(path[0] == '/') {
-        // *currentDir = root
-        path++;
+        *currentDir = (inode_id_t){0, 1};
     }
-
-
-    // char nextName[12];
-    //while(*path) {
-        // path = getNextEntry(path, nextName);
-
+    
+    char nextName[12];
+    while(*path) {
+        if (*path == '/') {     //If targeting slash, advance
+            path++;
+        }
+        
+        // Grab the name of the next entry
+        int nameLen = 0;
+        while(*path && *path != '/') { // Grab file until slash or EOS
+            while(nameLen < 12) {
+                nextName[nameLen++] = *path;
+            }
+            path++;
+        }
+        if(nameLen == 0) {  // Entry names must have length > 0
+            return E_BAD_PARAM;
+        }
+        
+        // Read the current inode in
+        inode_t curNode;
+        bool_t found = false;
+        _fs_getInode(*currentDir, &curNode);
+        
+        for(uint32_t i = 0; i < NUM_DIRECT_POINTERS; i++) {
+            uint8_t j = 0;
+            for(; j < nameLen; j++) { // strncmp(entry[i], nextName, nameLen)
+                if(nextName[j] != curNode.direct_pointers[i].dir.name[j]) {
+                    break;
+                }
+            }
+            if(j == nameLen) {
+                found = true;
+                *currentDir = curNode.direct_pointers[i].dir.inode;
+                break;
+            }
+        }
+        //todo Check for indirect entries here
+        
+        if(!found) { // Fail if no child was found
+            return E_BAD_PARAM;
+        }
+        if(curNode.nodeType != INODE_DIR_TYPE && *path) { // Fail if this is a leaf node but not end of path
+            return E_BAD_PARAM;
+        }
+        
         // if (nextName not in currentDir->files) {
         //  return error
         //} else {
@@ -589,7 +629,7 @@ static uint32_t _sys_seekFile( char* path, inode_id_t * currentDir) {
         //If (path && isFile(*currentDir)) {
         //    return error
         //}
-    //}
+    }
 
     return E_FAILURE;
 }
@@ -616,7 +656,7 @@ static void _sys_fopen( uint32_t args[4] ) {
     }
 
     inode_id_t currentDir;
-    int32_t result = _sys_seekFile(path, &currentDir);
+    int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;
         return;
@@ -666,7 +706,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // bool_t isFile = (bool_t) args[2];
 
     inode_id_t currentDir;
-    int32_t result = _sys_seekFile(path, &currentDir);
+    int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;
         return;
@@ -736,7 +776,7 @@ static void _sys_getinode (uint32_t args[4]) {
     // inode_t * inode = (inode_t *) args[1];
 
     inode_id_t currentDir;
-    int32_t result = _sys_seekFile(path, &currentDir);
+    int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;
         return;
