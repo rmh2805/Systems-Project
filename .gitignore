@@ -10,3 +10,5 @@ src/.vscode
 *.nll
 *.lst
 *.dis
+src/MakeFSImage
+src/*.dmg
