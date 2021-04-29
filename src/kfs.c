@@ -250,9 +250,18 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
             // Allocate a new block
             _fs_alloc_block(devID, &curBlock);
             
-            //todo possibly zero out data_buffer, so we don't get random memory on disk
-            //todo Update the inode to reflect this newly alloced block
-            
+            // Zero out data buffer
+            for(int x = 0; x < 512; x++) {
+                data_buffer[x] = 0;
+            }
+            // Update inode
+            inode->nBlocks++;
+            inode->direct_pointers[inode->nBlocks/4][inode->nBlocks%4] = curBlock;
+            ret = disks[devID].writeBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
+            if(ret < 0) {
+                __cio_printf( " ERROR: Unable to write inode back to disk! (_fs_write) (%d)", ret);
+                return num_written;
+            }
         } else if (i != 0) {
             // Read the block you're appending to into data buffer
             ret = disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
