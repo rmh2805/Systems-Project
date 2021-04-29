@@ -568,6 +568,21 @@ static void _sys_setgid ( uint32_t args[4] ) {
     }
 }
 
+static char* getNextName(char * path, char * nextName, int* nameLen) {
+    *nameLen = 0;
+    int i = 0;
+    while(path[i] && path[i] != '/') {
+        if (*nameLen < 12) {
+            nextName[i] = path[i];
+            *nameLen += 1;
+        }
+        i++;
+    }
+    
+    
+    return path + i;
+}
+
 static int _sys_seekFile( char* path, inode_id_t * currentDir) {
     // Get starting inode 
     *currentDir = _current->wDir;
@@ -583,12 +598,8 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
         
         // Grab the name of the next entry
         int nameLen = 0;
-        while(*path && *path != '/') { // Grab file until slash or EOS
-            while(nameLen < 12) {
-                nextName[nameLen++] = *path;
-            }
-            path++;
-        }
+        path = getNextName(path, nextName, &nameLen);
+        
         if(nameLen == 0) {  // Entry names must have length > 0
             return E_BAD_PARAM;
         }
