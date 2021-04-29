@@ -10,8 +10,7 @@ void _fs_init( void ) {
 
     inode_buffer = _km_slice_alloc(); // Get 1024 bytes for our buffer
     meta_buffer = _km_slice_alloc(); // We only are using the first 512 bytes
-
-    //todo Check that inode_buffer is properly allocated
+    assert(inode_buffer != NULL && meta_buffer != NULL);
 
     data_buffer = inode_buffer + BLOCK_SIZE; // Set data_buffer to the second half
     for(unsigned int i = 0; i < MAX_DISKS; i++) {
@@ -30,7 +29,7 @@ void _fs_init( void ) {
  */
 int _fs_registerDev(driverInterface_t interface) {
     if(interface.readBlock == NULL || interface.writeBlock == NULL) {
-            return E_BAD_PARAM;
+        return E_BAD_PARAM;
     }
 
     unsigned int nextFree;
@@ -76,7 +75,11 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
     uint32_t workingBlock = file.offset/BLOCK_SIZE;
     uint32_t bytes_read;
     // Read in inode for file! 
-    disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
+    int ret = disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
+    if(ret < 0) {
+        __cio_puts( " ERROR: Unable to read inode block from disk! (_fs_read)");
+        return E_FAILURE;
+    }
 
     // Get data and setup an inode
     void * tmp = (void *)inode_buffer;
@@ -88,8 +91,12 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
     }
 
     // Read starting block based on offset
-    disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
+    ret = disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
                            data_buffer, disks[devID].driverNr); 
+    if(ret < 0) {
+        __cio_puts( " ERROR: Unable to read block from disk! (_fs_read)");
+        return E_FAILURE;
+    }
     workingBlock++;
 
     for(bytes_read = 0; bytes_read < inode->nBytes; bytes_read++) {
@@ -97,8 +104,12 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
             break; // We filled the buffer leave now
         }
         if(bytes_read % BLOCK_SIZE == 0 && bytes_read != 0) { // At multiple of 512, get new block
-            disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
+            ret = disks[devID].readBlock(inode->direct_pointers[workingBlock/4].blocks[workingBlock%4], 
                                    data_buffer, disks[devID].driverNr); 
+            if(ret < 0) {
+                __cio_puts( " ERROR: Unable to read block from disk! (_fs_read)");
+                return E_FAILURE;
+            }
             workingBlock++;
         }
         buf[bytes_read] = (char)data_buffer[file.offset % BLOCK_SIZE]; // Just do a basic copy
@@ -109,7 +120,11 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
 
 int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
 
-    disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    int ret = disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    if(ret < 0) {
+        __cio_puts( " ERROR: Unable to read metanode from disk!");
+        return E_FAILURE;
+    }
     // Read in meta
     inode_t metaNode = *(inode_t*)(meta_buffer);
     
@@ -120,13 +135,21 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
     }
     
     for(uint32_t mapIdx = 0; mapIdx < metaNode.nBlocks; mapIdx++) {
-        disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+        ret = disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+        if(ret < 0) {
+            __cio_puts( " ERROR: Unable to read block from disk! (_fs_alloc_block)");
+            return E_FAILURE;
+        }
         for(uint32_t blockIdx; blockIdx < BLOCK_SIZE; blockIdx++) {
             for(uint8_t bitPos = 0; bitPos < 8; bitPos++) {
                 uint8_t mask = 0x80 >> bitPos;
                 if((data_buffer[blockIdx] & mask) ^ mask) {
                     data_buffer[blockIdx] |= mask;
-                    disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+                    ret = disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+                    if(ret < 0) {
+                        __cio_puts( " ERROR: Unable to write new block out to disk!" );
+                        return E_FAILURE;
+                    }
                     *blockNr = (mapIdx * 8 * BLOCK_SIZE);
                     *blockNr += blockIdx * 8;
                     *blockNr += bitPos;
@@ -139,7 +162,11 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
 }
 
 int _fs_free_block(uint8_t devID, uint32_t blockNr) {
-    disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    int ret = disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    if(ret < 0) {
+        __cio_puts( " ERROR: Unable to read metanode from disk!");
+        return E_FAILURE;
+    }
     inode_t metaNode = *(inode_t*)(meta_buffer);
 
     uint32_t mapBase = metaNode.nRefs / (BLOCK_SIZE/sizeof(inode_t));
@@ -152,10 +179,18 @@ int _fs_free_block(uint8_t devID, uint32_t blockNr) {
     uint32_t blockIdx = blockNr / 8;
     uint8_t bitPos = blockNr % 8;
     
-    disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+    ret = disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+    if(ret < 0) {
+        __cio_puts( " ERROR: Unable to read block from disk! (_fs_free_block)");
+        return E_FAILURE;
+    }
     uint8_t bitMask = (0x80 >> bitPos) ^ 0xFF;
     data_buffer[blockIdx] &= bitMask;
-    disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+    ret = disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+    if(ret < 0) {
+        __cio_puts( " ERROR: Unable to write block to disk! (_fs_free_block)");
+        return E_FAILURE;
+    }
     
     return E_SUCCESS;
 }
@@ -176,7 +211,11 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
     uint32_t buffOffset = 0;
 
     // Read Inode!
-    disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
+    int ret = disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
+    if(ret < 0) {
+        __cio_puts( " ERROR: Unable to read inode block from disk! (_fs_write)");
+        return E_FAILURE;
+    }
 
     // Read in inode! 
     void * tmp = (void *)inode_buffer;
@@ -193,10 +232,18 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
         if(curBlock >= inode->nBlocks) {
             // Allocate a new block
             _fs_alloc_block(devID, &curBlock);
-            disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
+            ret = disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
+            if(ret < 0) {
+                __cio_puts( " ERROR: Unable to read block from disk! (_fs_write)");
+                return E_FAILURE;
+            }
         } else if (i != 0) {
             // Read the block you're appending to into data buffer
-            disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
+            ret = disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
+            if(ret < 0) {
+                __cio_puts( " ERROR: Unable to read block from disk! (_fs_write)");
+                return E_FAILURE;
+            }
         }
         while(i < BLOCK_SIZE) {
             data_buffer[i++] = buf[buffOffset++];
@@ -204,7 +251,11 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
         num_written += (i - s);
         file.offset += (i - s);
         // Write data_buffer out to disk
-        disks[devID].writeBlock(curBlock, data_buffer, disks[devID].driverNr); 
+        ret = disks[devID].writeBlock(curBlock, data_buffer, disks[devID].driverNr); 
+        if(ret < 0) {
+            __cio_puts( " ERROR: Unable to write block to disk! (_fs_write)");
+            return E_FAILURE;
+        }
     }
     // update inodes bytes
     inode->nBytes += num_written;
