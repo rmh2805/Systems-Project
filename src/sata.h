@@ -6,6 +6,9 @@
 ** SATA protocol
 */
 
+#ifndef SATA_H_
+#define SATA_H_
+
 struct _sata_dev_itr {
     uint16_t bus;
     uint8_t device;
@@ -37,7 +40,6 @@ void _sata_init( void );
 ** _sata_get_devices()
 **
 ** Get SATA device iterator.
-** @return 0 if success, 1 if no more devices
 */
 uint8_t _sata_get_devices( _sata_dev_itr_t *itr_buf );
 
@@ -45,6 +47,9 @@ uint8_t _sata_get_devices( _sata_dev_itr_t *itr_buf );
 ** _sata_devices_next()
 **
 ** Get next SATA device from iterator
+** @return 1 if success, 0 if no more devices
 */
-void _sata_devices_next( _sata_dev_itr_t *itr. _sata_device_t *dev_buf);
+void _sata_devices_next( _sata_dev_itr_t *itr. _sata_device_t *dev_buf );
+
+#endif
 

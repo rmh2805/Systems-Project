@@ -19,7 +19,8 @@
 **
 ** Initialize the SATA protocol
 */
-void _sata_init( void )
+void _sata_init( void ) {
+}
 
 /**
 ** _sata_get_devices(buf)
