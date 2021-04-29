@@ -134,6 +134,8 @@ void _init( void ) {
     _sched_init();
     _clk_init();
     _sio_init();
+    _sata_init();
+    _disk_init();
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
