@@ -244,58 +244,64 @@ int _fs_write(fd_t file, char * buf, uint32_t len) {
         uint32_t curBlock = file.offset/BLOCK_SIZE;
         uint32_t i, s = i = file.offset % BLOCK_SIZE;
         
-        if(curBlock >= NUM_DIRECT_POINTERS) {   // Nothing here
+        if(curBlock >= NUM_DIRECT_POINTERS) {   // Cannot currently handle indirect blocks
             return num_written;
-        } else if (i != 0) {
-            // Read the block you're appending to into data buffer
-            ret = disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
-            if(ret < 0) {
-                __cio_printf( " ERROR: Unable to write block to disk! (_fs_write) (%d)", ret);
-                return num_written;
-            }
-        } else {
-            // Zero out data buffer
-            for(int x = 0; x < 512; x++) {
-                data_buffer[x] = 0;
-            }
-            
-            if(curBlock >= inode->nBlocks) {
+        } 
+        
+        if(curBlock >= inode->nBlocks) { // Allocate needed new blocks
                 // Allocate a new block
                 ret = _fs_alloc_block(devID, &curBlock);
                 if(ret < 0) {
                     __cio_printf( " ERROR: Unable to alloc block on disk! (_fs_write) (%d)", ret);
-                    return num_written;
+                    return ret;
                 }
                 
                 
                 // Update inode
                 inode->nBlocks++;
                 inode->direct_pointers[inode->nBlocks/4].blocks[inode->nBlocks%4] = curBlock;
-            }  else {
-                curBlock = inode->direct_pointers[file.offset/BLOCK_SIZE].blocks[file.offset % BLOCK_SIZE];
-            }
-            
         }
-        while(i < BLOCK_SIZE) {
+        
+        // Dereference the current block
+        curBlock = inode->direct_pointers[(file.offset/BLOCK_SIZE)/4].blocks[(file.offset/BLOCK_SIZE) % 4];
+        
+        // Initialize the data buffer
+        if (i != 0) {    // If writing to the middle of a block, load it into the buffer
+            ret = disks[devID].readBlock(curBlock, data_buffer, disks[devID].driverNr); 
+            if(ret < 0) {
+                __cio_printf( " ERROR: Unable to write block to disk! (_fs_write) (%d)", ret);
+                return ret;
+            }
+        } else { // Otherwise clear the buffer
+            for(int x = 0; x < 512; x++) {  // zero out the data buffer
+                data_buffer[x] = 0;
+            }
+        }
+        
+        // Copy from the buffer into the data block until block or buf is done
+        while(i < BLOCK_SIZE && bufOffset < len) {
             data_buffer[i++] = buf[bufOffset++];
         }
         
+        // Write the data buffer out to disk
         ret = disks[devID].writeBlock(curBlock, data_buffer, disks[devID].driverNr); 
         if(ret < 0) {
             __cio_printf( " ERROR: Unable to write block to disk! (_fs_write) (%d)", ret);
-            return num_written;
+            return ret;
         }
         num_written += (i - s);
         file.offset += (i - s);
     }
     
-    // update inodes bytes
+    // Update the inode and write it to disk
     inode->nBytes += num_written;
     ret = disks[devID].writeBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
     if(ret < 0) {
         __cio_printf( " ERROR: Unable to write inode back to disk! (_fs_write) (%d)", ret);
         return ret;
     }
+    
+    // Return the number of bytes written
     return num_written;
 }
 
