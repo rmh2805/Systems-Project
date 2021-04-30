@@ -344,7 +344,7 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
     if(result <= 0) return result; // Ensure read was successful
     
     // Copy the read inode to the return struct
-    idx = sizeof(inode_t) * id.idx % (BLOCK_SIZE/sizeof(inode_t));
+    idx = sizeof(inode_t) * (id.idx % (BLOCK_SIZE/sizeof(inode_t)));
     *inode = *(inode_t*)(inode_buffer + idx);
     
     return E_SUCCESS;
@@ -358,11 +358,47 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
  * @return A standard exit status
  */
 int _fs_setInode(inode_t inode) {
-    return E_FAILURE;
+    uint32_t disk, inodeOffset;
+    int ret;
+    block_t inodeBlock;
+    
+    if(inode.id.devID == 0) { // There is no device zero
+        return E_BAD_CHANNEL;
+    }
+    
+    // Determine the disk index
+    for(disk = 0; disk < MAX_DISKS; disk++){
+        if(disks[disk].fsNr == inode.id.devID) {
+            break;
+        }
+    }
+    if(disk == MAX_DISKS) { // If disk not found, return failure status
+        return E_BAD_CHANNEL;
+    }
+    
+    // Load the inode block into memory
+    inodeBlock = inode.id.idx / (BLOCK_SIZE / sizeof(inode_t));
+    ret = disks[disk].readBlock(inodeBlock, inode_buffer, disks[disk].driverNr);
+    if(ret < 0) {
+        return ret;
+    }
+    
+    // Copy the inode into the buffer
+    inodeOffset = sizeof(inode_t) * (inode.id.idx % (BLOCK_SIZE / sizeof(inode_t)));
+    inode_t * dst = (inode_t *)(inode_buffer + inodeOffset);
+    *dst = inode;
+    
+    // Write the updated buffer out to memory
+    ret = disks[disk].writeBlock(inodeBlock, inode_buffer, disks[disk].driverNr);
+    if(ret < 0) {
+        return ret;
+    }
+    
+    return E_SUCCESS;
 }
 
 /**
- * Adds an entry to a directory inode
+ * Adds an entry to a directory inode (Exposed)
  * 
  * @param inode The inode to update
  * @param name The name to associate with this entry
@@ -375,7 +411,7 @@ int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
 }
 
 /**
- * Removes an entry from a directory inode
+ * Removes an entry from a directory inode (Exposed)
  * 
  * @param inode The inode to update
  * @param name The entry name to remove
@@ -387,7 +423,7 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
 }
 
 /**
- * Returns the data from a particular directory entry
+ * Returns the data from a particular directory entry (Exposed)
  * 
  * @param inode The inode to access
  * @param idx The index of the data entry to grab
