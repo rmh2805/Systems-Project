@@ -481,7 +481,13 @@ int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
     // Get the inode
     ret = _fs_getInode(inode, tgt);
     if(ret < 0) {
+        __cio_printf("ERROR in _fs_addDirEnt*: Unable to read dir\n");
         return ret;
+    }
+
+    if(tgt->nodeType != INODE_DIR_TYPE) {
+        __cio_printf("ERROR in _fs_addDirEnt*: Non-directory inode specified\n");
+        return E_BAD_PARAM;
     }
 
     // todo Add support for extention blocks
@@ -532,6 +538,13 @@ int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
     // Set the new node entry
     ret = _fs_setNodeEnt(tgt, tgt->nBytes, ent);
     if(ret < 0) {
+        return ret;
+    }
+
+    // Write the updated inode to disk
+    ret = _fs_setInode(*tgt);
+    if(ret < 0) {
+        __cio_printf("ERROR in _fs_addDirEnt*: Unable to write inode to disk\n");
         return ret;
     }
 
