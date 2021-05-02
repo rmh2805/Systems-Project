@@ -651,5 +651,15 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
  * @return A standard exit status
  */
 int _fs_getDirEnt(inode_id_t inode, uint32_t idx, data_u* entry) {
-    return E_FAILURE;
+    inode_t tgt;
+    int ret;
+    
+    // Grab the inode from disk
+    ret = _fs_getInode(inode, &tgt);
+    if(ret < 0) {
+        return ret;
+    }
+
+    // Call the internal handler and return as it does
+    return _fs_getNodeEnt(&tgt, idx, entry);
 }
