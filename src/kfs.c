@@ -475,17 +475,18 @@ int _fs_setNodeEnt(inode_t* inode, int idx, data_u ent) {
  * @return A standard exit status
  */
 int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
-    inode_t *tgt = NULL;
+    inode_t tgt;
     int ret;
 
     // Get the inode
-    ret = _fs_getInode(inode, tgt);
+    ret = _fs_getInode(inode, &tgt);
     if(ret < 0) {
         __cio_printf("ERROR in _fs_addDirEnt*: Unable to read dir\n");
         return ret;
     }
 
-    if(tgt->nodeType != INODE_DIR_TYPE) {
+    // Check that the grabbed inode is a directory
+    if(tgt.nodeType != INODE_DIR_TYPE) {
         __cio_printf("ERROR in _fs_addDirEnt*: Non-directory inode specified\n");
         return E_BAD_PARAM;
     }
@@ -493,17 +494,17 @@ int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
     // todo Add support for extention blocks
 
     // Fail if out of direct pointers
-    if(tgt->nBytes == NUM_DIRECT_POINTERS) {
+    if(tgt.nBytes == NUM_DIRECT_POINTERS) {
         __cio_printf("ERROR in _fs_addDirEnt*: Unable to add new dir entry\n");
         return E_FILE_LIMIT;
     }
 
     // Check for name overlap
-    for(uint32_t i = 0; i < tgt->nBytes; tgt++) {
+    for(uint32_t i = 0; i < tgt.nBytes; i++) {
         data_u temp;
         bool_t matched;
 
-        ret = _fs_getNodeEnt(tgt, i, &temp);
+        ret = _fs_getNodeEnt(&tgt, i, &temp);
         if(ret < 0) return ret;
 
         matched = true;
@@ -536,17 +537,19 @@ int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
     }
 
     // Set the new node entry
-    ret = _fs_setNodeEnt(tgt, tgt->nBytes, ent);
+    ret = _fs_setNodeEnt(&tgt, tgt.nBytes, ent);
     if(ret < 0) {
         return ret;
     }
 
     // Write the updated inode to disk
-    ret = _fs_setInode(*tgt);
+    ret = _fs_setInode(tgt);
     if(ret < 0) {
         __cio_printf("ERROR in _fs_addDirEnt*: Unable to write inode to disk\n");
         return ret;
     }
+
+    //todo implement referand reference count update
 
     return E_SUCCESS;
 }
@@ -560,7 +563,82 @@ int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
  * @return A standard exit status
  */
 int _fs_rmDirEnt(inode_id_t inode, const char* name) {
-    return E_FAILURE;
+    inode_t tgt;
+    int ret, idx;
+
+    // Get the inode
+    ret = _fs_getInode(inode, &tgt);
+    if(ret < 0) {
+        __cio_printf("ERROR in _fs_rmDirEnt*: Unable to read dir\n");
+        return ret;
+    }
+    
+    // Check that the grabbed inode is a directory
+    if(tgt.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("ERROR in _fs_rmDirEnt*: Non-directory inode specified\n");
+        return E_BAD_PARAM;
+    }
+
+    // Search for the matching directory entry
+    for(idx = 0; idx < tgt.nBytes; idx++) {
+        data_u ent;
+        bool_t matched;
+
+        // Grab the next entry from disk
+        ret = _fs_getNodeEnt(&tgt, idx, &ent);
+        if(ret < 0) {
+            return ret;
+        }
+
+        matched = true;
+        for(int i = 0; i < 12; i++) {
+            if(ent.dir.name[i] == 0 && name[i] == 0) { // Match on 2 null strings
+                break;
+            }
+
+            if(ent.dir.name[i] != name[i]) {
+                matched = false;
+                break;
+            }
+        }
+        if(matched) { // If this is a match, break out
+            break;
+        }
+    }
+    if(idx == tgt.nBytes) { // Fail if no match was found
+        __cio_printf("ERROR in _fs_rmDirEnt*: Entry \"%s\" not in tgt DIR\n", name );
+        return E_BAD_PARAM;
+    }
+
+    //todo implement referand reference count checks and decrements
+    //todo implement referand deletion
+
+    // Prepare a blank entry for update
+    data_u blankEnt;
+    for(int i = 0; i < sizeof(blankEnt); i++) {
+        ((char*)(&blankEnt))[i] = 0;
+    }
+
+    // If this is not the ninal entry, fill its gap with the final entry
+    if(idx != tgt.nBytes - 1) {
+        data_u ent;
+        ret = _fs_getNodeEnt(&tgt, tgt.nBytes - 1, &ent); // Grab the final entry
+        if(ret < 0) return ret;
+
+        ret = _fs_setNodeEnt(&tgt, idx, ent); // Use it to fill the emptied spot
+        if(ret < 0) return ret;
+    }
+
+    // Blank the final entry and decrement the entry counter
+    ret = _fs_setNodeEnt(&tgt, tgt.nBytes - 1, blankEnt);
+    if(ret < 0) return ret;
+    tgt.nBytes -= 1;
+
+    // Write the updated inode to disk and return
+    ret = _fs_setInode(tgt);
+    if(ret < 0) return ret;
+
+    return E_SUCCESS;
 }
 
 /**
