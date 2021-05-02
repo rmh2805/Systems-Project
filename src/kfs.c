@@ -438,7 +438,7 @@ int _fs_getNodeEnt(inode_t* inode, int idx, data_u * ret) {
  * 
  * @return The index modified (Error if ret < 0)
  */
-int setNodeEnt(inode_t* inode, int idx, data_u ent) {
+int _fs_setNodeEnt(inode_t* inode, int idx, data_u ent) {
     if(inode == NULL) {
         __cio_printf("*ERROR in _fs_setNodeEnt()* NULL inode\n");
         return E_BAD_PARAM;
@@ -517,7 +517,25 @@ int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
         }
     }
 
-    return E_FAILURE;
+    // Create a new entry for this file (zero padded string)
+    data_u ent;
+    ent.dir.inode = buf;
+
+    int i = 0;
+    for(; name[i] != 0 && i < 12; i++) {
+        ent.dir.name[i] = name[i];
+    }
+    for(; i < 12; i++) {
+        ent.dir.name[i] = 0;
+    }
+
+    // Set the new node entry
+    ret = _fs_setNodeEnt(tgt, tgt->nBytes, ent);
+    if(ret < 0) {
+        return ret;
+    }
+
+    return E_SUCCESS;
 }
 
 /**
