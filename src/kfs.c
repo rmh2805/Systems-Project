@@ -398,6 +398,74 @@ int _fs_setInode(inode_t inode) {
 }
 
 /**
+ * Internal helper function to return the `idx`th data entry from the passed 
+ * inode
+ * 
+ * @param inode The inode to grab data entries from
+ * @param idx The index of the entry to grab
+ * @param ret A return pointer for the grabbed node entry
+ * 
+ * @return A standard exit status
+ */
+int _fs_getNodeEnt(inode_t* inode, int idx, data_u * ret) {
+    if(inode == NULL) {
+        __cio_printf("*ERROR in _fs_getNodeEnt()* NULL inode\n");
+        return E_BAD_PARAM;
+    }
+
+    // Check that this is assigned within the inode 
+    if(idx >= inode->nBytes) {
+        __cio_printf("*ERROR in _fs_getNodeEnt()* Passed index not in DIR bounds\n");
+        return E_BAD_PARAM;
+    }
+
+    // Return direct entry
+    if(idx < NUM_DIRECT_POINTERS) {
+        *ret = inode->direct_pointers[idx];
+        return E_SUCCESS;
+    } else { // Handle indirect entries
+        __cio_printf("*ERROR in _fs_getNodeEnt()* Unable to handle indirect entries\n");
+        return E_BAD_PARAM;
+    }
+}
+
+/**
+ * Internal helper function to set the `idx`th data entry in the passed node
+ * 
+ * @param inode The inode to modify
+ * @param idx The index of the entry to set
+ * @param ret A return pointer for the grabbed node entry
+ * 
+ * @return The index modified (Error if ret < 0)
+ */
+int setNodeEnt(inode_t* inode, int idx, data_u ent) {
+    if(inode == NULL) {
+        __cio_printf("*ERROR in _fs_setNodeEnt()* NULL inode\n");
+        return E_BAD_PARAM;
+    }
+
+    // If need a new entry, append this block to the end of the current list
+    if(idx >= inode->nBytes) {
+        //todo add support for indirect entries
+        if(inode->nBytes + 1 < NUM_DIRECT_POINTERS) {
+            idx = inode->nBytes++;
+        } else {
+            __cio_printf("*ERROR in _fs_setNodeEnt()* does not support indirect entries\n");
+            return E_BAD_PARAM;
+        }
+    }
+
+    if(idx < NUM_DIRECT_POINTERS) { // Set the direct entry
+        inode->direct_pointers[idx] = ent;
+    } else { // todo Add support for indirect entries
+        __cio_printf("*ERROR in _fs_setNodeEnt()* does not support indirect entries\n");
+        return E_BAD_PARAM;
+    }
+
+    return idx;
+}
+
+/**
  * Adds an entry to a directory inode (Exposed)
  * 
  * @param inode The inode to update
@@ -407,6 +475,48 @@ int _fs_setInode(inode_t inode) {
  * @return A standard exit status
  */
 int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
+    inode_t *tgt = NULL;
+    int ret;
+
+    // Get the inode
+    ret = _fs_getInode(inode, tgt);
+    if(ret < 0) {
+        return ret;
+    }
+
+    // todo Add support for extention blocks
+
+    // Fail if out of direct pointers
+    if(tgt->nBytes == NUM_DIRECT_POINTERS) {
+        __cio_printf("ERROR in _fs_addDirEnt*: Unable to add new dir entry\n");
+        return E_FILE_LIMIT;
+    }
+
+    // Check for name overlap
+    for(uint32_t i = 0; i < tgt->nBytes; tgt++) {
+        data_u temp;
+        bool_t matched;
+
+        ret = _fs_getNodeEnt(tgt, i, &temp);
+        if(ret < 0) return ret;
+
+        matched = true;
+        for(uint32_t j = 0; j < 12; j++) {
+            if(temp.dir.name[j] == 0 && name[j] == 0) {
+                break;
+            }
+
+            if(temp.dir.name[j] != name[j]) {
+                matched = false;
+                break;
+            }
+        }
+        if (matched) {
+            __cio_printf("ERROR in _fs_addDirEnt*: %s already exists in DIR\n", name);
+            return E_BAD_PARAM;
+        }
+    }
+
     return E_FAILURE;
 }
 
