@@ -661,17 +661,18 @@ static void _sys_fopen( uint32_t args[4] ) {
 static void _sys_fclose (uint32_t args[4]) {
     uint32_t fdIdx;
 
-    if(args[0] < 2 || args[0] > 5) {
-        //return error for OOB file descriptor
+    if(args[0] < 2 || args[0] >= 2 + MAX_OPEN_FILES) {
+        return E_FILE_LIMIT; // Fail if not in closable file range (either SIO, CIO, or unused)
     }
 
     fdIdx = args[0] - 2;
 
     if(_current->files[fdIdx].inode_id.devID == 0 && 
             _current->files[fdIdx].inode_id.idx == 0) {
-        //return error on unopened file
+        return E_BAD_CHANNEL;   // Fail on null file
     }
 
+    // NULL out the closed file and return success
     _current->files[fdIdx].inode_id.devID = 0;
     _current->files[fdIdx].inode_id.idx = 0;
 
