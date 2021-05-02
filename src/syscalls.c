@@ -578,13 +578,17 @@ static char* getNextName(char * path, char * nextName, int* nameLen) {
         }
         i++;
     }
+    for(int j = i + 1; j < 12; j++) { // 0 fill the rest of nextName
+        nextName[j] = 0;
+    }
     
-    
-    return path + i;
+    return path + i; // Return the string after the read name
 }
 
 static int _sys_seekFile( char* path, inode_id_t * currentDir) {
-    // Get starting inode 
+    char* sPath = path;
+
+    // Get starting inode (either working directory or root directory)
     *currentDir = _current->wDir;
     if(path[0] == '/') {
         *currentDir = (inode_id_t){0, 1};
@@ -601,48 +605,17 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
         path = getNextName(path, nextName, &nameLen);
         
         if(nameLen == 0) {  // Entry names must have length > 0
+            _cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
             return E_BAD_PARAM;
         }
         
-        // Read the current inode in
-        inode_t curNode;
-        bool_t found = false;
-        _fs_getInode(*currentDir, &curNode);
-        
-        for(uint32_t i = 0; i < NUM_DIRECT_POINTERS; i++) {
-            uint8_t j = 0;
-            for(; j < nameLen; j++) { // strncmp(entry[i], nextName, nameLen)
-                if(nextName[j] != curNode.direct_pointers[i].dir.name[j]) {
-                    break;
-                }
-            }
-            if(j == nameLen) {
-                found = true;
-                *currentDir = curNode.direct_pointers[i].dir.inode;
-                break;
-            }
-        }
-        //todo Check for indirect entries here
-        
-        if(!found) { // Fail if no child was found
-            return E_BAD_PARAM;
-        }
-        if(curNode.nodeType != INODE_DIR_TYPE && *path) { // Fail if this is a leaf node but not end of path
-            return E_BAD_PARAM;
-        }
-        
-        // if (nextName not in currentDir->files) {
-        //  return error
-        //} else {
-        //  *currentDir = currentDir->files[nextName]
-        //}
-
-        //If (path && isFile(*currentDir)) {
-        //    return error
-        //}
+        // Grab nextName from currentDir's entries
+        int ret = _fs_getSubDir(*currentDir, nextName, currentDir);
+        if(ret < 0) return ret;
     }
 
-    return E_FAILURE;
+    // If we made our way through the path successfully, return success (currentDir already set)
+    return E_SUCCESS;
 }
 
 /**

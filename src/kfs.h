@@ -93,4 +93,15 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name);
  */
 int _fs_getDirEnt(inode_id_t inode, uint32_t idx, data_u* entry);
 
+/**
+ * Returns the inode of a named directory entry
+ * 
+ * @param inode The inode to access
+ * @param name The name of the entry to grab
+ * @param entry A return pointer for the referenced inode address
+ * 
+ * @return A standard exit status
+ */
+int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret);
+
 #endif //KFS_H_

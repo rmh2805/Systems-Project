@@ -642,7 +642,7 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
 }
 
 /**
- * Returns the data from a particular directory entry (Exposed)
+ * Returns a particular inode entry (Exposed)
  * 
  * @param inode The inode to access
  * @param idx The index of the data entry to grab
@@ -662,4 +662,56 @@ int _fs_getDirEnt(inode_id_t inode, uint32_t idx, data_u* entry) {
 
     // Call the internal handler and return as it does
     return _fs_getNodeEnt(&tgt, idx, entry);
+}
+
+/**
+ * Returns the inode of a named directory entry (Exposed)
+ * 
+ * @param inode The inode to access
+ * @param name The name of the entry to grab
+ * @param entry A return pointer for the referenced inode address
+ * 
+ * @return A standard exit status
+ */
+int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret) {
+    inode_t tgt;
+    int rV;
+
+    // Get the root inode
+    rV = _fs_getInode(inode, &tgt);
+    if(rV < 0) return rV;
+
+    // Check that this is a directory inode
+    if(tgt.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _fs_getSubDir(): Non-directory inode specified\n");
+        return E_BAD_PARAM;
+    }
+
+    // Search through the inode for a matching name
+    for(int idx = 0; idx < tgt.nBytes; idx++) {
+        // Grab the next entry
+        data_u ent;
+        rV = _fs_getNodeEnt(&tgt, idx, &ent);
+        if(ret < 0) return rV;
+
+        // Perform a comparison with the selected entry
+        bool_t matched = true;
+        for(int i = 0; i < 12; i++) {
+            if(name[i] == 0 && ent.dir.name[i] == 0) {
+                break;
+            }
+
+            if(name[i] != ent.dir.name[i]) {
+                matched = false;
+                break;
+            }
+        }
+        if(matched) {
+            *ret = ent.dir.inode;
+            return E_SUCCESS;
+        }
+
+    }
+    return E_FAILURE;
+
 }
