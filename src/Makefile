@@ -206,7 +206,7 @@ MakeFSImage: MakeFSImage.c
 	$(CC) -mx32 -std=c99 $(INCLUDES) -o MakeFSImage MakeFSImage.c
 
 AddFile: AddFile.c
-	$(CC) -mx32 -std=c99 $(INCLUDES) -o AddFile AddFile.c
+	$(CC) -mx32 -std=c99 $(INCLUDES) -ggdb -o AddFile AddFile.c
 
 #
 # Clean out this directory
