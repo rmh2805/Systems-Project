@@ -179,6 +179,11 @@ prog.o:	$(OBJECTS)
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
+fs.img: MakeFSImage AddFile .shadow
+	./MakeFSImage fs.dmg 16 10 1
+	./AddFile fs.dmg .shadow fs.img
+	rm fs.dmg
+
 #
 # Targets for copying bootable image onto boot devices
 #
@@ -190,7 +195,7 @@ usb:	usb.image
 	/usr/local/dcs/bin/dcopy usb.image
 
 #
-# Special rule for creating the modification and offset programs
+# Special rule for creating the auxiliary programs
 #
 # These are required because we don't want to use the same options
 # as for the standalone binaries.
