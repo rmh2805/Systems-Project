@@ -7,11 +7,13 @@
 
 #define INODES_PER_BLOCK ((int32_t)(BLOCK_SIZE / sizeof(inode_t)))
 
+#define BLOCKBUF_SIZE BLOCK_SIZE + 1
+
 char* callPath;
 FILE* baseFile;
 FILE* newFile;
 FILE* outFile;
-char blockBuf[BLOCK_SIZE];
+char blockBuf[BLOCKBUF_SIZE];
 
 void printUsage() {
     printf("*Usage*: %s <Base FS File> <File to insert> <Output File>\n", callPath);
@@ -63,9 +65,8 @@ int main(int argc, char** argv) {
     }
     
     // Copy contents of file to output filei
-    int ch = 0;
-    while((ch = fgetc(baseFile)) != EOF) {
-        if(fputc(ch, outFile) == EOF) {
+    while(fgets(blockBuf, BLOCKBUF_SIZE, baseFile) != NULL) {
+        if(fputs(blockBuf, outFile) < 0) {
             cleanup();
             fprintf(stderr, "*ERROR* Failed to copy across a block\n");
             return E_FAILURE;
