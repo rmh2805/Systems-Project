@@ -689,9 +689,12 @@ static void _sys_fclose (uint32_t args[4]) {
  */
 static void _sys_fcreate  (uint32_t args[4]) {
     char * path = (char*) args[0];
-    // char * name = (char*) args[1];
-    // bool_t isFile = (bool_t) args[2];
+    char * name = (char*) args[1];
+    bool_t isFile = (bool_t) args[2];
+    inode_id_t newID; 
+    inode_t newNode;
 
+    // Get Current Directory
     inode_id_t currentDir;
     int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
@@ -699,24 +702,47 @@ static void _sys_fcreate  (uint32_t args[4]) {
         return;
     }
 
-    /*
-    if(isFile(currentDir)) {
-        return error (create file in a file)
+    // Find next free inode
+    result = _find_next_free_inode(currentDir.devID, &newID);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
     }
 
-    if(name in currentDir.files) {
-        return error (name taken)
+    // Get the inode via the index
+    result = _fs_getInode(newID, &newNode);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }    
+    
+    // Setup default inode values
+    newNode.uid = _current->uid;
+    newNode.gid = _current->pid;
+    newNode.nRefs = 1; // One reference for single parent
+    newNode.nBlocks = 0;
+    newNode.nBytes = 0;
+
+    if(isFile) { // We are making a file
+        newNode.nodeType = INODE_FILE_TYPE;
+    } else { // We are making a directory
+        newNode.nodeType = INODE_DIR_TYPE;
     }
-    */
+    
+    // Write the inode
+    result = _fs_setInode(newNode);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
 
-   /*
-   ** - Find the next available inode on disk (return failure if none)
-   ** - Write a basic inode of the proper type to that empty slot
-   ** - Write a reference to the new inode in the parent directory
-   */
-
+    // Update parent Inode
+    result = _fs_addDirEnt(currentDir, name, newID);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
     RET(_current) = E_SUCCESS;
-
 }
 
 /**

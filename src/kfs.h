@@ -104,4 +104,14 @@ int _fs_getDirEnt(inode_id_t inode, uint32_t idx, data_u* entry);
  */
 int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret);
 
+/**
+ * Returns the index of a free inode
+ *
+ * @param devID the device ID
+ * @param ret   the inode_id_t we will fill
+ *
+ * @return A standard exit status
+ */
+int _find_next_free_inode(uint8_t devID, inode_id_t * ret);
+
 #endif //KFS_H_
