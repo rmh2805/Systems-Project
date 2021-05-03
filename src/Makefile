@@ -205,12 +205,15 @@ Offsets:	Offsets.c
 MakeFSImage: MakeFSImage.c
 	$(CC) -mx32 -std=c99 $(INCLUDES) -o MakeFSImage MakeFSImage.c
 
+AddFile: AddFile.c
+	$(CC) -mx32 -std=c99 $(INCLUDES) -o AddFile AddFile.c
+
 #
 # Clean out this directory
 #
 
 clean:
-	rm -f *.nl *.nll *.lst *.b *.o *.X *.image *.dis BuildImage Offsets
+	rm -f *.nl *.nll *.lst *.b *.o *.X *.image *.dis BuildImage Offsets MakeFSImage AddFile
 
 realclean:	clean
 
