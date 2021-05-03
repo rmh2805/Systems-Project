@@ -182,7 +182,6 @@ prog.b:	prog.o
 fs.img: MakeFSImage AddFile .shadow
 	./MakeFSImage fs.dmg 16 10 1
 	./AddFile fs.dmg .shadow fs.img
-	rm fs.dmg
 
 #
 # Targets for copying bootable image onto boot devices

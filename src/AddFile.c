@@ -178,8 +178,6 @@ int setNode(inode_t node) {
     int nodeBlock = idx / INODES_PER_BLOCK;
     int offset = (idx % INODES_PER_BLOCK) * sizeof(inode_t);
     
-    printf("%d.%d\n", nodeBlock, offset);
-    
     for(int i = 0; i < sizeof(inode_t); i++) {
         fileBuf[nodeBlock * BLOCK_SIZE + offset + i] = ((char *)(&node))[i];
     }
@@ -336,5 +334,5 @@ int main(int argc, char** argv) {
     writeFile(outFile);
     
     cleanup();
-    return E_FAILURE;
+    return E_SUCCESS;
 }
