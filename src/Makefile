@@ -164,7 +164,7 @@ LDFLAGS = -melf_i386 -no-pie
 # Default target:  usb.image
 #
 
-usb.image: bootstrap.b prog.b prog.nl BuildImage prog.dis fs.img
+usb.image: bootstrap.b prog.b prog.nl BuildImage prog.dis
 	./BuildImage -d usb -o usb.image -b bootstrap.b fs.img $(FS_LOAD) prog.b $(OS_LOAD)
 
 floppy.image: bootstrap.b prog.b prog.nl BuildImage prog.dis 
