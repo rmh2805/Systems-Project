@@ -713,5 +713,41 @@ int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret) {
 
     }
     return E_FAILURE;
+}
 
+/**
+ * Returns the index of a free inode (Exposed)
+ * 
+ * @param devID The device ID
+ * @param ret   The inode_id_t we will fill
+ * 
+ * @return A standard exit status
+ */
+int _find_next_free_inode(uint8_t devID, inode_id_t * ret) {
+
+    int result = disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    if(result < 0) {
+        __cio_puts( " ERROR: Unable to read metanode from disk!");
+        return E_FAILURE;
+    }
+    inode_t metaNode = *(inode_t*)(meta_buffer);
+    uint32_t numInodes = metaNode.nRefs;
+    inode_t node;
+    inode_id_t nodeID;
+
+    for (uint32_t i = 2; i < numInodes; i++) {
+        nodeID.devID = devID;
+        nodeID.idx = i;
+        result = _fs_getInode(nodeID, &node);
+        if(result < 0) {
+            __cio_puts( " ERROR: Unable to get inode to find next free one ");
+            return E_FAILURE;
+        }
+        if(node.nRefs == 0) { // We found an empty one!
+            break;
+        }
+    }
+    ret->devID = devID;
+    ret->idx = nodeID.idx;
+    return E_SUCCESS;
 }
