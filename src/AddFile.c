@@ -7,7 +7,7 @@
 
 #define INODES_PER_BLOCK ((int32_t)(BLOCK_SIZE / sizeof(inode_t)))
 
-#define BLOCKBUF_SIZE BLOCK_SIZE + 1
+#define FILE_BUF_SIZE BLOCK_SIZE * 64  // Max size of fs image that this can modify
 
 // Files
 FILE* baseFile;
@@ -16,8 +16,10 @@ FILE* outFile;
 
 // String variables
 char* callPath;
-char* outFileName;
-char blockBuf[BLOCKBUF_SIZE];
+
+bool_t fileRead = false;
+char fileBuf[FILE_BUF_SIZE];
+long baseLen = FILE_BUF_SIZE;
 
 // inode variables
 bool_t initMeta = false;
@@ -27,258 +29,178 @@ void printUsage() {
     printf("*Usage*: %s <Base FS File> <File to insert> <Output File>\n", callPath);
 }
 
+long loadFile(FILE* src, long loadPt) {
+    long idx;
+    int ch;
+    for(idx = loadPt; (ch = fgetc(src)) != EOF && idx < baseLen; idx++) {
+        fileBuf[idx] = ch;
+    }
+    
+    return idx - loadPt;
+}
+
+long writeFile(FILE* dst) {
+    for(int i = 0; i < baseLen; i++) {
+        fputc(fileBuf[i], dst);
+    }
+    return E_SUCCESS;
+}
+
+long loadBlock(FILE* src, long dstBlock, long srcBlock) {
+    if(!fileRead) {
+        fprintf(stderr, "*ERROR* in loadBlock: file buffer not initialized");
+        return E_FAILURE;
+    }
+    
+    // Ensure that we're loading from a location in the file
+    fseek(src, 0, SEEK_END);
+    long srcSize = ftell(src);
+    
+    long srcOffset = srcBlock * BLOCK_SIZE;
+    if(srcOffset > srcSize) {
+        return E_FAILURE;
+    }
+    
+    // Ensure that the load point is within the base length 
+    long dstOffset = dstBlock * BLOCK_SIZE;
+    if(dstOffset + BLOCK_SIZE > baseLen) {
+        fprintf(stderr, "*ERROR* in loadBlock: Block %ld ends outside of the file's limits", dstBlock);
+        return E_FAILURE;
+    }
+    
+    // Read the block into the file buffer
+    fseek(src, srcOffset, SEEK_SET);
+    
+    long idx = 0;
+    int ch;
+    for(; idx < BLOCK_SIZE && (ch = fgetc(src)) != EOF; idx++) {
+        fileBuf[dstOffset + idx] = ch;
+    }
+    
+    // Return the number of bytes read
+    return idx;
+}
+
 void cleanup() {
     if(baseFile != NULL) fclose(baseFile);
     if(newFile  != NULL) fclose(newFile);
     if(outFile  != NULL) fclose(outFile);
 }
 
-
-int loadBlock(FILE* file, uint32_t idx);
-int writeBuf();
-
-int fCpy(FILE* dst, FILE* src) {
-    
-    fseek(src, 0, SEEK_END);
-    long sz = ftell(src);
-    
-    fseek(src, 0, SEEK_SET);
-    for(int i = 0; i < sz; i++) {
-        fputc(fgetc(src), dst);
-    }
-    
-    return E_SUCCESS;
-}
-
-int loadBlock(FILE* file, uint32_t idx) {
-    int ret;
-    long sz, offset = idx * BLOCK_SIZE;
-    
-    //Get the file size
-    ret = fseek(file, 0, SEEK_END);
-    if(ret != 0) {
-        fprintf(stderr, "*ERROR* loadBlock failed to seek EOF\n");
-        return E_FAILURE;
-    }
-    sz = ftell(file);
-    
-    // Check that this block is in the file
-    if(offset >= sz) {
-        return E_FAILURE;
-    }
-    
-    // Go to the start of the block
-    ret = fseek(file, offset, SEEK_SET);
-    if(ret != 0) {
-        fprintf(stderr, "*ERROR* loadBlock failed to seek index %u\n", idx);
-        return E_FAILURE;
-    }
-    
-    // Read from the file into the buffer
-    int i = 0;
-    for(; i < BLOCK_SIZE; i++) {
-        ret = fgetc(file);
-        if(ret == EOF) {
-            break;
-        }
-        blockBuf[i] = (char) ret;
-    }
-    for(; i < BLOCK_SIZE; i++) {
-        blockBuf[i] = 0;
-    }
-    
-    // Return success
-    return E_SUCCESS;
-}
-
-int writeBuf() {
-    int ret;
-    
-    // Read from the file into the buffer
-    for(int i = 0; i < BLOCK_SIZE; i++) {
-        ret = fputc(blockBuf[i], outFile);
-        if(ret == EOF) {
-            fprintf(stderr, "*ERROR* writeBlock failed to write to file\n");
-            return E_FAILURE;
-        }
-    }
-    
-    // Return success
-    return E_SUCCESS;
-}
-
-int writeBlock(uint32_t idx) {
-    int ret;
-    
-    FILE* tmp = tmpfile();
-    if(tmp == NULL) {
-        fprintf(stderr, "*ERROR* in writeBlock: failed to create a temp file for block insertion\n");
-        return E_FAILURE;
-    }
-    
-    // Copy the current file to the temp file
-    ret = fCpy(tmp, outFile);
-    if(ret != E_SUCCESS) {
-        fclose(tmp);
-        fprintf(stderr, "*ERROR* in writeBlock: copy from base file to temp file");
-        return E_FAILURE;
-    }
-    
-    // Open a new, blank output file
-    fclose(outFile);
-    outFile = fopen(outFileName, "w+b");
-    if(outFile == NULL) {
-        fclose(tmp);
-        fprintf(stderr, "*ERROR* in writeBlock: reopen outFile");
-        return E_FAILURE;
-    }
-    
-    // Copy blocks up to idx to output file
-    fseek(tmp, 0, SEEK_SET);
-    int blockNr;
-    for(blockNr = 0; blockNr < idx; blockNr++) {
-        for(int i = 0; i < BLOCK_SIZE; i++) {
-            fputc(fgetc(tmp), outFile);
-        }
-    }
-    
-    // Copy the modified block
-    writeBuf();
-    blockNr++;
-    
-    // Copy the remaining blocks
-    for(; loadBlock(tmp, blockNr) == E_SUCCESS; blockNr++) {
-        writeBuf();
-    }
-    
-    
-    fclose(tmp);
-    return E_SUCCESS;
-}
-
-int loadInode(FILE* file, inode_id_t id, inode_t * inode) {
-    int ret;
-    
-    // Load the block containing the inode
-    ret = loadBlock(file, (id.idx / sizeof(inode_t)));
-    if(ret < 0) {
-        fprintf(stderr, "*ERROR* loadInode failed to read the block containing inode %u.%u\n", id.devID, id.idx);
-        return E_FAILURE;
-    }
-    
-    // Copy from the loaded block into the return pointer
-    int offset = sizeof(inode_t) * (id.idx % sizeof(inode_t));
-    *inode = *((inode_t *)(blockBuf + offset));
-    
-    return E_SUCCESS;
-}
-
-int writeInode(FILE* baseFile, inode_t inode) {
-    int ret;
-    inode_id_t id = inode.id;
-    
-    // Load the block containing the inode
-    int blockNr = (id.idx / INODES_PER_BLOCK);
-    
-    printf("%d\n", blockNr);
-    ret = loadBlock(baseFile, blockNr);
-    if(ret < 0) {
-        fprintf(stderr, "*ERROR* writeInode failed to read the block containing inode %u.%u\n", id.devID, id.idx);
-        return E_FAILURE;
-    }
-    
-    // Copy from the loaded block into the return pointer
-    int offset = sizeof(inode_t) * (id.idx % INODES_PER_BLOCK);
-    for(int i = 0; i < sizeof(inode_t); i++) {
-        blockBuf[i + offset] = ((char *)(&inode))[i];
-    }
-    
-    // Write the updated block out to file
-    ret = writeBlock(blockNr);
-    if(ret < 0) {
-        fprintf(stderr, "*ERROR* writeInode failed to write the block containing inode %u.%u\n", id.devID, id.idx);
-        return E_FAILURE;
-    }
-    
-    return E_SUCCESS;
-}
-
-int allocBlock(uint32_t * idx) {
-    int ret, mapBlock, mapByte, mapBit;
+int allocBlock() {
+    uint32_t dataBlock;
     
     if(!initMeta) {
-        fprintf(stderr, "*ERROR* in allocBlock: meta node uninitialized\n");
+        fprintf(stderr, "*ERROR* in allocBlock: Meta node not initialized");
         return E_FAILURE;
     }
     
+    // Calculate the block of the first data block
     int mapBase = metaNode.nRefs / INODES_PER_BLOCK;
     if(metaNode.nRefs % INODES_PER_BLOCK != 0) {
         mapBase += 1;
     }
     
-    // Start idx pointing at the first data block
-    *idx = mapBase + metaNode.nBlocks;
+    dataBlock = mapBase + metaNode.nBlocks - 1; //Set the basic data location (less one)
     
+    // Iterate through the map blocks to find a free slot
     bool_t found = false;
-    for(mapBlock = 0; mapBlock < metaNode.nBlocks && !found; mapBlock++) {
-        ret = loadBlock(outFile, mapBlock + mapBase);
-        if(ret < 0) {
-            fprintf(stderr, "*ERROR* in allocBlock: unable to read map block %d\n", mapBlock);
-            return E_FAILURE;
-        }
-        
-        for(mapByte = 0; mapByte < BLOCK_SIZE && !found; mapByte++) {
-            char ch = blockBuf[mapByte];
-            
-            for(mapBit = 0; mapBit < 8 && !found; mapBit++) {
-                *idx += 1;                      // Increment the index
-                
+    for(int mapBlock = 0; mapBlock < metaNode.nBlocks && !found; mapBlock++) {
+        char* blockBuf = fileBuf + ((mapBase + mapBlock) * BLOCK_SIZE);
+        for(int mapByte = 0; mapByte < BLOCK_SIZE && !found; mapByte++) {
+            char * blockChar = blockBuf + mapByte;
+            for(int mapBit = 0; mapBit < 8 && !found; mapBit++) {
+                dataBlock++;
                 char mask = 0x80 >> mapBit;
                 
-                if((ch & mask) ^ mask) {        // (if the target bit is not set)
-                    blockBuf[mapByte] |= mask;  // Set the map bit
-                    found = true;               // Mark that we have found a free block
+                if((*blockChar & mask) ^ mask) {
+                    *blockChar |= mask;
+                    found = true;
                 }
             }
         }
     }
     
-    // Fail out if no free block was found
     if(!found) {
-        fprintf(stderr, "*ERROR* in allocBlock: find a free block\n");
+        fprintf(stderr, "*ERROR* in allocBlock: Unable to alloc a new block\n");
         return E_FAILURE;
     }
     
-    // Write the updated map to the file
-    ret = writeBlock(mapBlock + mapBase);
+    return dataBlock;
+}
+
+int freeBlock(int dataBlock) {
+    if(!initMeta) {
+        fprintf(stderr, "*ERROR* in freeBlock: Meta node not initialized");
+        return E_FAILURE;
+    }
+    
+    // Calculate the block nr of the first data block
+    int mapBase = metaNode.nRefs / INODES_PER_BLOCK;
+    if(metaNode.nRefs % INODES_PER_BLOCK != 0) {
+        mapBase += 1;
+    }
+    
+    dataBlock = dataBlock - mapBase - metaNode.nBlocks;
+    
+    // Calculate offsets
+    int mapByte = dataBlock / 8;
+    int mapBit = dataBlock % 8;
+    
+    char mask = 0xFF ^ (0x80 >> mapBit);
+    fileBuf[mapBase * BLOCK_SIZE + mapByte] &= mask;
+    
+    return E_FAILURE;
+}
+
+int getNode(int idx, inode_t * node) {
+    if(!fileRead) {
+        fprintf(stderr, "*ERROR* in getNode: file buffer not initialized");
+        return E_FAILURE;
+    }
+    
+    int nodeBlock = idx / INODES_PER_BLOCK;
+    idx = idx % INODES_PER_BLOCK;
+    
+    *node = *((inode_t*)(fileBuf + nodeBlock * BLOCK_SIZE + idx * sizeof(inode_t)));
     
     return E_SUCCESS;
 }
 
-int getFreeNode(FILE* file, uint32_t * idx) {
-    inode_t node;
-    int ret;
+int setNode(inode_t node) {
+    int idx = node.id.idx;
     
-    if(!initMeta) {
-        fprintf(stderr, "*ERROR* in getFreeNode: meta node uninitialized\n");
+    if(!fileRead) {
+        fprintf(stderr, "*ERROR* in setNode: file buffer not initialized");
         return E_FAILURE;
     }
     
-    for(*idx = 0; *idx < metaNode.nRefs; *idx += 1) {
-        ret = loadInode(file, (inode_id_t) {metaNode.id.devID, *idx}, &node);
-        if(ret != E_SUCCESS) {
-            fprintf(stderr, "*ERROR* in getFreeNode: Failed to grab inode %u\n", *idx);
-            return E_FAILURE;
-        }
+    int nodeBlock = idx / INODES_PER_BLOCK;
+    int offset = idx % INODES_PER_BLOCK;
+    
+    for(int i = 0; i < sizeof(inode_t); i++) {
+        fileBuf[nodeBlock * BLOCK_SIZE + offset + i] = ((char *)(&node))[i];
+    }
+}
+
+int allocNode(uint32_t * idx) {
+    if(!initMeta) {
+        fprintf(stderr, "*ERROR* in allocNode: meta node not initialized\n");
+        return E_FAILURE;
+    }
+    
+    for(*idx = 2; *idx < metaNode.nRefs; *idx += 1) {
+        inode_t node;
+        getNode(*idx, &node);
         
         if(node.id.devID == 0 && node.id.idx == 0) {
             return E_SUCCESS;
         }
     }
     
-    fprintf(stderr, "*ERROR* in getFreeNode: Unable to find a free inode in provided FS image\n");
+    fprintf(stderr, "*ERROR* in allocNode: unable to allocate a new iNode\n");
     return E_FAILURE;
-}
+} 
 
 int main(int argc, char** argv) {
     callPath = argv[0];
@@ -308,100 +230,69 @@ int main(int argc, char** argv) {
         return E_FAILURE;
     }
     
-    outFile = fopen(argv[3], "w+b");    // Open the new file for read and write
+    outFile = fopen(argv[3], "wb");    // Open the new file for read and write
     if(outFile == NULL) {
         cleanup();
         fprintf(stderr, "*ERROR* Failed to open the output image file\n");
         return E_FAILURE;
     }
-    outFileName = argv[3];
     
-    // Copy contents of file to output file
-    int ret;
-    ret = fCpy(outFile, baseFile);
-    if(ret != E_SUCCESS) {
-        cleanup();
-        fprintf(stderr, "*ERROR* Failed to copy base file to output\n");
-        return E_FAILURE;
+    // Read from the base file into the file buffer
+    baseLen = loadFile(baseFile, 0);
+    for(long idx = baseLen; idx < FILE_BUF_SIZE; idx++) {
+        fileBuf[idx] = 0;
     }
+    fileRead = true;
     
-    // Get the meta node
-    ret = loadInode(outFile, (inode_id_t) {0, 0}, &metaNode);
-    if(ret != E_SUCCESS) {
+    // Read the meta node
+    if(getNode(0, &metaNode) != E_SUCCESS) {
         cleanup();
-        fprintf(stderr, "*ERROR* Failed to load meta node from file\n");
+        fprintf(stderr, "*ERROR* Failed to grab the meta node\n");
         return E_FAILURE;
     }
     initMeta = true;
     
-    // Allocate a new inode
-    int idx = 0;
-    ret = getFreeNode(outFile, &idx);
-    if(ret != 0) {
+    // Allocate a node for the new file
+    int nodeIdx = 0;
+    if(allocNode(&nodeIdx) != E_SUCCESS) {
         cleanup();
-        fprintf(stderr, "*ERROR* Failed to allocate new inode in file\n");
+        fprintf(stderr, "*ERROR* Failed to allocate a file node\n");
         return E_FAILURE;
     }
     
-    inode_t node;
-    for(int i = 0; i < sizeof(node); i++) {
-        ((char*)(&node))[i] = 0;
+    inode_t fileNode;
+    for(int i = 0; i < sizeof(fileNode); i++) {
+        ((char *)(&fileNode))[i] = 0;
     }
+    fileNode.id.devID = metaNode.id.devID;
+    fileNode.id.idx = nodeIdx;
     
-    node.id.devID = metaNode.id.devID;
-    node.id.idx = idx;
+    fileNode.nodeType = INODE_FILE_TYPE;
+    fileNode.gid = 1;
     
-    node.nodeType = INODE_FILE_TYPE;
-    node.nRefs = 1;
-    
-    
-    // Copy new file's contents to output file
-    fseek(newFile, 0, SEEK_END);
-    long fSz = ftell(newFile);
-    fseek(newFile, 0, SEEK_SET);
-    
-    for(int blockNr = 0; blockNr < NUM_DIRECT_POINTERS * 4 && blockNr * BLOCK_SIZE < fSz; blockNr++) { // Only load up to direct ptr capacity
-        // Allocate the next data block
-        int fIdx = 0;
-        ret = allocBlock(&fIdx);
-        if(ret != E_SUCCESS) {
+    // Write the blocks of the new file to the buffer
+    for(int i = 0; i < NUM_DIRECT_POINTERS * 4; i++) {
+        long dBlock = allocBlock();
+        if(dBlock == E_FAILURE) {
             cleanup();
-            fprintf(stderr, "*ERROR* Failed to allocate new data block\n");
+            fprintf(stderr, "*ERROR* Alloc data block\n");
             return E_FAILURE;
         }
         
-        // Load the next data block in from file
-        ret = loadBlock(newFile, blockNr);
-        if(ret != E_SUCCESS) {
-            cleanup();
-            fprintf(stderr, "*ERROR* Unexpected EOF in new file\n");
-            return E_FAILURE;
+        long nWritten = loadBlock(newFile, dBlock, i); 
+        if(nWritten < 0) {
+            freeBlock(dBlock);
+            break;
         }
         
-        // Write the data block out to file
-        ret = writeBlock(fIdx);
-        if(ret != E_SUCCESS) {
-            cleanup();
-            fprintf(stderr, "*ERROR* Failed to write new block to file\n");
-            return E_FAILURE;
-        }
-        
-        // Update the inode
-        node.nBlocks += 1;
-        node.direct_pointers[blockNr/4].blocks[blockNr%4] = fIdx;
-    }
-    node.nBytes += fSz; // Update the node's size
-    
-    // Write the new inode to disk
-    ret = writeInode(outFile, node);
-    if(ret != E_SUCCESS) {
-        cleanup();
-        fprintf(stderr, "*ERROR* Failed to write new inode to disk\n");
-        return E_FAILURE;
+        fileNode.direct_pointers[i / 4].blocks[i % 4] = dBlock;
+        fileNode.nBlocks += 1;
+        fileNode.nBytes += nWritten;
     }
     
-    // Insert a new entry in the root directory
-
+    // Write the buffer to file
+    writeFile(outFile);
+    
     cleanup();
-    return E_SUCCESS;
+    return E_FAILURE;
 }
