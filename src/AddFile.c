@@ -176,11 +176,15 @@ int setNode(inode_t node) {
     }
     
     int nodeBlock = idx / INODES_PER_BLOCK;
-    int offset = idx % INODES_PER_BLOCK;
+    int offset = (idx % INODES_PER_BLOCK) * sizeof(inode_t);
+    
+    printf("%d.%d\n", nodeBlock, offset);
     
     for(int i = 0; i < sizeof(inode_t); i++) {
         fileBuf[nodeBlock * BLOCK_SIZE + offset + i] = ((char *)(&node))[i];
     }
+    
+    return E_SUCCESS;
 }
 
 int allocNode(uint32_t * idx) {
@@ -267,8 +271,8 @@ int main(int argc, char** argv) {
     fileNode.id.devID = metaNode.id.devID;
     fileNode.id.idx = nodeIdx;
     
+    fileNode.nRefs = 1; 
     fileNode.nodeType = INODE_FILE_TYPE;
-    fileNode.gid = 1;
     
     // Write the blocks of the new file to the buffer
     for(int i = 0; i < NUM_DIRECT_POINTERS * 4; i++) {
@@ -288,6 +292,44 @@ int main(int argc, char** argv) {
         fileNode.direct_pointers[i / 4].blocks[i % 4] = dBlock;
         fileNode.nBlocks += 1;
         fileNode.nBytes += nWritten;
+    }
+    
+    // Write the file node to the buffer
+    if(setNode(fileNode) != E_SUCCESS) {
+        cleanup();
+        fprintf(stderr, "*ERROR* Write out file node\n");
+        return E_FAILURE;
+    }
+    
+    // Add an entry to the root node
+    inode_t rootNode;
+    if(getNode(1, &rootNode) != E_SUCCESS) {
+        cleanup();
+        fprintf(stderr, "*ERROR* Get root node\n");
+        return E_FAILURE;
+    }
+    
+    if(rootNode.nBytes >= NUM_DIRECT_POINTERS) {
+        cleanup();
+        fprintf(stderr, "*ERROR* No direct entries in root\n");
+        return E_FAILURE;
+    }
+    
+    rootNode.direct_pointers[rootNode.nBytes].dir.inode = fileNode.id;
+    int idx;
+    for(idx = 0; idx < 12 && argv[2][idx]; idx++) {
+        rootNode.direct_pointers[rootNode.nBytes].dir.name[idx] = argv[2][idx];
+    }
+    for(; idx < 12; idx++) {
+        rootNode.direct_pointers[rootNode.nBytes].dir.name[idx] = 0;
+    }
+    rootNode.nBytes += 1;
+    
+    // Write the updated root node to buffer
+    if(setNode(rootNode) != E_SUCCESS) {
+        cleanup();
+        fprintf(stderr, "*ERROR* Update the root node\n");
+        return E_FAILURE;
     }
     
     // Write the buffer to file
