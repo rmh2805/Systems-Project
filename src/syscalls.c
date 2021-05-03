@@ -605,7 +605,7 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
         path = getNextName(path, nextName, &nameLen);
         
         if(nameLen == 0) {  // Entry names must have length > 0
-            _cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
+            __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
             return E_BAD_PARAM;
         }
         
@@ -662,14 +662,16 @@ static void _sys_fclose (uint32_t args[4]) {
     uint32_t fdIdx;
 
     if(args[0] < 2 || args[0] >= 2 + MAX_OPEN_FILES) {
-        return E_FILE_LIMIT; // Fail if not in closable file range (either SIO, CIO, or unused)
+        RET(_current) = E_FILE_LIMIT; // Fail if not in closable file range (either SIO, CIO, or unused)
+        return;
     }
 
     fdIdx = args[0] - 2;
 
     if(_current->files[fdIdx].inode_id.devID == 0 && 
             _current->files[fdIdx].inode_id.idx == 0) {
-        return E_BAD_CHANNEL;   // Fail on null file
+        RET(_current) = E_BAD_CHANNEL;   // Fail on null file
+        return;
     }
 
     // NULL out the closed file and return success
