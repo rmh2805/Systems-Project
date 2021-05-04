@@ -1,0 +1,113 @@
+System Call Specification 
+
+Base line syscalls
+    SYS_exit
+        SYNOPSIS:
+            void exit(int32_t status)
+        DESC:
+            Terminate the calling process
+        RETURN VALUE:
+            A standard exit status
+
+    SYS_read
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_write
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_getpid
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_getppid
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_gettime
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_getprio
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_setprio
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_kill
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_sleep
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_spawn
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_wait
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+Multi User syscalls 
+    SYS_getuid
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_getgid
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_setuid
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_setgid
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+File System syscalls
+    SYS_fopen
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_fclose
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_fcreate
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_fremove
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_fmove
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_getinode
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+    SYS_dirname
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
