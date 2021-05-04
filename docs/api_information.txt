@@ -1,0 +1,188 @@
+System Call Specification CSCI 452 Final Documentation
+By Raymond Healy, Koen Komeya, Ian Campbell
+
+Base line syscalls
+    SYS_exit
+        SYNOPSIS:
+            void exit(int32_t status)
+        DESC:
+            Terminate the calling process
+        RETURN VALUE:
+            A standard exit status
+
+    SYS_read
+        SYNOPSIS:
+            int32_t read(int chan, void *buffer, uint32_t length)
+        DESC:
+            Read into a buffer from a stream. This was edited by us
+            to faciliate re-using this syscall to read from a file in the FS.
+        RETURN VALUE:
+            Number of bytes read on success, negative value on failure.
+
+    SYS_write
+        SYNOPSIS:
+            int32_t write(int chan, void *buffer, uint32_t length)
+        DESC:
+            Write from a buffer to a stream. This was edited by us 
+            to faciliate re-using this syscall to write to a file in the FS.
+        RETURN VALUE:
+            Number of bytes written on success, negative value on failure.
+
+    SYS_getpid
+        SYNOPSIS:
+            pid_t getpid( void )
+        DESC:
+            Retrieves the PID of this process
+        RETURN VALUE:
+            The pid of the current process.
+            
+    SYS_getppid
+        SYNOPSIS:
+            pid_t getppid( void )
+        DESC:
+            Retrieves the PID of the parent of this process
+        RETURN VALUE:
+            A pid_t containing the PID information of the parent.
+
+    SYS_gettime
+        SYNOPSIS:
+            time_t gettime( void )
+        DESC:
+            Retrieve the current system time
+        RETURN VALUE:
+            Returns the value of _system_time
+
+    SYS_getprio
+        SYNOPSIS: 
+            prio_t getprio( void )
+        DESC:
+            Retrieves the priority for this process
+        RETURN VALUE:
+            Returns a prio_t containing the processes priority 
+
+    SYS_setprio
+        SYNOPSIS:
+            prio_t setprio( prio_t new )
+        DESC:
+            Set the priority of this process
+        RETURN VALUE:
+            Returns current priority on success or returns E_BAD_PARAM on failure.
+
+    SYS_kill
+        SYNOPSIS:
+            int32_t kill( pid_t victim )
+        DESC:
+            Terminates a process with EXTREME prejudice
+        RETURN VALUE:
+            Returns E_SUCCESS on succes or a negative error status on failure.
+
+    SYS_sleep
+        SYNOPSIS:
+            void sleep (uint32_t msec)
+        DESC:
+            Put the current process to sleep for some time
+        RETURN VALUE:
+            Void
+
+    SYS_spawn
+        SYNOPSIS:
+            pid_t spawn(int (*entry)(uint32_t, uint32_t), 
+                        prio_t prio, uint32_t arg1, uint32_t arg2)
+        DESC:
+            Create a new process
+        RETURN VALUE:
+            Return the PID of the new child spawned or a negative error
+            status on failure.
+
+    SYS_wait
+        SYNOPSIS:
+            pid_t wait( int32_t *status )
+        DESC:
+            Wait for a child process to terminate. 
+        RETURN VALUE:
+            Returns the new zombies process PID on success or a negative error
+            status on failure.
+
+Multi User syscalls 
+    SYS_getuid
+        SYNOPSIS: 
+            uid_t getuid( void )
+        DESC:
+            Retrieves the uid of this process
+        RETURN VALUE:
+            Returns the current process uid value in a uid_t            
+
+    SYS_getgid
+        SYNOPSIS:
+            gid_t getgid( void )
+        DESC:
+            Retrieves the gid of the current process
+        RETURN VALUE:
+            Returns the current process gid value in a gid_t
+
+    SYS_setuid
+        SYNOPSIS:
+            uint32_t setuid( uid_t uid )
+        DESC:
+            Attemps to modify the uid of the current process
+        RETURN VALUE:
+            E_SUCCESS on success and a negative error status on failure. 
+
+    SYS_setgid
+        SYNOPSIS:
+            uint32_t setuid( uid_t uid )
+        DESC:
+            Attempts to modify the uid of the current process
+        RETURN VALUE:
+            E_SUCCESS on success and a negative error status on failure. 
+
+File System syscalls
+    SYS_fopen
+        SYNOPSIS:
+            int32_t fopen( char * path, bool_t appen )
+        DESC:
+            Attempts to open a file and store its FD in the PCBs block
+        RETURN VALUE:
+            Returns the file descriptor integer on success and a negative 
+            error status on failure.
+
+    SYS_fclose
+        SYNOPSIS:
+            int32_t fclose( uint32_t chanNr )
+        DESC:
+            Attempts to close an opened file
+        RETURN VALUE:
+            Returns E_SUCCESS on success and a negative error status 
+            on failure.
+
+    SYS_fcreate
+        SYNOPSIS:
+            int32_t fcreate( char * path, char * name, bool_t isFile )
+        DESC:
+            Attempts to create a file/dir after the provided path
+        RETURN VALUE:
+            Returns E_SUCCESS on success and a negative error status 
+            on failure.
+
+    SYS_fremove
+        SYNOPSIS:
+            int32_t fremove( char * path, char * name)
+        DESC:
+            Attempts to remove the file/dir at the end of the path
+        RETURN VALUE:
+
+    SYS_fmove
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_getinode
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
+    SYS_dirname
+        SYNOPSIS:
+        DESC:
+        RETURN VALUE:
+
