@@ -1,3 +1,4 @@
+#define ULIB_H_
 #include "common.h"
 
 // avoid complaints about stdio.h
@@ -49,7 +50,7 @@ int main(int argc, char** argv) {
     FILE * outF = fopen(oFileName, "wb");
     if(outF == (FILE *) -1) {
         fprintf(stderr, "Failed to open file %s\n", oFileName);
-        exit(-1);
+        return (-1);
     }
 
     diskSize = decStr2int(argv[2]) * 1024;

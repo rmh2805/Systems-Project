@@ -1,3 +1,4 @@
+#define ULIB_H_
 #include "common.h"
 
 // avoid complaints about stdio.h
@@ -24,6 +25,22 @@ long baseLen = FILE_BUF_SIZE;
 // inode variables
 bool_t initMeta = false;
 inode_t metaNode;
+
+/**
+** strcmp(s1,s2) - compare two NUL-terminated strings
+**
+** @param s1 The first source string
+** @param s2 The second source string
+**
+** @return negative if s1 < s2, zero if equal, and positive if s1 > s2
+*/
+int strcmp( register const char *s1, register const char *s2 ) {
+
+    while( *s1 != 0 && (*s1 == *s2) )
+        ++s1, ++s2;
+
+    return( *(const unsigned char *)s1 - *(const unsigned char *)s2 );
+}
 
 void printUsage() {
     printf("*Usage*: %s <Base FS File> <File to insert> <Output File>\n", callPath);
