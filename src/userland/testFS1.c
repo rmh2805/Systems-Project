@@ -1,8 +1,6 @@
 #ifndef TEST_FS_1_H_
 #define TEST_FS_1_H_
 
-#include "common.h"
-
 int testFS1(uint32_t arg1, uint32_t arg2) {
     char buf[100];
     char oBuf[130];
