@@ -99,6 +99,9 @@ typedef uint16_t uid_t;
 // User ID definitions
 #define UID_ROOT    (0)
 
+// Other multi-user definitions
+#define MAX_UNAME_SIZE (16)
+
 
 // Process state and state values
 //
