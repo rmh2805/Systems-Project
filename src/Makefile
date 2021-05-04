@@ -179,9 +179,11 @@ prog.o:	$(OBJECTS)
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
-fs.img: MakeFSImage AddFile .shadow
-	./MakeFSImage fs.dmg 16 10 1
-	./AddFile fs.dmg .shadow fs.img
+fs.img: MakeFSImage AddFile .shadow testLongNames.txt
+	./MakeFSImage fs.img 16 10 1
+	./AddFile fs.img .shadow fs.dmg 
+	./AddFile fs.dmg testLongNames.txt fs.img
+	rm fs.dmg
 
 #
 # Targets for copying bootable image onto boot devices
