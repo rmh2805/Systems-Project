@@ -814,7 +814,7 @@ static void _sys_fremove (uint32_t args[4]) {
         RET(_current) = E_FAILURE;
         return;
     }
-    uint32_t numEntries = targetDir.nRefs;
+    uint32_t numRefs = targetDir.nRefs;
     data_u entry;
     
     // loop through the directories entries
@@ -840,9 +840,9 @@ static void _sys_fremove (uint32_t args[4]) {
         }
     }
     
-    inode_id_t targetID = entry.inode;
+    inode_id_t targetID = entry.dir.inode;
     inode_t targetNode;
-    result = _sys_getInode(targetID, &targetNode);
+    result = _fs_getInode(targetID, &targetNode);
     if(result < 0) {
         __cio_puts(" ERROR: Unable to get target inode (fremove) ");
         RET(_current) = result;
@@ -850,7 +850,7 @@ static void _sys_fremove (uint32_t args[4]) {
     }
 
     if(targetNode.nodeType == INODE_DIR_TYPE) {
-        if(nBlocks != 0 || nRefs != 0) {
+        if(targetNode.nBlocks != 0 || targetNode.nRefs != 0) {
             __cio_puts(" ERROR: Cannot remove non-empty directory ");
             RET(_current) = E_FAILURE;
             return;
