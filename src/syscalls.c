@@ -176,6 +176,10 @@ static void _sys_read( uint32_t args[4] ) {
         }
 
         n = _fs_read(fd, buf, length); // Read from file
+        if(n == E_EOF) {
+            RET(_current) = n;
+            return;
+        }
     }
 
     // if there was data, return the byte count to the process;
@@ -215,6 +219,7 @@ static void _sys_write( uint32_t args[4] ) {
     switch( chan ) {
     case CHAN_CONS:
         __cio_write( buf, length );
+        ret = length;
         break;
 
     case CHAN_SIO:
@@ -228,19 +233,16 @@ static void _sys_write( uint32_t args[4] ) {
         }
 
         // File channel
-        fd_t fd = _current->files[chan - 2];
-        if(fd.inode_id.devID == 0 && fd.inode_id.idx == 0) {    // Blank fd_t
-            RET(_current) = E_BAD_CHANNEL;  // Can't write from a blank fd
+        fd_t * fd = &_current->files[chan - 2];
+        if(fd->inode_id.devID == 0 && fd->inode_id.idx == 0) {    // Blank fd_t
+            RET(_current) = E_BAD_CHANNEL;  // Can't write to a blank fd
             return;
         }
 
-        ret = _fs_write(fd, buf, length); // Write to file
+        ret = _fs_write(fd, buf, length); // write to file
     }
-    if(ret < 0) {
-        RET(_current) = ret;
-    } else {
-        RET(_current) = length;
-    }
+
+    RET(_current) = ret; // Return proper status
 }
 
 /**

@@ -40,7 +40,7 @@ int _fs_read(fd_t * file, char * buf, uint32_t len);
  * 
  * @returns The number of bytes read from disk
  */
-int _fs_write(fd_t file, char * buf, uint32_t len);
+int _fs_write(fd_t * file, char * buf, uint32_t len);
 
 /**
  * Reads an inode from disk

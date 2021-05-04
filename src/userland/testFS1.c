@@ -4,8 +4,8 @@
 #include "common.h"
 
 int testFS1(uint32_t arg1, uint32_t arg2) {
-    char buf[128];
-    char oBuf[128];
+    char buf[100];
+    char oBuf[130];
     int fp;
     int ret;
     unsigned lineLen;
@@ -25,7 +25,8 @@ int testFS1(uint32_t arg1, uint32_t arg2) {
     swrites(buf);
 
     lineLen = 0;
-    for(int i = 0; i < 126; i++) {
+    for(int i = 0; i < 100; i++) {
+        // Read the next character
         buf[i] = 0;
 
         char ch = 0;
@@ -43,17 +44,22 @@ int testFS1(uint32_t arg1, uint32_t arg2) {
             buf[i+2] = 0;
             break;
         }
-
-        sprint(oBuf, "Test FS %d.%d: got %d ('%c')\r\n", arg1, arg2, (int) ch, ch);
-        swrites(oBuf);
         
         buf[i] = ch;
         lineLen++;
         
     }
-    swrites(buf);
+    sprint(oBuf, "(%03d) %s\r\n", lineLen, buf);
+    swrites(oBuf);
 
     // Read the contents of the remaining lines
+    swrites("\r\nReading remaining lines one line at a time\r\n");
+
+    for(ret = fReadLn(fp, buf, 100); ret >= 0; ret = fReadLn(fp, buf, 100)) {
+        sprint(oBuf, "(%03d) %s\r\n", ret, buf);
+        swrites(oBuf);
+    }
+    
 
     // Close the file
     ret = fclose(fp);

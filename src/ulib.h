@@ -331,6 +331,20 @@ int32_t swrite( const char *buf, uint32_t size );
 */
 int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho);
 
+/**
+** fReadLn - read into a buffer from a file to the next newline or end 
+**           of buffer
+**
+** usage:   n = fReadLn(channel,buf,length)
+**
+** @param fp   I/O stream to read from
+** @param buf    Buffer to read into
+** @param length Maximum capacity of the buffer
+**
+** @returns  The count of bytes transferred, or an error code
+*/
+int32_t fReadLn(int fp, char* buf, uint32_t length);
+
 /*
 **********************************************
 ** STRING MANIPULATION FUNCTIONS
