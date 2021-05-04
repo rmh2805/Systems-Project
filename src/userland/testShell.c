@@ -21,6 +21,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
         }
 
         nRead = strTrim(iBuf, iBuf);
+        strLower(iBuf, iBuf);
         if(nRead == 0) {    // Skip empty commands
             continue;
         } else if(strcmp(iBuf, "help") == 0) {  // Print command lists
@@ -100,7 +101,8 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites(oBuf);
 
         } else {    //Unknown Command
-            swrites("Unrecognized command, try \"help\" for a list of commands\r\n");
+            sprint(oBuf, "Uncrecognized command \"%s\", try \"help\"", iBuf);
+            swrites(oBuf);
         }
         
         swrites("\r\n");

@@ -370,10 +370,11 @@ int32_t strTrim(register char * dst, register const char * src);
 
 /**
  * strLower(str) - Modify str to make all letters lowercase
- * 
- * @param str The string to modify
+**
+** @param dst The destination buffer
+** @param src The source buffer
  */
-void strLower(register char *str);
+void strLower(register char *dst, register const char *src );
 
 /**
 ** strcpy(dst,src) - copy a NUL-terminated string
