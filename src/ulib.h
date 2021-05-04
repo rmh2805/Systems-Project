@@ -127,7 +127,7 @@ prio_t getprio( void );
 ** If the indicated priority is invalid, the priority will
 ** be unchanged.
 */
-prio_t setprio( prio_t new );
+prio_t setprio( prio_t newPrio );
 
 /**
 ** kill - terminate a process with extreme prejudice
@@ -231,6 +231,29 @@ int32_t setuid( uid_t uid );
 * @return 0 on success, < 0 on failure (E_NO_PERMISSION if lacking permission)
 */
 int32_t setgid( gid_t gid );
+
+/**
+ * fopen - open a file to read/write
+ * 
+ * usage: fopen(char * path, bool_t append);
+ * 
+ * @param path The path of the file to open
+ * @param append If set, offset initialized to EOF
+ * 
+ * @return file descriptor on success, negative on failure
+ */
+int32_t fopen(char* path, bool_t append);
+
+/**
+ * fclose - Close a previously opened file
+ * 
+ * usage: fclose(uint32_t chanNr);
+ * 
+ * @param chanNr The channel nr (file descriptor) of the file to close
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t fclose(uint32_t chanNr);
 
 /*
 **********************************************
