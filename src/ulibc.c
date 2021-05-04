@@ -288,6 +288,20 @@ int32_t strTrim(register char * dst, register const char * src) {
 
 }
 
+/**
+ * strLower(str) - Modify str to make all letters lowercase
+ * 
+ * @param str The string to modify
+ */
+void strLower(register char *str) {
+    while(*str) {
+        if(*str >= 'A' && *str <= 'Z') {
+            *str = (*str - 'A') + 'a';
+        }
+
+        *str += 1;
+    }
+}
 
 /**
 ** strcpy(dst,src) - copy a NUL-terminated string
