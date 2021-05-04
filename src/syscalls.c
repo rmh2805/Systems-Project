@@ -176,6 +176,10 @@ static void _sys_read( uint32_t args[4] ) {
         }
 
         n = _fs_read(fd, buf, length); // Read from file
+        if(n == E_EOF) {
+            RET(_current) = n;
+            return;
+        }
     }
 
     // if there was data, return the byte count to the process;

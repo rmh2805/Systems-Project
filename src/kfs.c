@@ -97,6 +97,12 @@ int _fs_read(fd_t * file, char * buf, uint32_t len) {
             file->inode_id.devID, file->inode_id.idx, ret);
         return ret;
     }
+    
+
+    // Return EOF on EOF
+    if(file->offset == node.nBytes) {
+        return E_EOF;
+    }
 
     
     for(bytes_read = 0; bytes_read < len && file->offset < node.nBytes;) {
