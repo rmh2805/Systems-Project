@@ -622,10 +622,11 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
  ** _sys_fopen - attempts to open a file and store its FD in the PCBs block
  **
  ** implements: 
- **    int32_t fopen(char * path);
+ **    int32_t fopen(char * path, bool_t append);
  */
-static void _sys_fopen( uint32_t args[4] ) {
+static void _sys_fopen( uint32_t args[4]) {
     char * path = (char*) args[0]; // Get path given to user
+    bool_t append = (bool_t) args[1];
     uint32_t fdIdx;
 
     // Check if process has available files
@@ -664,7 +665,7 @@ static void _sys_fopen( uint32_t args[4] ) {
     }
 
     _current->files[fdIdx].inode_id = currentDir;
-    _current->files[fdIdx].offset = 0;
+    _current->files[fdIdx].offset = (append) ? tgt.nBytes : 0;
     
     RET(_current) = fdIdx + 2; // Add channel (2) How do I return this? 
 }
