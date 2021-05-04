@@ -226,6 +226,13 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
                     return E_FAILURE;
             }
             break;
+        case '2': // File System tests
+            switch(arg2) {
+                case '1':
+                default:
+                    return E_FAILURE;
+            }
+
         default: // Unknown test banks
             return E_FAILURE;
     } 
@@ -286,6 +293,12 @@ void listTests(int chan, char bank) {
         sprint(oBuf, "\t\t      4: Test restrictions on kill\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
+    if(bank == '2' || bank == 0) {
+        didPrint = true;
+
+        sprint(oBuf, "\tFile System tests (bank 2):\r\n");
+        write(chan, oBuf, strlen(oBuf));
+    }
 
     if(!didPrint || bank == 0) {
         sprint(oBuf, "\tValid Banks:\r\n");
@@ -293,6 +306,8 @@ void listTests(int chan, char bank) {
         sprint(oBuf, "\t\t      0: Baseline tests\r\n");
         write(chan, oBuf, strlen(oBuf));
         sprint(oBuf, "\t\t      1: Multi-User tests\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      2: Multi-User tests\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 }
