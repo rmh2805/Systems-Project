@@ -229,9 +229,15 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
         case '2': // File System tests
             switch(arg2) {
                 case '1':
+                    entry = testFS1;
+                    prio = PRIO_STD;
+                    ch1 = 1;
+                    ch2 = 0;
+                    break;
                 default:
                     return E_FAILURE;
             }
+            break;
 
         default: // Unknown test banks
             return E_FAILURE;
@@ -297,6 +303,8 @@ void listTests(int chan, char bank) {
         didPrint = true;
 
         sprint(oBuf, "\tFile System tests (bank 2):\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      1: File Read Test\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 
