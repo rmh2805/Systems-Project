@@ -30,14 +30,18 @@ int getShadowLine(const char* nameBuf, char * dataBuf, int dataBufLen) {
     bool_t matched = false;
     for(ret = fReadLn(fp, dataBuf, dataBufLen); ret >= 0; ret = fReadLn(fp, dataBuf, dataBufLen)) {
         if(ret == 0) continue;
-
-        char* dataPtr = dataBuf;
         
         // Extract the name from the data
         int nameLen = getShadowField(dataBuf, tmpBuf, MAX_UNAME_SIZE);
         if(nameLen < MAX_UNAME_SIZE) {
             tmpBuf[nameLen] = 0;
         }
+
+        char* dataPtr = dataBuf + nameLen;
+        if(!(*dataPtr)) {
+            break;
+        }
+        dataPtr++;
 
         // Compare the grabbed name to the provided name
         if(strncmp(tmpBuf, nameBuf, MAX_UNAME_SIZE) == 0) {
@@ -117,8 +121,31 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
             continue;
         }
 
-        swrites(iBuf);
-        swrites("\r\n");
+        // Get uID from file
+        int result = getShadowField(iBuf, nameBuf, MAX_UNAME_SIZE);
+        if(result == 0) {
+            swrites("SIGN IN: **ERROR** Malformed shadow file (undefined uid)\r\n");
+            return E_FAILURE;
+        }
+
+        int i;
+        for(i = 0; i < result; i++) {
+            if((nameBuf[i] < '0' || nameBuf[i] > '9') && nameBuf[i]) {
+                break;
+            }
+        }
+        if(i != result) {
+            swrites("SIGN IN: **ERROR** Malformed shadow file (non-integer uid)\r\n");
+            return E_FAILURE;
+        }
+
+        int id = str2int(nameBuf, 10);
+        if(id != (nUID = id)) {
+            swrites("SIGN IN: **ERROR** Malformed shadow file (overflowed uid)\r\n");
+            return E_FAILURE;
+        }
+
+        break;
     }
     
     //===============<Set UID and Spawn Test Generator>===============//
