@@ -332,7 +332,7 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
     
     // Read the metadata node from disk
     int result = disks[disk].readBlock(0, meta_buffer, disks[disk].driverNr);
-    if(result <= 0) return result; // Ensure meta read was successful
+    if(result < 0) return result;   // Ensure meta read was successful
     inode_t metaNode = *(inode_t*)(meta_buffer);
     
     // Check that this inode exists on this disk
@@ -341,7 +341,7 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
     // Read in the inode from disk
     uint32_t idx = id.idx/(BLOCK_SIZE/sizeof(inode_t));
     result = disks[disk].readBlock(idx, inode_buffer, disks[disk].driverNr);
-    if(result <= 0) return result; // Ensure read was successful
+    if(result < 0) return result;   // Ensure read was successful
     
     // Copy the read inode to the return struct
     idx = sizeof(inode_t) * (id.idx % (BLOCK_SIZE/sizeof(inode_t)));
@@ -683,7 +683,7 @@ int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret) {
 
     // Check that this is a directory inode
     if(tgt.nodeType != INODE_DIR_TYPE) {
-        __cio_printf("*ERROR* in _fs_getSubDir(): Non-directory inode specified\n");
+        __cio_printf("*ERROR* in _fs_getSubDir(): Non-directory inode specified (%d.%d)\n", inode.devID, inode.idx);
         return E_BAD_PARAM;
     }
 

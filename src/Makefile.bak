@@ -164,7 +164,7 @@ LDFLAGS = -melf_i386 -no-pie
 # Default target:  usb.image
 #
 
-usb.image: bootstrap.b prog.b prog.nl BuildImage prog.dis fs.img
+usb.image: bootstrap.b prog.b prog.nl BuildImage prog.dis
 	./BuildImage -d usb -o usb.image -b bootstrap.b fs.img $(FS_LOAD) prog.b $(OS_LOAD)
 
 floppy.image: bootstrap.b prog.b prog.nl BuildImage prog.dis 
@@ -179,6 +179,12 @@ prog.o:	$(OBJECTS)
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
+fs.img: MakeFSImage AddFile .shadow testLongNames.txt
+	./MakeFSImage fs.img 16 10 1
+	./AddFile fs.img .shadow fs.dmg 
+	./AddFile fs.dmg testLongNames.txt fs.img
+	rm fs.dmg
+
 #
 # Targets for copying bootable image onto boot devices
 #
@@ -190,7 +196,7 @@ usb:	usb.image
 	/usr/local/dcs/bin/dcopy usb.image
 
 #
-# Special rule for creating the modification and offset programs
+# Special rule for creating the auxiliary programs
 #
 # These are required because we don't want to use the same options
 # as for the standalone binaries.
@@ -206,7 +212,7 @@ MakeFSImage: MakeFSImage.c
 	$(CC) -mx32 -std=c99 $(INCLUDES) -o MakeFSImage MakeFSImage.c
 
 AddFile: AddFile.c
-	$(CC) -mx32 -std=c99 $(INCLUDES) -o AddFile AddFile.c
+	$(CC) -mx32 -std=c99 $(INCLUDES) -ggdb -o AddFile AddFile.c
 
 #
 # Clean out this directory
@@ -251,58 +257,3 @@ depend:
 	makedepend $(INCLUDES) $(SOURCES)
 
 # DO NOT DELETE THIS LINE -- make depend depends on it.
-
-bootstrap.o: bootstrap.h
-startup.o: bootstrap.h
-isr_stubs.o: bootstrap.h
-cio.o: cio.h klib.h common.h fs.h kdefs.h kmem.h compat.h support.h kernel.h
-cio.o: x86arch.h process.h stacks.h queues.h x86pic.h
-support.o: support.h klib.h common.h fs.h kdefs.h cio.h kmem.h compat.h
-support.o: kernel.h x86arch.h process.h stacks.h queues.h x86pic.h
-support.o: bootstrap.h
-clock.o: x86arch.h x86pic.h x86pit.h common.h fs.h kdefs.h cio.h kmem.h
-clock.o: compat.h support.h kernel.h process.h stacks.h queues.h klib.h
-clock.o: clock.h scheduler.h
-kernel.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-kernel.o: x86arch.h process.h stacks.h queues.h klib.h clock.h bootstrap.h
-kernel.o: syscalls.h sio.h kfs.h driverInterface.h ramDiskDriver.h
-kernel.o: scheduler.h users.h
-klibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-klibc.o: x86arch.h process.h stacks.h queues.h klib.h
-kmem.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-kmem.o: x86arch.h process.h stacks.h queues.h klib.h bootstrap.h
-process.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-process.o: x86arch.h process.h stacks.h queues.h klib.h bootstrap.h
-process.o: scheduler.h
-queues.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-queues.o: x86arch.h process.h stacks.h queues.h klib.h
-scheduler.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-scheduler.o: x86arch.h process.h stacks.h queues.h klib.h syscalls.h
-sio.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-sio.o: x86arch.h process.h stacks.h queues.h klib.h ./uart.h x86pic.h sio.h
-sio.o: scheduler.h
-stacks.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-stacks.o: x86arch.h process.h stacks.h queues.h klib.h
-syscalls.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-syscalls.o: x86arch.h process.h stacks.h queues.h klib.h x86pic.h ./uart.h
-syscalls.o: bootstrap.h syscalls.h scheduler.h clock.h sio.h kfs.h
-syscalls.o: driverInterface.h
-kfs.o: kfs.h common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-kfs.o: x86arch.h process.h stacks.h queues.h klib.h driverInterface.h
-ramDiskDriver.o: ramDiskDriver.h common.h fs.h kdefs.h cio.h kmem.h compat.h
-ramDiskDriver.o: support.h kernel.h x86arch.h process.h stacks.h queues.h
-ramDiskDriver.o: klib.h driverInterface.h kfs.h
-users.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-users.o: x86arch.h process.h stacks.h queues.h klib.h users.h
-users.o: userland/main1.c userland/main2.c userland/main3.c userland/main4.c
-users.o: userland/main5.c userland/main6.c userland/userH.c userland/userI.c
-users.o: userland/userJ.c userland/userP.c userland/userQ.c userland/userR.c
-users.o: userland/userS.c userland/userV.c userland/userW.c userland/userX.c
-users.o: userland/userY.c userland/userZ.c userland/mUser1.c
-users.o: userland/mUser2.c userland/mUser3.c userland/mUser4.c
-users.o: userland/init.c userland/doTests.c userland/idle.c userland/signIn.c
-users.o: userland/testShell.c
-ulibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-ulibc.o: x86arch.h process.h stacks.h queues.h klib.h
-ulibs.o: syscalls.h common.h fs.h kdefs.h cio.h kmem.h compat.h support.h
-ulibs.o: kernel.h x86arch.h process.h stacks.h queues.h klib.h
