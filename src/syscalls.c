@@ -634,6 +634,7 @@ static void _sys_fopen( uint32_t args[4] ) {
             _current->files[fdIdx].inode_id.idx == 0) {
             break;
         } else if (fdIdx == MAX_OPEN_FILES - 1) {
+            __cio_printf("*ERROR* in _sys_fopen: Out of file pointers\n");
             RET(_current) = E_FILE_LIMIT; // ERROR NO FILES AVAILABLE
             return;
         }       
@@ -642,13 +643,29 @@ static void _sys_fopen( uint32_t args[4] ) {
     inode_id_t currentDir;
     int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fopen: failed to seek target inode \"%s\"\n", path);
         RET(_current) = result;
+        return;
+    }
+
+    // check that this is a file
+    inode_t tgt;
+    result = _fs_getInode(currentDir, &tgt);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fopen: failed to retrieve target inode \"%s\"\n", path);
+        RET(_current) = result;
+        return;
+    }
+
+    if(tgt.nodeType != INODE_FILE_TYPE) {
+        __cio_printf("*ERROR* in _sys_fopen: Specified inode is not a file\n");
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 
     _current->files[fdIdx].inode_id = currentDir;
     _current->files[fdIdx].offset = 0;
-
+    
     RET(_current) = fdIdx + 2; // Add channel (2) How do I return this? 
 }
 
