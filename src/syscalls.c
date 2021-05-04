@@ -795,8 +795,82 @@ static void _sys_fcreate  (uint32_t args[4]) {
  **    int32_t fremove(char * path, char * name);
  */
 static void _sys_fremove (uint32_t args[4]) {
+    char * path = (char*) args[0];
+    char * name = (char*) args[1];
+    
+    // Get Current Directory
+    inode_id_t targetDirID;
+    inode_t  targetDir;
+    int result = _sys_seekFile(path, &targetDirID);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
+
+    // Get directory Inode
+    _fs_getInode(targetDirID, &targetDir);
+    if(targetDir.nodeType != INODE_DIR_TYPE) {
+        __cio_puts(" ERROR: Given path does not terminate in a directory ");
+        RET(_current) = E_FAILURE;
+        return;
+    }
+    uint32_t numEntries = targetDir.nRefs;
+    data_u entry;
+    
+    // loop through the directories entries
+    for(int i = 0; i < numRefs; i++) {
+        result = _fs_getDirEnt(targetDirID, i, &entry);
+        if(result < 0) {
+            RET(_current) = result;
+            return;
+        }
+        bool_t matched = true;
+        // Name comparison
+        for(uint32_t j = 0; j < 12; j++) {
+            if(entry.dir.name[j] == 0 && name[j] == 0) {
+                break;
+            }
+            if(entry.dir.name[j] != name[j]) {
+                matched = false;
+                break;
+            }
+        }
+        if(matched) {
+            break;
+        }
+    }
+    
+    inode_id_t targetID = entry.inode;
+    inode_t targetNode;
+    result = _sys_getInode(targetID, &targetNode);
+    if(result < 0) {
+        __cio_puts(" ERROR: Unable to get target inode (fremove) ");
+        RET(_current) = result;
+        return;
+    }
+
+    if(targetNode.nodeType == INODE_DIR_TYPE) {
+        if(nBlocks != 0 || nRefs != 0) {
+            __cio_puts(" ERROR: Cannot remove non-empty directory ");
+            RET(_current) = E_FAILURE;
+            return;
+        }
+    }
+
+    targetNode.nRefs -= 1;
+    if(targetNode.nRefs == 0) {
+        
+    }
+
+    // Remove the entry from the parent
+    result = _fs_rmDirEnt(targetDirID, name);
+    if(result < 0) {
+        __cio_puts(" ERROR: Cannot remove entry from directory (fremove)");
+        RET(_current) = result;
+        return; 
+    }
     /*
-    ** - Get the directory at the end of path (fail on non-driectory or seek failure)
+    ** - Get the directory at the end of path (fail on non-directory or seek failure)
     ** - Find files[name] (tgt) in final directory (fail in non-existent)
     ** - if tgt is directory, check that directory is empty or this is not final reference (return error else)
     ** - tgt.references -= 1
