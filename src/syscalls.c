@@ -163,9 +163,19 @@ static void _sys_read( uint32_t args[4] ) {
         break;
 
     default:
-        // bad channel code
-        RET(_current) = E_BAD_CHANNEL;
-        return;
+        if(chan >= 2 + MAX_OPEN_FILES) { // Channel beyond potential for files
+            RET(_current) = E_BAD_CHANNEL;
+            return;
+        }
+
+        // File channel
+        fd_t * fd = &_current->files[chan - 2];
+        if(fd->inode_id.devID == 0 && fd->inode_id.idx == 0) {    // Blank fd_t
+            RET(_current) = E_BAD_CHANNEL;  // Can't read from a blank fd
+            return;
+        }
+
+        n = _fs_read(fd, buf, length); // Read from file
     }
 
     // if there was data, return the byte count to the process;
@@ -197,6 +207,7 @@ static void _sys_write( uint32_t args[4] ) {
     uint32_t chan = args[0];
     char *buf = (char *) args[1];
     uint32_t length = args[2];
+    int ret = 0;
 
     // this is almost insanely simple, but it does separate the
     // low-level device access fromm the higher-level syscall implementation
@@ -204,17 +215,31 @@ static void _sys_write( uint32_t args[4] ) {
     switch( chan ) {
     case CHAN_CONS:
         __cio_write( buf, length );
-        RET(_current) = length;
         break;
 
     case CHAN_SIO:
-        _sio_write( buf, length );
-        RET(_current) = length;
+        ret = _sio_write( buf, length );
         break;
 
     default:
-        RET(_current) = E_BAD_CHANNEL;
-        break;
+        if(chan >= 2 + MAX_OPEN_FILES) { // Channel beyond potential for files
+            RET(_current) = E_BAD_CHANNEL;
+            return;
+        }
+
+        // File channel
+        fd_t fd = _current->files[chan - 2];
+        if(fd.inode_id.devID == 0 && fd.inode_id.idx == 0) {    // Blank fd_t
+            RET(_current) = E_BAD_CHANNEL;  // Can't write from a blank fd
+            return;
+        }
+
+        ret = _fs_write(fd, buf, length); // Write to file
+    }
+    if(ret < 0) {
+        RET(_current) = ret;
+    } else {
+        RET(_current) = length;
     }
 }
 

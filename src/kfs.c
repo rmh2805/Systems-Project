@@ -5,6 +5,8 @@ char * inode_buffer;
 char * data_buffer;
 char * meta_buffer;
 
+int _fs_getNodeEnt(inode_t* inode, int idx, data_u * ret);
+
 void _fs_init( void ) {
     __cio_puts( " FS:" );
 
@@ -69,10 +71,9 @@ int _fs_registerDev(driverInterface_t interface) {
  * 
  * @returns The number of bytes read from disk
  */
-int _fs_read(fd_t file, char * buf, uint32_t len) {
-    uint8_t devID = file.inode_id.devID;
+int _fs_read(fd_t * file, char * buf, uint32_t len) {
+    uint8_t devID = file->inode_id.devID;
     uint32_t bytes_read;
-    
     
     // Compute the disk index for devID;
     uint32_t i = 0;
@@ -83,43 +84,51 @@ int _fs_read(fd_t file, char * buf, uint32_t len) {
         }
     }
     if(i == MAX_DISKS) {
+        __cio_printf("*ERROR* in _fs_read: Canot find disk %d\n", file->inode_id.devID);
         return E_BAD_CHANNEL;
     }
     
     // Read in inode for file! 
-    int ret = disks[devID].readBlock(file.inode_id.idx, inode_buffer, disks[devID].driverNr); 
+    inode_t node;
+    int ret = _fs_getInode(file->inode_id, &node);
     if(ret < 0) {
-        __cio_puts( " ERROR: Unable to read inode block from disk! (_fs_read)");
+        __cio_printf("*ERROR* in _fs_read: Failed to read inode %d.%d (%d)\n", 
+            file->inode_id.devID, file->inode_id.idx, ret);
         return ret;
     }
 
-    // Get data and setup an inode
-    uint32_t idx = sizeof(inode_t) * (file.inode_id.idx % (BLOCK_SIZE/sizeof(inode_t)));
-    inode_t * inode = (inode_t *)(inode_buffer + idx);
+    
+    for(bytes_read = 0; bytes_read < len && file->offset < node.nBytes;) {
+        // Calculate the entry number of the next block
+        uint32_t blockIdx = file->offset / BLOCK_SIZE;
 
-    // 
-    uint32_t blockIdx = file.offset / BLOCK_SIZE;
-    for(bytes_read = 0; bytes_read < len && bytes_read < inode->nBytes;) {
-        // Read next block from disk
-        if(blockIdx < NUM_DIRECT_POINTERS) {
-            ret = disks[devID].readBlock(inode->direct_pointers[blockIdx/4].blocks[blockIdx%4],
-                    data_buffer, disks[devID].driverNr);
-            if(ret < 0) {
-                __cio_puts( " ERROR: Unable to read block from disk! (_fs_read)");
-                return ret;
-            }
-        } else {
-            //todo implement indirect reads
+        // Exit early if block is indirect
+        if(blockIdx >= NUM_DIRECT_POINTERS) {
             return bytes_read;
         }
-        
-        uint32_t blockIdx = file.offset % BLOCK_SIZE;
-        while(bytes_read < len && bytes_read < inode->nBytes && blockIdx < BLOCK_SIZE) {
-            buf[bytes_read++] = data_buffer[blockIdx++];
+
+        // Get next data block's offset
+        data_u data;
+        ret = _fs_getNodeEnt(&node, blockIdx / 4, &data);
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _fs_read: Failed to read node entry %d (%d)\n", 
+                blockIdx/4, ret);
         }
-        file.offset += (blockIdx - (file.offset % BLOCK_SIZE)); // update file offset
-        
-        blockIdx++;
+        block_t block = data.blocks[blockIdx % 4];
+
+        // Read the block in to the data buffer
+        ret = disks[devID].readBlock(block, data_buffer, disks[devID].driverNr);
+        if(ret < 0) {
+            __cio_printf( "*ERROR* in _fs_read: Unable to read block %d from disk (%d)\n", block, ret);
+            return ret;
+        }
+
+        // Read bytes until buffer full, file done, or block end
+        int idx = file->offset % BLOCK_SIZE; // Calculate the offset into the current block
+        while(bytes_read < len && file->offset < node.nBytes && idx < BLOCK_SIZE) { 
+            buf[bytes_read++] = data_buffer[idx++];
+            file->offset += 1;
+        }
     }
     return bytes_read;
 }

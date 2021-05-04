@@ -29,7 +29,7 @@ int _fs_registerDev(driverInterface_t interface);
  * 
  * @returns The number of bytes read from disk
  */
-int _fs_read(fd_t file, char * buf, uint32_t len);
+int _fs_read(fd_t * file, char * buf, uint32_t len);
 
 /**
  * FS write handler
