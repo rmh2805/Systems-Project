@@ -5,7 +5,6 @@
 
 int testFS2(uint32_t arg1, uint32_t arg2) {
     char buf[100];
-    char oBuf[130];
     char wBuf[12] = "HELLO WORLD\n";
     int fp;
     int ret;
@@ -36,7 +35,7 @@ int testFS2(uint32_t arg1, uint32_t arg2) {
         return ret;
     }
 
-    return (0);
+    return testFS1(arg1, arg2);
 }
 
 #endif
