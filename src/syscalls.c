@@ -777,17 +777,13 @@ static void _sys_fcreate  (uint32_t args[4]) {
     }    
     
     // Setup default inode values
+    newNode.id = newID;
     newNode.uid = _current->uid;
     newNode.gid = _current->pid;
     newNode.nRefs = 1; // One reference for single parent
     newNode.nBlocks = 0;
     newNode.nBytes = 0;
-
-    if(isFile) { // We are making a file
-        newNode.nodeType = INODE_FILE_TYPE;
-    } else { // We are making a directory
-        newNode.nodeType = INODE_DIR_TYPE;
-    }
+    newNode.nodeType = (isFile) ? INODE_FILE_TYPE : INODE_DIR_TYPE;
     
     // Write the inode
     result = _fs_setInode(newNode);
@@ -802,6 +798,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
         RET(_current) = result;
         return;
     }
+    
     RET(_current) = E_SUCCESS;
 }
 
