@@ -802,66 +802,10 @@ static void _sys_fremove (uint32_t args[4]) {
     
     // Get Current Directory
     inode_id_t targetDirID;
-    inode_t  targetDir;
     int result = _sys_seekFile(path, &targetDirID);
     if(result < 0) {
         RET(_current) = result;
         return;
-    }
-
-    // Get directory Inode
-    _fs_getInode(targetDirID, &targetDir);
-    if(targetDir.nodeType != INODE_DIR_TYPE) {
-        __cio_puts(" ERROR: Given path does not terminate in a directory ");
-        RET(_current) = E_FAILURE;
-        return;
-    }
-    uint32_t numRefs = targetDir.nRefs;
-    data_u entry;
-    
-    // loop through the directories entries
-    for(int i = 0; i < numRefs; i++) {
-        result = _fs_getDirEnt(targetDirID, i, &entry);
-        if(result < 0) {
-            RET(_current) = result;
-            return;
-        }
-        bool_t matched = true;
-        // Name comparison
-        for(uint32_t j = 0; j < 12; j++) {
-            if(entry.dir.name[j] == 0 && name[j] == 0) {
-                break;
-            }
-            if(entry.dir.name[j] != name[j]) {
-                matched = false;
-                break;
-            }
-        }
-        if(matched) {
-            break;
-        }
-    }
-    
-    inode_id_t targetID = entry.dir.inode;
-    inode_t targetNode;
-    result = _fs_getInode(targetID, &targetNode);
-    if(result < 0) {
-        __cio_puts(" ERROR: Unable to get target inode (fremove) ");
-        RET(_current) = result;
-        return;
-    }
-
-    if(targetNode.nodeType == INODE_DIR_TYPE) {
-        if(targetNode.nBlocks != 0 || targetNode.nRefs != 0) {
-            __cio_puts(" ERROR: Cannot remove non-empty directory ");
-            RET(_current) = E_FAILURE;
-            return;
-        }
-    }
-
-    targetNode.nRefs -= 1;
-    if(targetNode.nRefs == 0) {
-        
     }
 
     // Remove the entry from the parent
@@ -871,15 +815,9 @@ static void _sys_fremove (uint32_t args[4]) {
         RET(_current) = result;
         return; 
     }
-    /*
-    ** - Get the directory at the end of path (fail on non-directory or seek failure)
-    ** - Find files[name] (tgt) in final directory (fail in non-existent)
-    ** - if tgt is directory, check that directory is empty or this is not final reference (return error else)
-    ** - tgt.references -= 1
-    **      - if tgt.references == 0, free tgt (inode and associated data blocks)
-    ** - Remove files[name] from parent directory
-    ** - parent.subDirs -= 1
-    */
+
+    RET(_current) = E_SUCCESS;
+    return;
 }
 
 /**

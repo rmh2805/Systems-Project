@@ -306,7 +306,7 @@ users.o: userland/userJ.c userland/userP.c userland/userQ.c userland/userR.c
 users.o: userland/userS.c userland/userV.c userland/userW.c userland/userX.c
 users.o: userland/userY.c userland/userZ.c userland/mUser1.c
 users.o: userland/mUser2.c userland/mUser3.c userland/mUser4.c
-users.o: userland/testFS1.c userland/init.c userland/doTests.c
+users.o: userland/testFS1.c userland/testFS2.c userland/init.c userland/doTests.c
 users.o: userland/idle.c userland/signIn.c userland/testShell.c
 ulibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 ulibc.o: x86arch.h process.h stacks.h queues.h klib.h

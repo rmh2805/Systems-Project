@@ -231,7 +231,6 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
     int ret;
     uint32_t bufOffset;
 
-
     // Compute the disk index for devID;
     uint32_t i = 0;
     for(; i < MAX_DISKS; i++) {
@@ -251,6 +250,12 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
         __cio_printf("*ERROR* in _fs_write: Failed to read inode %d.%d (%d)\n", 
             file->inode_id.devID, file->inode_id.idx, ret);
         return ret;
+    }
+
+    // Make sure are offset is the end of the file
+    if(file->offset != node.nBytes) {
+        __cio_printf("*ERROR* in _fs_write: Cannot write to file without appending");
+        return E_FAILURE;
     }
 
     bufOffset = 0;
@@ -315,7 +320,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
         
         // Copy from the buffer into the data block until block or buf is done
         while(idx < BLOCK_SIZE && bufOffset < len) {
-            data_buffer[i++] = buf[bufOffset++];
+            data_buffer[idx++] = buf[bufOffset++];
             file->offset += 1;
             node.nBytes += 1;
         }
