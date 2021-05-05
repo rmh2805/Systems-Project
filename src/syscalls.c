@@ -579,10 +579,10 @@ static void _sys_setuid ( uint32_t args[4] ) {
 
 
 /**
-** _sys_setgid - attempts to modify the uid of the current process
+** _sys_setgid - attempts to modify the gid of the current process
 ** 
 ** implements:
-**    uint32_t setuid( uid_t uid );
+**    uint32_t setgid( gid_t gid );
 */
 static void _sys_setgid ( uint32_t args[4] ) {
     gid_t gid = args[0];
@@ -595,6 +595,7 @@ static void _sys_setgid ( uint32_t args[4] ) {
     }
 }
 
+// File system traversal helpers
 static char* getNextName(char * path, char * nextName, int* nameLen) {
     *nameLen = 0;
     int i = 0;
