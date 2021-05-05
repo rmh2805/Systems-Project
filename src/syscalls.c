@@ -736,15 +736,29 @@ static void _sys_fclose (uint32_t args[4]) {
 static void _sys_fcreate  (uint32_t args[4]) {
     char * path = (char*) args[0];
     char * name = (char*) args[1];
+    int result;
     bool_t isFile = (bool_t) args[2];
-    inode_id_t newID; 
-    inode_t newNode;
+    inode_id_t newID, currentDir; 
+    inode_t newNode, pNode;
 
     // Get Current Directory
-    inode_id_t currentDir;
-    int result = _sys_seekFile(path, &currentDir);
+    result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;
+        return;
+    }
+
+    // Get the parent inode
+    result = _fs_getInode(currentDir, &pNode);
+    if(result < 0){
+        RET(_current) = result;
+        return;
+    }
+
+    // Fail if parent node is not a directory
+    if(pNode.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_fcreate: path \"%s\" leads to non-directory\n", path);
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 
