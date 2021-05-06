@@ -848,7 +848,13 @@ int _fs_allocNode(uint8_t devID, inode_id_t * ret) {
     int result;
 
     // Set ret to target the metanode on this disk
-    ret->devID = devID;
+    if(devID == 0) {
+        ret->devID = disks[0].fsNr;
+        if(ret->devID == 0) {
+            __cio_printf("*ERROR* in _fs_allocNode: No default disk registered\n");
+            return E_FAILURE;
+        }
+    }
     ret->idx = 0;
 
     // Read the metanode for disk
