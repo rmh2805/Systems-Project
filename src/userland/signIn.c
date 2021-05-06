@@ -101,7 +101,6 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
         // Trim username string
         result = strTrim(iBuf, iBuf);
         if(result == 0) {
-            swrites("SIGN IN: **ERROR** Blank username detected\r\n");
             continue;
         }
         
