@@ -339,7 +339,7 @@ void listTests(int chan, char bank) {
         write(chan, oBuf, strlen(oBuf));
         sprint(oBuf, "\t\t      1: Multi-User tests\r\n");
         write(chan, oBuf, strlen(oBuf));
-        sprint(oBuf, "\t\t      2: Multi-User tests\r\n");
+        sprint(oBuf, "\t\t      2: File System tests\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 }
