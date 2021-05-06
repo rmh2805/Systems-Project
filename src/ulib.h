@@ -268,6 +268,18 @@ int32_t fclose(uint32_t chanNr);
  */
 int32_t fcreate(char* path, char* name, bool_t isFile);
 
+/**
+ * fremove - remove a file/dir at the provided path
+ * 
+ * usage: fremove(char * path, char * name);
+ * 
+ * @param path The path to put where the file is located
+ * @param name The name of the file to remove
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t fremove(char* path, char* name);
+
 /*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS

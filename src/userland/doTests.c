@@ -246,6 +246,12 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
                     ch1 = 3;
                     ch2 = 0;
                     break;
+                case '4':
+                    entry = testFS4;
+                    prio = PRIO_STD;
+                    ch1 = 4;
+                    ch2 = 0;
+                    break;
                 default:
                     return E_FAILURE;
             }
@@ -321,6 +327,8 @@ void listTests(int chan, char bank) {
         sprint(oBuf, "\t\t      2: File Write Test\r\n");
         write(chan, oBuf, strlen(oBuf));
         sprint(oBuf, "\t\t      3: File Create Test\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      4: File Remove Test\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 
