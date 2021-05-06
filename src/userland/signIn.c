@@ -70,6 +70,8 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
 
     char iBuf[nIBuf];
     char nameBuf[MAX_UNAME_SIZE];
+    char passCBuf[MAX_UNAME_SIZE];
+    char passIBuf[MAX_UNAME_SIZE];
     
     int32_t result = 0;
     uid_t nUID = 0;
@@ -125,7 +127,10 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
         if(result == 0) {
             swrites("SIGN IN: **ERROR** Malformed shadow file (undefined uid)\r\n");
             return E_FAILURE;
-        }
+        } else if(result < 0) {
+            swrites("SIGN IN: **ERROR** Failed to compare with shadow file\r\n");
+            return result;
+        } 
 
         int i;
         for(i = 0; i < result; i++) {
@@ -144,7 +149,34 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
             return E_FAILURE;
         }
 
-        break;
+        // Grab password from file
+        char* dataPtr = iBuf + result + 1;
+        getShadowField(dataPtr, passCBuf, MAX_UNAME_SIZE);
+        result = strTrim(passCBuf, passCBuf);
+        if(result == 0) {
+            break;
+        }
+
+        // Get user password
+        swrites("Enter your password: ");
+
+        // Grab the next line of input
+        result = readLn(CHAN_SIO, passIBuf, nIBuf, false);
+        swrites("\r\n");
+
+        // Return failure on failure to read
+        if(result < 0) {
+            swrites("SIGN IN: **ERROR** Failed to read input password\r\n");
+            return result;
+        }
+
+        // Trim username string
+        strTrim(passIBuf, passIBuf);
+        if(strcmp(passIBuf, passCBuf) == 0) {
+            break;
+        }
+        
+        swrites("SIGN IN: **ERROR** Wrong password\r\n");
     }
     
     //===============<Set UID and Spawn Test Generator>===============//
