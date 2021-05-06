@@ -615,11 +615,13 @@ static char* getNextName(char * path, char * nextName, int* nameLen) {
 
 static int _sys_seekFile( char* path, inode_id_t * currentDir) {
     char* sPath = path;
+    bool_t startsAtRoot = false;
 
     // Get starting inode (either working directory or root directory)
     *currentDir = _current->wDir;
     if(path[0] == '/') {
         *currentDir = (inode_id_t){0, 1};
+        startsAtRoot = true;
     }
     
     char nextName[12];
@@ -633,13 +635,19 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
         path = getNextName(path, nextName, &nameLen);
         
         if(nameLen == 0) {  // Entry names must have length > 0
+            if(startsAtRoot) { // We had '\' as a path
+                return E_SUCCESS;
+            }
             __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
             return E_BAD_PARAM;
         }
         
         // Grab nextName from currentDir's entries
         int ret = _fs_getSubDir(*currentDir, nextName, currentDir);
-        if(ret < 0) return ret;
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _sys_seekfile(): Unable to get subDir \"%s\"\n", nextName);
+            return ret;
+        }
     }
 
     // If we made our way through the path successfully, return success (currentDir already set)
