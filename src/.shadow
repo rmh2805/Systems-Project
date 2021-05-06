@@ -1,4 +1,5 @@
-root:0
-ray:100
-ian:101
-koen:102
+root:0:QWERTY
+ray:100:Up the RA
+ian:101:FizzBuzz
+koen:102:Foo Bar
+noPass:103
