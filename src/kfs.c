@@ -789,7 +789,7 @@ int _fs_allocNode(uint8_t devID, inode_id_t * ret) {
     // Read the metanode for disk
     result = _fs_getInode(*ret, &metaNode);
     if(result < 0) {
-        __cio_puts( " ERROR: Unable to read metanode from disk!");
+        __cio_printf( "*ERROR* in _fs_allocNode: Unable to read meta node for disk %d\n", devID);
         return E_FAILURE;
     }
 
