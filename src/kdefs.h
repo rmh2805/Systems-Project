@@ -16,6 +16,7 @@
 #include "kmem.h"
 #include "support.h"
 #include "kernel.h"
+#include "kfs.h"
 
 // The OS also needs the kernel library.
 
