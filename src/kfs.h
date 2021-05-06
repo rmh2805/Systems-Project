@@ -114,4 +114,13 @@ int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret);
  */
 int _fs_allocNode(uint8_t devID, inode_id_t * ret);
 
+/**
+ * Frees the specified inode (if possible) (Exposed)
+ * 
+ * @param id The id of the inode to free
+ * 
+ * @return A standard exit status (<0 on failure to free)
+ */
+int _fs_freeNode(inode_id_t id);
+
 #endif //KFS_H_

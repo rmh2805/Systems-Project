@@ -439,6 +439,55 @@ int _fs_setInode(inode_t inode) {
 }
 
 /**
+ * Clears an inode on disk
+ * 
+ * @param id the id of the node to clear 
+ * 
+ * @return A standard exit status
+ */
+int _fs_clearInode(inode_id_t id) {
+    uint32_t disk, inodeOffset;
+    int ret;
+    block_t inodeBlock;
+    
+    if(id.devID == 0) { // There is no device zero
+        return E_BAD_CHANNEL;
+    }
+    
+    // Determine the disk index
+    for(disk = 0; disk < MAX_DISKS; disk++){
+        if(disks[disk].fsNr == id.devID) {
+            break;
+        }
+    }
+    if(disk == MAX_DISKS) { // If disk not found, return failure status
+        return E_BAD_CHANNEL;
+    }
+    
+    // Load the inode block into memory
+    inodeBlock = id.idx / (BLOCK_SIZE / sizeof(inode_t));
+    ret = disks[disk].readBlock(inodeBlock, inode_buffer, disks[disk].driverNr);
+    if(ret < 0) {
+        return ret;
+    }
+    
+    // Clear the buffer at inode
+    inodeOffset = sizeof(inode_t) * (id.idx % (BLOCK_SIZE / sizeof(inode_t)));
+    char * dst = inode_buffer + inodeOffset;
+    for(int i = 0; i < sizeof(inode_t); i++) {
+        dst[i] = 0;
+    }
+    
+    // Write the updated buffer out to memory
+    ret = disks[disk].writeBlock(inodeBlock, inode_buffer, disks[disk].driverNr);
+    if(ret < 0) {
+        return ret;
+    }
+    
+    return E_SUCCESS;
+}
+
+/**
  * Internal helper function to return the `idx`th data entry from the passed 
  * inode
  * 
@@ -790,7 +839,7 @@ int _fs_allocNode(uint8_t devID, inode_id_t * ret) {
     result = _fs_getInode(*ret, &metaNode);
     if(result < 0) {
         __cio_printf( "*ERROR* in _fs_allocNode: Unable to read meta node for disk %d\n", devID);
-        return E_FAILURE;
+        return result;
     }
 
     // Iterate through all non-basic (meta and root) nodes on disk
@@ -799,7 +848,7 @@ int _fs_allocNode(uint8_t devID, inode_id_t * ret) {
         result = _fs_getInode(*ret, &node);
         if(result < 0) {
             __cio_printf( "*ERROR* in _fs_allocNode: Unable to read inode %d.%d\n", ret->devID, ret->idx);
-            return E_FAILURE;
+            return result;
         }
 
         if(node.id.devID == 0) {
@@ -810,4 +859,65 @@ int _fs_allocNode(uint8_t devID, inode_id_t * ret) {
     // Was unable to find an inode on disk
     __cio_printf("*ERROR* in _fs_allocNode: Unable to alloc an inode on disk %d\n", ret->devID);
     return E_FAILURE;
+}
+
+/**
+ * Frees the specified inode (if possible) (Exposed)
+ * 
+ * @param id The id of the inode to free
+ * 
+ * @return A standard exit status (<0 on failure to free)
+ */
+int _fs_freeNode(inode_id_t id) {
+    inode_t node;
+    int ret;
+
+    // Read the specified inode from disk
+    ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf( "*ERROR* in _fs_freeNode: Unable to read inode %d.%d\n", id.devID, id.idx);
+        return ret;
+    }
+
+    // Fail on directory with children
+    if(node.nodeType == INODE_DIR_TYPE && node.nBytes == 0) {
+        __cio_printf( "*ERROR* in _fs_freeNode: Unable to free non-empty directory\n", id.devID, id.idx);
+        return ret;
+    }
+
+    // Free indirect blocks associated with this node
+    //todo free indirect blocks
+
+    // Free all direct blocks associated with this node
+    if(node.nodeType == INODE_FILE_TYPE) {
+        for(int i = 0; i < node.nBlocks; i++) {
+            data_u data;
+            block_t block;
+
+            // Get the index of the data block
+            ret = _fs_getNodeEnt(&node, i/4, &data);
+            if(ret < 0) {
+                __cio_printf( "*ERROR* in _fs_freeNode: Unable to free data block %d (non-fatal)\n", i);
+                continue;
+            }
+            block = data.blocks[i%4];
+
+            // Free this block
+            ret = _fs_free_block(node.id.devID, block);
+            if(ret < 0) {
+                __cio_printf( "*ERROR* in _fs_freeNode: Unable to free data block %d (non-fatal)\n", i);
+                continue;
+            }
+        }
+    }
+    node.nBlocks = 0;
+
+    // Clear this inode on disk
+    ret = _fs_clearInode(id);
+    if(ret < 0) {
+        __cio_printf( "*ERROR* in _fs_freeNode: Unable to write inode %d.%d to disk\n", id.devID, id.idx);
+        return ret;
+    }
+
+    return E_SUCCESS;
 }
