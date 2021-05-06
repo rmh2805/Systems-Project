@@ -638,8 +638,6 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
         int nameLen = 0;
         path = getNextName(path, nextName, &nameLen);
 
-        __cio_printf("NameLen = %d nextName = %s &path = %x\n", nameLen, nextName, &nextName);
-
         if(nameLen == 0) {  // Entry names must have length > 0
 
             __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
