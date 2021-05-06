@@ -112,6 +112,6 @@ int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret);
  *
  * @return A standard exit status
  */
-int _find_next_free_inode(uint8_t devID, inode_id_t * ret);
+int _fs_allocNode(uint8_t devID, inode_id_t * ret);
 
 #endif //KFS_H_

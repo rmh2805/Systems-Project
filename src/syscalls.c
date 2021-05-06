@@ -763,7 +763,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
     }
 
     // Find next free inode
-    result = _find_next_free_inode(currentDir.devID, &newID);
+    result = _fs_allocNode(currentDir.devID, &newID);
     if(result < 0) {
         RET(_current) = result;
         return;
@@ -780,7 +780,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
     newNode.id = newID;
     newNode.uid = _current->uid;
     newNode.gid = _current->pid;
-    newNode.nRefs = 1; // One reference for single parent
+    newNode.nRefs = 0; // No references yet
     newNode.nBlocks = 0;
     newNode.nBytes = 0;
     newNode.nodeType = (isFile) ? INODE_FILE_TYPE : INODE_DIR_TYPE;
@@ -798,7 +798,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
         RET(_current) = result;
         return;
     }
-    
+
     RET(_current) = E_SUCCESS;
 }
 
