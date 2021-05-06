@@ -9,7 +9,7 @@ int _fs_getNodeEnt(inode_t* inode, int idx, data_u * ret);
 int _fs_setNodeEnt(inode_t* inode, int idx, data_u ret);
 
 void _fs_init( void ) {
-    __cio_puts( " FS:" );
+    __cio_printf( " FS:" );
 
     inode_buffer = _km_slice_alloc(); // Get 1024 bytes for our buffer
     meta_buffer = _km_slice_alloc(); // We only are using the first 512 bytes
@@ -20,7 +20,7 @@ void _fs_init( void ) {
         disks[i].fsNr = 0;
     }
 
-    __cio_puts( " done" );
+    __cio_printf( " done" );
 }
 
 /**
@@ -144,7 +144,7 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
 
     int ret = disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
     if(ret < 0) {
-        __cio_puts( " ERROR: Unable to read metanode from disk!");
+        __cio_printf( " ERROR: Unable to read metanode from disk!\n");
         return E_FAILURE;
     }
     // Read in meta
@@ -159,7 +159,7 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
     for(uint32_t mapIdx = 0; mapIdx < metaNode.nBlocks; mapIdx++) {
         ret = disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
         if(ret < 0) {
-            __cio_puts( " ERROR: Unable to read block from disk! (_fs_alloc_block)");
+            __cio_printf( " ERROR: Unable to read block from disk! (_fs_alloc_block)\n");
             return E_FAILURE;
         }
         for(uint32_t blockIdx; blockIdx < BLOCK_SIZE; blockIdx++) {
@@ -169,7 +169,7 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
                     data_buffer[blockIdx] |= mask;
                     ret = disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
                     if(ret < 0) {
-                        __cio_puts( " ERROR: Unable to write new block out to disk!" );
+                        __cio_printf( " ERROR: Unable to write new block out to disk!\n" );
                         return E_FAILURE;
                     }
                     *blockNr = (mapIdx * 8 * BLOCK_SIZE);
@@ -187,7 +187,7 @@ int _fs_free_block(uint8_t devID, uint32_t blockNr) {
     inode_t metaNode;
     int ret = _fs_getInode((inode_id_t){devID, 0}, &metaNode);
     if(ret < 0) {
-        __cio_puts( " ERROR: Unable to read metanode from disk!");
+        __cio_printf( " ERROR: Unable to read metanode from disk!\n");
         return E_FAILURE;
     }
 
@@ -203,14 +203,14 @@ int _fs_free_block(uint8_t devID, uint32_t blockNr) {
     
     ret = disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
     if(ret < 0) {
-        __cio_puts( " ERROR: Unable to read block from disk! (_fs_free_block)");
+        __cio_printf( " ERROR: Unable to read block from disk! (_fs_free_block)\n");
         return E_FAILURE;
     }
     uint8_t bitMask = (0x80 >> bitPos) ^ 0xFF;
     data_buffer[blockIdx] &= bitMask;
     ret = disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
     if(ret < 0) {
-        __cio_puts( " ERROR: Unable to write block to disk! (_fs_free_block)");
+        __cio_printf( " ERROR: Unable to write block to disk! (_fs_free_block)\n");
         return E_FAILURE;
     }
     
@@ -254,7 +254,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
 
     // Make sure are offset is the end of the file
     if(file->offset != node.nBytes) {
-        __cio_printf("*ERROR* in _fs_write: Cannot write to file without appending");
+        __cio_printf("*ERROR* in _fs_write: Cannot write to file without appending\n");
         return E_FAILURE;
     }
 
