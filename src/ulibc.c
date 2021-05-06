@@ -206,6 +206,9 @@ int32_t fReadLn(int fp, char* buf, uint32_t length) {
         result = read(fp, &(inCh), 1);  //Read a char to the next idx
         
         if(result == 0) {
+            if(i > 0) {
+                break;
+            }
             return (-1);
         } else if (result < 0) {
             return result;

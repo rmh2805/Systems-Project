@@ -261,7 +261,7 @@ void _proc_init( void ) {
 **         not be allocated for the PCB or the stack
 */
 pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid, 
-                        uid_t uid, gid_t gid ) {
+                        uid_t uid, gid_t gid, inode_id_t wDir) {
 
     // allocate the necessary data structures
     pcb_t *pcb = _pcb_alloc();
@@ -284,6 +284,7 @@ pcb_t *_proc_create( uint32_t args[4], pid_t pid, pid_t ppid,
     pcb->state    = New;        // initial state
     pcb->priority = args[1];    // process priority
     pcb->quantum  = Q_STD;      // allotted time slice
+    pcb->wDir     = wDir;       // Working directory
     // Set all File fd_ts to zero
     for (int i = 0; i < MAX_OPEN_FILES; i++) {
         pcb->files[i].inode_id = (inode_id_t) {0, 0};

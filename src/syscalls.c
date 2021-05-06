@@ -443,7 +443,7 @@ static void _sys_spawn( uint32_t args[4] ) {
 
     // create the process
     pcb_t *pcb = _proc_create( args, _next_pid++, _current->pid, 
-                                _current->uid, _current->gid );
+                                _current->uid, _current->gid, _current->wDir);
     if( pcb == NULL ) {
         RET(_current) = E_NO_MEMORY;
         return;
@@ -579,10 +579,10 @@ static void _sys_setuid ( uint32_t args[4] ) {
 
 
 /**
-** _sys_setgid - attempts to modify the uid of the current process
+** _sys_setgid - attempts to modify the gid of the current process
 ** 
 ** implements:
-**    uint32_t setuid( uid_t uid );
+**    uint32_t setgid( gid_t gid );
 */
 static void _sys_setgid ( uint32_t args[4] ) {
     gid_t gid = args[0];
@@ -595,9 +595,11 @@ static void _sys_setgid ( uint32_t args[4] ) {
     }
 }
 
+// File system traversal helpers
 static char* getNextName(char * path, char * nextName, int* nameLen) {
     *nameLen = 0;
     int i = 0;
+
     while(path[i] && path[i] != '/') {
         if (*nameLen < 12) {
             nextName[i] = path[i];
@@ -605,6 +607,7 @@ static char* getNextName(char * path, char * nextName, int* nameLen) {
         }
         i++;
     }
+    
     for(int j = i + 1; j < 12; j++) { // 0 fill the rest of nextName
         nextName[j] = 0;
     }
@@ -619,6 +622,10 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
     *currentDir = _current->wDir;
     if(path[0] == '/') {
         *currentDir = (inode_id_t){0, 1};
+        path++;
+        if(!(*path)) {
+            return E_SUCCESS;
+        }
     }
     
     char nextName[12];
@@ -630,15 +637,21 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
         // Grab the name of the next entry
         int nameLen = 0;
         path = getNextName(path, nextName, &nameLen);
-        
+
+        __cio_printf("NameLen = %d nextName = %s &path = %x\n", nameLen, nextName, &nextName);
+
         if(nameLen == 0) {  // Entry names must have length > 0
+
             __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
             return E_BAD_PARAM;
         }
         
         // Grab nextName from currentDir's entries
         int ret = _fs_getSubDir(*currentDir, nextName, currentDir);
-        if(ret < 0) return ret;
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _sys_seekfile(): Unable to get subDir \"%s\"\n", nextName);
+            return ret;
+        }
     }
 
     // If we made our way through the path successfully, return success (currentDir already set)
@@ -735,20 +748,34 @@ static void _sys_fclose (uint32_t args[4]) {
 static void _sys_fcreate  (uint32_t args[4]) {
     char * path = (char*) args[0];
     char * name = (char*) args[1];
+    int result;
     bool_t isFile = (bool_t) args[2];
-    inode_id_t newID; 
-    inode_t newNode;
+    inode_id_t newID, currentDir; 
+    inode_t newNode, pNode;
 
     // Get Current Directory
-    inode_id_t currentDir;
-    int result = _sys_seekFile(path, &currentDir);
+    result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;
         return;
     }
 
+    // Get the parent inode
+    result = _fs_getInode(currentDir, &pNode);
+    if(result < 0){
+        RET(_current) = result;
+        return;
+    }
+
+    // Fail if parent node is not a directory
+    if(pNode.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_fcreate: path \"%s\" leads to non-directory\n", path);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
     // Find next free inode
-    result = _find_next_free_inode(currentDir.devID, &newID);
+    result = _fs_allocNode(currentDir.devID, &newID);
     if(result < 0) {
         RET(_current) = result;
         return;
@@ -762,17 +789,13 @@ static void _sys_fcreate  (uint32_t args[4]) {
     }    
     
     // Setup default inode values
+    newNode.id = newID;
     newNode.uid = _current->uid;
     newNode.gid = _current->pid;
-    newNode.nRefs = 1; // One reference for single parent
+    newNode.nRefs = 0; // No references yet
     newNode.nBlocks = 0;
     newNode.nBytes = 0;
-
-    if(isFile) { // We are making a file
-        newNode.nodeType = INODE_FILE_TYPE;
-    } else { // We are making a directory
-        newNode.nodeType = INODE_DIR_TYPE;
-    }
+    newNode.nodeType = (isFile) ? INODE_FILE_TYPE : INODE_DIR_TYPE;
     
     // Write the inode
     result = _fs_setInode(newNode);
@@ -787,6 +810,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
         RET(_current) = result;
         return;
     }
+
     RET(_current) = E_SUCCESS;
 }
 
@@ -802,66 +826,10 @@ static void _sys_fremove (uint32_t args[4]) {
     
     // Get Current Directory
     inode_id_t targetDirID;
-    inode_t  targetDir;
     int result = _sys_seekFile(path, &targetDirID);
     if(result < 0) {
         RET(_current) = result;
         return;
-    }
-
-    // Get directory Inode
-    _fs_getInode(targetDirID, &targetDir);
-    if(targetDir.nodeType != INODE_DIR_TYPE) {
-        __cio_puts(" ERROR: Given path does not terminate in a directory ");
-        RET(_current) = E_FAILURE;
-        return;
-    }
-    uint32_t numRefs = targetDir.nRefs;
-    data_u entry;
-    
-    // loop through the directories entries
-    for(int i = 0; i < numRefs; i++) {
-        result = _fs_getDirEnt(targetDirID, i, &entry);
-        if(result < 0) {
-            RET(_current) = result;
-            return;
-        }
-        bool_t matched = true;
-        // Name comparison
-        for(uint32_t j = 0; j < 12; j++) {
-            if(entry.dir.name[j] == 0 && name[j] == 0) {
-                break;
-            }
-            if(entry.dir.name[j] != name[j]) {
-                matched = false;
-                break;
-            }
-        }
-        if(matched) {
-            break;
-        }
-    }
-    
-    inode_id_t targetID = entry.dir.inode;
-    inode_t targetNode;
-    result = _fs_getInode(targetID, &targetNode);
-    if(result < 0) {
-        __cio_puts(" ERROR: Unable to get target inode (fremove) ");
-        RET(_current) = result;
-        return;
-    }
-
-    if(targetNode.nodeType == INODE_DIR_TYPE) {
-        if(targetNode.nBlocks != 0 || targetNode.nRefs != 0) {
-            __cio_puts(" ERROR: Cannot remove non-empty directory ");
-            RET(_current) = E_FAILURE;
-            return;
-        }
-    }
-
-    targetNode.nRefs -= 1;
-    if(targetNode.nRefs == 0) {
-        
     }
 
     // Remove the entry from the parent
@@ -871,15 +839,9 @@ static void _sys_fremove (uint32_t args[4]) {
         RET(_current) = result;
         return; 
     }
-    /*
-    ** - Get the directory at the end of path (fail on non-directory or seek failure)
-    ** - Find files[name] (tgt) in final directory (fail in non-existent)
-    ** - if tgt is directory, check that directory is empty or this is not final reference (return error else)
-    ** - tgt.references -= 1
-    **      - if tgt.references == 0, free tgt (inode and associated data blocks)
-    ** - Remove files[name] from parent directory
-    ** - parent.subDirs -= 1
-    */
+
+    RET(_current) = E_SUCCESS;
+    return;
 }
 
 /**

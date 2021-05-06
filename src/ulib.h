@@ -255,6 +255,19 @@ int32_t fopen(char* path, bool_t append);
  */
 int32_t fclose(uint32_t chanNr);
 
+/**
+ * fcreate - create a file/dir at the provided path
+ * 
+ * usage: fcreate(char * path, char * name, bool_t isFile);
+ * 
+ * @param path The path to put the file
+ * @param name The name of the new file
+ * @param isFile Whether or not we are making a file
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t fcreate(char* path, char* name, bool_t isFile);
+
 /*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS

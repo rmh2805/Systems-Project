@@ -155,8 +155,8 @@ void _init( void ) {
     args[1] = System;            // priority
     args[2] = args[3] = 0;       // no command-line arguments
 
-    // create it; init is strange, as it is its own parent
-    pcb_t *pcb = _proc_create( args, PID_INIT, PID_INIT, GID_USER, UID_ROOT );
+    // create it; init is strange, as it is its own parent (spawned as root user in root dir)
+    pcb_t *pcb = _proc_create( args, PID_INIT, PID_INIT, GID_USER, UID_ROOT, (inode_id_t){0, 1});
     assert( pcb != NULL );
 
     // schedule it
