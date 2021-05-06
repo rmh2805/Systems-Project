@@ -270,11 +270,13 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
 
         //Get the data entry for the next block
         data_u data;
-        ret = _fs_getNodeEnt(&node, blockIdx / 4, &data);
-        if(ret < 0) {
-            __cio_printf("*ERROR* in _fs_write: Failed to read node entry %d (%d)\n", 
-                blockIdx/4, ret);
-            return ret;
+        if(node.nBlocks != 0 && node.nBytes != 0) { // We don't want to do this if its new
+            ret = _fs_getNodeEnt(&node, blockIdx / 4, &data);
+            if(ret < 0) {
+                __cio_printf("*ERROR* in _fs_write: Failed to read node entry %d (%d)\n",
+                    blockIdx/4, ret);
+                return ret;
+            }
         }
 
         // Potentially allocate a new block
@@ -505,7 +507,7 @@ int _fs_getNodeEnt(inode_t* inode, int idx, data_u * ret) {
 
     // Check that this is assigned within the inode 
     if(idx >= inode->nBytes) {
-        __cio_printf("*ERROR in _fs_getNodeEnt()* Passed index not in DIR bounds\n");
+        __cio_printf("*ERROR in _fs_getNodeEnt()* Passed index: %d not in DIR bounds\n", idx);
         return E_BAD_PARAM;
     }
 

@@ -24,6 +24,7 @@ int testFS2(uint32_t arg1, uint32_t arg2) {
     ret = write(fp, wBuf, 12);
     if(ret < 0) {
         sprint(buf, "TEST FS %d.%d: Failed to write to \"/testLongNames.txt\" (exist status %d)\r\n", arg1, arg2, fp);
+        swrites(buf);
         return ret;
     }
 
