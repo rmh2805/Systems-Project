@@ -599,6 +599,7 @@ static void _sys_setgid ( uint32_t args[4] ) {
 static char* getNextName(char * path, char * nextName, int* nameLen) {
     *nameLen = 0;
     int i = 0;
+
     while(path[i] && path[i] != '/') {
         if (*nameLen < 12) {
             nextName[i] = path[i];
@@ -606,6 +607,7 @@ static char* getNextName(char * path, char * nextName, int* nameLen) {
         }
         i++;
     }
+    
     for(int j = i + 1; j < 12; j++) { // 0 fill the rest of nextName
         nextName[j] = 0;
     }
@@ -615,13 +617,15 @@ static char* getNextName(char * path, char * nextName, int* nameLen) {
 
 static int _sys_seekFile( char* path, inode_id_t * currentDir) {
     char* sPath = path;
-    bool_t startsAtRoot = false;
 
     // Get starting inode (either working directory or root directory)
     *currentDir = _current->wDir;
     if(path[0] == '/') {
         *currentDir = (inode_id_t){0, 1};
-        startsAtRoot = true;
+        path++;
+        if(!(*path)) {
+            return E_SUCCESS;
+        }
     }
     
     char nextName[12];
@@ -634,12 +638,10 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
         int nameLen = 0;
         path = getNextName(path, nextName, &nameLen);
 
-        __cio_printf("NameLen = %d nextName = %s\n", nameLen, nextName);
-        
+        __cio_printf("NameLen = %d nextName = %s &path = %x\n", nameLen, nextName, &nextName);
+
         if(nameLen == 0) {  // Entry names must have length > 0
-            if(startsAtRoot) { // We had just '\' as a path
-                return E_SUCCESS;
-            }
+
             __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
             return E_BAD_PARAM;
         }

@@ -10,7 +10,7 @@ int testFS3(uint32_t arg1, uint32_t arg2) {
     int ret;
 
     // Create a file named test.txt
-    ret = fcreate("/", "testtesttest.txt", true);
+    ret = fcreate("/", "test.txt", true);
     if(ret < 0) {
         sprint(buf, "Test FS %d.%d: Failed to create \"/test.txt\" (exit status %d)\r\n", arg1, arg2, ret);
         swrites(buf);
@@ -18,7 +18,7 @@ int testFS3(uint32_t arg1, uint32_t arg2) {
     }
 
     // Open the test file for appending
-    fp = fopen("/testtesttest.txt", true);
+    fp = fopen("/test.txt", true);
     if(fp < 0) {
         sprint(buf, "Test FS %d.%d: Failed to open \"/test.txt\" (exit status %d)\r\n", arg1, arg2, fp);
         swrites(buf);
@@ -48,7 +48,7 @@ int testFS3(uint32_t arg1, uint32_t arg2) {
     
 
     // Open file again to read! 
-    fp = fopen("/testtesttest.txt", false);
+    fp = fopen("/test.txt", false);
     if(fp < 0) {
         sprint(buf, "Test FS %d.%d: Failed to open \"/test.txt\" for reading (exit status %d)\r\n", arg1, arg2, fp);
         swrites(buf);
