@@ -667,7 +667,8 @@ int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf) {
  * @return A standard exit status
  */
 int _fs_rmDirEnt(inode_id_t inode, const char* name) {
-    inode_t tgt;
+    inode_id_t childId;
+    inode_t tgt, child;
     int ret, idx;
 
     // Get the inode
@@ -706,6 +707,7 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
             }
         }
         if(matched) { // If this is a match, break out
+            childId = ent.dir.inode;
             break;
         }
     }
@@ -714,8 +716,22 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
         return E_BAD_PARAM;
     }
 
-    //todo implement referand reference count checks and decrements
-    //todo implement referand deletion
+    // Grab the child from disk
+    ret = _fs_getInode(childId, &child);
+    if(ret < 0) {
+        __cio_printf("ERROR in _fs_rmDirEnt*: Unable to read child %d.%d\n", childId.devID, childId.idx);
+        return ret;
+    }
+
+    // Update child nRefs
+    if(child.nRefs > 0) child.nRefs -= 1;
+
+    // Either remove child or write child out to disk
+    ret = (child.nRefs == 0) ? _fs_freeNode(childId) : _fs_setInode(child);
+    if(ret < 0) {
+        __cio_printf("ERROR in _fs_rmDirEnt*: Unable to update child %d.%d\n", childId.devID, childId.idx);
+        return ret;
+    }
 
     // Prepare a blank entry for update
     data_u blankEnt;
@@ -723,7 +739,7 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
         ((char*)(&blankEnt))[i] = 0;
     }
 
-    // If this is not the ninal entry, fill its gap with the final entry
+    // If this is not the final entry, fill its gap with the final entry
     if(idx != tgt.nBytes - 1) {
         data_u ent;
         ret = _fs_getNodeEnt(&tgt, tgt.nBytes - 1, &ent); // Grab the final entry
