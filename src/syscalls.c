@@ -835,7 +835,7 @@ static void _sys_fremove (uint32_t args[4]) {
     // Remove the entry from the parent
     result = _fs_rmDirEnt(targetDirID, name);
     if(result < 0) {
-        __cio_puts(" ERROR: Cannot remove entry from directory (fremove)");
+        __cio_printf("*ERROR*in _sys_fremove: Cannot remove entry from directory (fremove)\n");
         RET(_current) = result;
         return; 
     }

@@ -12,7 +12,6 @@ int testFS4(uint32_t arg1, uint32_t arg2) {
         sprint(buf, "Test FS %d.%d: Failed to remove \"/test.txt\" (exit status %d)\r\n", arg1, arg2, ret);
         swrites(buf);
         return ret;
-            
     }
 
     return 0;

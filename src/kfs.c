@@ -184,12 +184,12 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
 }
 
 int _fs_free_block(uint8_t devID, uint32_t blockNr) {
-    int ret = disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    inode_t metaNode;
+    int ret = _fs_getInode((inode_id_t){devID, 0}, &metaNode);
     if(ret < 0) {
         __cio_puts( " ERROR: Unable to read metanode from disk!");
         return E_FAILURE;
     }
-    inode_t metaNode = *(inode_t*)(meta_buffer);
 
     uint32_t mapBase = metaNode.nRefs / (BLOCK_SIZE/sizeof(inode_t));
     if(metaNode.nRefs % (BLOCK_SIZE/sizeof(inode_t)) != 0) {
@@ -672,7 +672,7 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
     inode_id_t childId;
     inode_t tgt, child;
     int ret, idx;
-
+    
     // Get the inode
     ret = _fs_getInode(inode, &tgt);
     if(ret < 0) {
@@ -717,7 +717,7 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
         __cio_printf("ERROR in _fs_rmDirEnt*: Entry \"%s\" not in tgt DIR\n", name );
         return E_BAD_PARAM;
     }
-
+    
     // Grab the child from disk
     ret = _fs_getInode(childId, &child);
     if(ret < 0) {
@@ -727,7 +727,6 @@ int _fs_rmDirEnt(inode_id_t inode, const char* name) {
 
     // Update child nRefs
     if(child.nRefs > 0) child.nRefs -= 1;
-
     // Either remove child or write child out to disk
     ret = (child.nRefs == 0) ? _fs_freeNode(childId) : _fs_setInode(child);
     if(ret < 0) {
