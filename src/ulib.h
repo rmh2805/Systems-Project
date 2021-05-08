@@ -280,6 +280,18 @@ int32_t fcreate(char* path, char* name, bool_t isFile);
  */
 int32_t fremove(char* path, char* name);
 
+/**
+ * getinode - Grabs the inode at the end of the provided path
+ *
+ * usage: getinode(char * path, inode_t * inode)
+ * 
+ * @param path The path of the node to grab
+ * @param inode A return pointer for the grabbed inode
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t getinode(char * path, inode_t * inode);
+
 /*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS

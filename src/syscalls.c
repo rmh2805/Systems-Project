@@ -861,7 +861,7 @@ static void _sys_fmove (uint32_t args[4]) {
  ** _sys_getinode - attempts to retrieve the inode at the end of path
  **
  ** implements: 
- **    int32_t fremove(char * Path, inode_t * inode);
+ **    int32_t getinode(char * path, inode_t * inode);
  */
 static void _sys_getinode (uint32_t args[4]) {
     char* path = (char *) args[0];
@@ -890,7 +890,7 @@ static void _sys_getinode (uint32_t args[4]) {
 }
 
 /**
- ** _sys_getdirname - attempts to retrieve a subdirectory name after end of path
+ ** _sys_dirname - attempts to retrieve a subdirectory name after end of path
  **
  ** implements: 
  **    int32_t dirname(char * path, char* buf, uint32_t subDirNr);
