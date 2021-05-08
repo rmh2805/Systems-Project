@@ -62,6 +62,17 @@ int _fs_getInode(inode_id_t id, inode_t * inode);
 int _fs_setInode(inode_t inode);
 
 /**
+ * Helper function to return the `idx`th data entry from the passed inode
+ * 
+ * @param inode The inode to grab data entries from
+ * @param idx The index of the entry to grab
+ * @param ret A return pointer for the grabbed node entry
+ * 
+ * @return A standard exit status
+ */
+int _fs_getNodeEnt(inode_t* inode, int idx, data_u * ret);
+
+/**
  * Adds an entry to a directory inode
  * 
  * @param inode The inode to update

@@ -490,8 +490,8 @@ int _fs_clearInode(inode_id_t id) {
 }
 
 /**
- * Internal helper function to return the `idx`th data entry from the passed 
- * inode
+ * Helper function to return the `idx`th data entry from the passed inode 
+ * (exposed)
  * 
  * @param inode The inode to grab data entries from
  * @param idx The index of the entry to grab
