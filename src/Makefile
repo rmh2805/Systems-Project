@@ -179,10 +179,11 @@ prog.o:	$(OBJECTS)
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
-fs.img: MakeFSImage AddFile .shadow testLongNames.txt
-	./MakeFSImage fs.img 16 10 1
-	./AddFile fs.img .shadow fs.dmg n n
-	./AddFile fs.dmg testLongNames.txt fs.img y y
+fs.img: MakeFSImage AddFile .shadow .group testLongNames.txt
+	./MakeFSImage fs.dmg 16 10 1
+	./AddFile fs.dmg .shadow fs.img n n
+	./AddFile fs.img testLongNames.txt fs.dmg y y
+	./AddFile fs.dmg .groups fs.img y n
 	rm fs.dmg
 
 #
