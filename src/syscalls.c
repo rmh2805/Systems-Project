@@ -578,6 +578,11 @@ static void _sys_setuid ( uint32_t args[4] ) {
 }
 
 
+static int _sys_fGetLn(inode_t node, int offset, char* buf, int bufSize) {
+
+    return E_FAILURE;
+}
+
 /**
 ** _sys_setgid - attempts to modify the gid of the current process
 ** 
@@ -590,9 +595,10 @@ static void _sys_setgid ( uint32_t args[4] ) {
     if (gid == GID_USER || gid == GID_OPEN) {
         _current->gid = gid;
         RET(_current) = E_SUCCESS;
-    } else { // Otherwise return lack of permission
-        RET(_current) = E_NO_PERMISSION;
-    }
+        return;
+    } 
+
+    // Next check the file to see if this gid is defined
 }
 
 // File system traversal helpers
