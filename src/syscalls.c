@@ -844,17 +844,90 @@ static void _sys_fremove (uint32_t args[4]) {
 
 /**
  ** _sys_fmove - attempts to remove the file/dir at the end of the path
+                 and move it to the new location!
  **
  ** implements: 
- **    int32_t fremove(char * sPath, char * sName, char * dPath, char* dName);
+ **    int32_t fmove(char * sPath, char * sName, char * dPath, char* dName);
  */
 static void _sys_fmove (uint32_t args[4]) {
-    /*
-    ** - Seek on both paths (ensuring they end at directories)
-    ** - dst.files[dname] = src.files[sname]
-    ** - src.files[sname].references ++
-    ** - _sys_fremove()
-    */
+    char * sPath = (char *)args[0];
+    char * sName = (char *)args[1];
+    char * dPath = (char *)args[2];
+    char * dName = (char *)args[3];
+    inode_id_t sourceDir;
+    inode_id_t destDir;
+    inode_id_t copyTarg;
+    inode_t sourceNode;
+    inode_t destNode;
+
+    int result = _sys_seekFile(sPath, &sourceDir);
+    if(result < 0) {
+        // Failed to seek file on disk
+        __cio_printf("*ERROR* in _sys_fmove: Failed to seek file path %s (%d)\n", sPath, result);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    result = _sys_seekFile(dPath, &destDir);
+    if(result < 0) {
+        // Failed to seek file on disk
+        __cio_printf("*ERROR* in _sys_fmove: Failed to seek file path %s (%d)\n", dPath, result);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    // Read the source node from the disk
+    result = _fs_getInode(sourceDir, &sourceNode);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fmove: Failed to grab inode %d.%d (%d)\n", sourceDir.devID, sourceDir.idx, result);
+        RET(_current) = E_FAILURE;
+        return;
+    }
+
+    // Check that the source is a directory inode
+    if(sourceNode.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_fmove: Node at \"%s\" is not a directory\n", sPath);
+        RET(_current) = E_NO_CHILDREN;
+        return;
+    }
+
+    // Read the dest node from the disk
+    result = _fs_getInode(destDir, &destNode);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fmove: Failed to grab inode %d.%d (%d)\n", destDir.devID, destDir.idx, result);
+        RET(_current) = E_FAILURE;
+        return;
+    }
+
+    // Check that the dest is a directory inode
+    if(destNode.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_fmove: Node at \"%s\" is not a directory\n", dPath);
+        RET(_current) = E_NO_CHILDREN;
+        return;
+    }
+
+    // Get inode_id_t for source file and add it to the dest dir
+    result = _fs_getSubDir(sourceDir, sName, &copyTarg); 
+    if(result < 0) {
+        __cio_printf("*ERROR* Unable to get \"%s\" in \"%s\"\n", sName, sourceDir);
+        RET(_current) = result;
+        return;
+    }
+    
+    result = _fs_addDirEnt(destDir, dName, copyTarg);
+    if(result < 0) {
+        __cio_printf("*ERROR* Unable to add \"%s\" to \"%s\"\n", dName, destDir);
+        RET(_current) = result;
+        return;
+    }
+    
+    // Remove the file from source
+    _sys_fremove(args);
+    if(result < 0) {
+        __cio_printf("*ERROR* Unable to remove \"%s\" from \"%s\"\n", sName, sourceDir);
+        RET(_current) = E_FAILURE;
+        return;
+    }
 }
 
 /**
