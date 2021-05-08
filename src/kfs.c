@@ -162,7 +162,7 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
             __cio_printf( " ERROR: Unable to read block from disk! (_fs_alloc_block)\n");
             return E_FAILURE;
         }
-        for(uint32_t blockIdx; blockIdx < BLOCK_SIZE; blockIdx++) {
+        for(uint32_t blockIdx = 0; blockIdx < BLOCK_SIZE; blockIdx++) {
             for(uint8_t bitPos = 0; bitPos < 8; bitPos++) {
                 uint8_t mask = 0x80 >> bitPos;
 
