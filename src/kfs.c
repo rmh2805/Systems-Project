@@ -165,6 +165,7 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
         for(uint32_t blockIdx; blockIdx < BLOCK_SIZE; blockIdx++) {
             for(uint8_t bitPos = 0; bitPos < 8; bitPos++) {
                 uint8_t mask = 0x80 >> bitPos;
+
                 if((data_buffer[blockIdx] & mask) ^ mask) {
                     data_buffer[blockIdx] |= mask;
                     ret = disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
@@ -278,11 +279,8 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
                 return ret;
             }
         }
-
         // Potentially allocate a new block
         if(blockIdx > node.nBlocks) { // desync between write pos and current EOF
-            __cio_printf("*ERROR* in _fs_write: Tried to alloc block %d with nBlocks %d\n",
-                blockIdx, node.nBlocks);
             return E_FAILURE;
         } else if(blockIdx == node.nBlocks) {
             block_t newBlock = 0;
