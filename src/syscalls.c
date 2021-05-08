@@ -789,7 +789,8 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Setup default inode values
     newNode.id = newID;
     newNode.uid = _current->uid;
-    newNode.gid = _current->pid;
+    newNode.gid = _current->gid;
+    newNode.permissions = 0x0F;     // Default to only user/group access
     newNode.nRefs = 0; // No references yet
     newNode.nBlocks = 0;
     newNode.nBytes = 0;
