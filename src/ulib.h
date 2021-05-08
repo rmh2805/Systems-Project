@@ -292,6 +292,20 @@ int32_t fremove(char* path, char* name);
  */
 int32_t getinode(char * path, inode_t * inode);
 
+/**
+ * dirname - attempts to retrieve an entry name from the subdirectory at the end
+ * of the provided path `path`
+ *
+ * usage: dirname(char * path, char* buf, uint32_t subDirNr);
+ * 
+ * @param path The path of the directory to check
+ * @param buf A buffer to insert the 12 bytes of the entry name
+ * @param subDirNr The subdirectory index to grab
+ * 
+ * @return 0 on success, negative on failure (E_FILE_LIMIT on index out of bounds)
+ */
+int32_t dirname(char * path, char* buf, uint32_t subDirNr);
+
 /*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS

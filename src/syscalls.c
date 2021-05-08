@@ -933,7 +933,7 @@ static void _sys_dirname (uint32_t args[4]) {
     }
 
     // Quietly check that subDirNr is in bounds
-    if(subDirNr >= node.nRefs) {
+    if(subDirNr >= node.nBytes) {
         RET(_current) = E_FILE_LIMIT;
         return;
     }
