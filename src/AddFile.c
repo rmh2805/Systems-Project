@@ -43,7 +43,7 @@ int strcmp( register const char *s1, register const char *s2 ) {
 }
 
 void printUsage() {
-    printf("*Usage*: %s <Base FS File> <File to insert> <Output File>\n", callPath);
+    printf("*Usage*: %s <Base FS File> <File to insert> <Output File> [y/n free read] [y/n free write]\n", callPath);
 }
 
 long loadFile(FILE* src, long loadPt) {
@@ -223,10 +223,20 @@ int allocNode(uint32_t * idx) {
 
 int main(int argc, char** argv) {
     callPath = argv[0];
-    
-    if(argc != 4) {
+    bool_t free_write = true, free_read = true;
+
+    if(argc < 4) {
         printUsage();
         return E_FAILURE;
+    }
+
+    // Grab any permission information
+    if(argc >= 5) {
+        free_read = (argv[4][0] == 'y');
+    }
+
+    if(argc >= 6) {
+        free_write = (argv[5][0] == 'y');
     }
 
     if(strcmp(argv[1], argv[2]) == 0 || strcmp(argv[1], argv[3]) == 0 || strcmp(argv[2], argv[3]) == 0) {
@@ -288,6 +298,15 @@ int main(int argc, char** argv) {
     
     fileNode.nRefs = 1; 
     fileNode.nodeType = INODE_FILE_TYPE;
+    fileNode.uid = UID_ROOT;
+    fileNode.gid = GID_USER;
+    fileNode.permissions = 0x0F;    // Full user and group permissions
+    if(free_read) {
+        fileNode.permissions |= 0x10;
+    }
+    if(free_write) {
+        fileNode.permissions |= 0x20;
+    }
     
     // Write the blocks of the new file to the buffer
     for(int i = 0; i < NUM_DIRECT_POINTERS * 4; i++) {
