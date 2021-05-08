@@ -30,7 +30,6 @@ int getShadowLine(const char* nameBuf, char * dataBuf, int dataBufLen) {
     bool_t matched = false;
     for(ret = fReadLn(fp, dataBuf, dataBufLen); ret >= 0; ret = fReadLn(fp, dataBuf, dataBufLen)) {
         if(ret == 0) continue;
-        
         // Extract the name from the data
         int nameLen = getShadowField(dataBuf, tmpBuf, MAX_UNAME_SIZE);
         if(nameLen < MAX_UNAME_SIZE) {
@@ -149,8 +148,16 @@ int32_t signIn(uint32_t arg1, uint32_t arg2) {
             return E_FAILURE;
         }
 
+
+        // Check for empty password  
+        char* dataPtr = iBuf + result;
+        if(!(*dataPtr)) {
+            break;
+        }
+
+        dataPtr++;
+
         // Grab password from file
-        char* dataPtr = iBuf + result + 1;
         getShadowField(dataPtr, passCBuf, MAX_UNAME_SIZE);
         result = strTrim(passCBuf, passCBuf);
         if(result == 0) {
