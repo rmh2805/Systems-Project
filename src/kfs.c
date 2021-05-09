@@ -382,6 +382,74 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
     return bufOffset;
 }
 
+int _fs_kRead(inode_id_t id, int offset, char* buf, int bufSize) {
+    uint8_t devID = id.devID;
+    uint32_t bytes_read;
+    
+    // Compute the disk index for devID;
+    uint32_t i = 0;
+    for(; i < MAX_DISKS; i++) {
+        if(devID == disks[i].fsNr) {
+            devID = i;
+            break;
+        }
+    }
+    if(i == MAX_DISKS) {
+        __cio_printf("*ERROR* in _fs_kRead: Cannot find disk %d\n", id.devID);
+        return E_BAD_CHANNEL;
+    }
+    
+    // Read in inode for file! 
+    inode_t node;
+    int ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _fs_kRead: Failed to read inode %d.%d (%d)\n", 
+            id.devID, id.idx, ret);
+        return ret;
+    }
+    
+
+    // Return EOF on EOF
+    if(offset == node.nBytes) {
+        return E_EOF;
+    }
+
+    
+    for(bytes_read = 0; bytes_read < bufSize && offset < node.nBytes;) {
+        // Calculate the entry number of the next block
+        uint32_t blockIdx = offset / BLOCK_SIZE;
+
+        // Exit early if block is indirect (4 * nPtrBlocks)
+        if(blockIdx >= NUM_DIRECT_POINTERS * 4) {
+            return bytes_read;
+        }
+
+        // Get next data block's offset
+        data_u data;
+        ret = _fs_getNodeEnt(&node, blockIdx / 4, &data);
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _fs_read: Failed to read node entry %d (%d)\n", 
+                blockIdx/4, ret);
+        }
+        block_t block = data.blocks[blockIdx % 4];
+
+        // Read the block in to the data buffer
+        ret = disks[devID].readBlock(block, data_buffer, disks[devID].driverNr);
+        if(ret < 0) {
+            __cio_printf( "*ERROR* in _fs_read: Unable to read block %d from disk (%d)\n", block, ret);
+            return ret;
+        }
+
+        // Read bytes until buffer full, file done, or block end
+        int idx = offset % BLOCK_SIZE; // Calculate the offset into the current block
+        while(bytes_read < bufSize && offset < node.nBytes && idx < BLOCK_SIZE) { 
+            buf[bytes_read++] = data_buffer[idx++];
+            offset += 1;
+        }
+    }
+    return bytes_read;
+}
+
 /**
  * Reads an inode from disk (Exposed)
  * 
@@ -974,6 +1042,86 @@ int _fs_freeNode(inode_id_t id) {
     if(ret < 0) {
         __cio_printf( "*ERROR* in _fs_freeNode: Unable to write inode %d.%d to disk\n", id.devID, id.idx);
         return ret;
+    }
+
+    return E_SUCCESS;
+}
+
+
+/**
+ * Checks for permissions on the specified inode
+ * 
+ * @param id The id of the inode to check
+ * @param uid The uid of the accessor
+ * @param gid The gid of the accessor
+ * @param canRead A return pointer for read permission status
+ * @param canWrite A return pointer for write permission status
+ * @param canMeta A return pointer for meta (i.e. change ownership/permissions) permission status
+ * 
+ * @return A standard exit status (<0 on failure)
+ */
+int _fs_getPermission(inode_id_t id, uid_t uid, gid_t gid, bool_t * canRead, bool_t * canWrite, bool_t * canMeta) {
+    int ret;
+    inode_t node;
+
+    ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _fs_getPermission: Failed to read inode (%d)\n", ret);
+        return E_FAILURE;
+    }
+
+    return _fs_nodePermission(&node, uid, gid, canRead, canWrite, canMeta);
+}
+
+/**
+ * Checks for permissions on the passed inode
+ * 
+ * @param node The inode to check
+ * @param uid The uid of the accessor
+ * @param gid The gid of the accessor
+ * @param canRead A return pointer for read permission status
+ * @param canWrite A return pointer for write permission status
+ * @param canMeta A return pointer for meta (i.e. change ownership/permissions) permission status
+ * 
+ * @return A standard exit status (<0 on failure)
+ */
+int _fs_nodePermission(inode_t * node, uid_t uid, gid_t gid, bool_t * canRead, bool_t * canWrite, bool_t * canMeta) {
+    bool_t back;    // Safe referand to handle null return pointers
+    if(canRead == NULL) canRead = &back;
+    if(canWrite == NULL) canWrite = &back;
+    if(canMeta == NULL) canMeta = &back;
+
+    // First check for bypass UID or GID
+    if(uid == UID_ROOT || gid == GID_SUDO) {
+        *canRead = true;
+        *canWrite = true;
+        *canMeta = true;
+
+        return E_SUCCESS;
+    }
+
+    // Set meta iff this is the owner
+    *canMeta = (uid == node->uid);
+
+    // First consider general permissions
+    *canWrite = (node->permissions & 0x20) ? true : false;
+    *canRead = (node->permissions & 0x10) ? true : false;
+
+    // Next consider group permissions (retaining pervious setting)
+    if(node->gid == 0) { // Check for user group first
+        if(node->uid == uid) {
+            *canWrite |= (node->permissions & 0x08) ? true : false;
+            *canRead |= (node->permissions & 0x04) ? true : false;
+        }
+    } else if(node->gid == gid) {
+        *canWrite |= (node->permissions & 0x08) ? true : false;
+        *canRead |= (node->permissions & 0x04) ? true : false;
+    }
+
+    // Finally consider user permissions
+    if(node->uid == uid) {
+        *canWrite |= (node->permissions & 0x02) ? true : false;
+        *canRead |= (node->permissions & 0x01) ? true : false;
     }
 
     return E_SUCCESS;

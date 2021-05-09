@@ -179,10 +179,11 @@ prog.o:	$(OBJECTS)
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
-fs.img: MakeFSImage AddFile .shadow testLongNames.txt
-	./MakeFSImage fs.img 16 10 1
-	./AddFile fs.img .shadow fs.dmg 
-	./AddFile fs.dmg testLongNames.txt fs.img
+fs.img: MakeFSImage AddFile .shadow .groups testLongNames.txt
+	./MakeFSImage fs.dmg 16 10 1
+	./AddFile fs.dmg .shadow fs.img n n
+	./AddFile fs.img testLongNames.txt fs.dmg y y
+	./AddFile fs.dmg .groups fs.img y n
 	rm fs.dmg
 
 #
@@ -307,8 +308,9 @@ users.o: userland/userS.c userland/userV.c userland/userW.c userland/userX.c
 users.o: userland/userY.c userland/userZ.c userland/mUser1.c
 users.o: userland/mUser2.c userland/mUser3.c userland/mUser4.c
 users.o: userland/testFS1.c userland/testFS2.c userland/testFS3.c
-users.o: userland/testFS4.c userland/testFS5.c userland/init.c
-users.o: userland/doTests.c userland/idle.c userland/signIn.c
+users.o: userland/testFS4.c userland/testFS5.c userland/testFS6.c
+users.o: userland/testFS7.c
+users.o: userland/init.c userland/doTests.c userland/idle.c userland/signIn.c
 users.o: userland/testShell.c
 ulibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 ulibc.o: x86arch.h process.h stacks.h queues.h klib.h
