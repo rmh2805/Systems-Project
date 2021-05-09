@@ -999,7 +999,7 @@ static void _sys_fremove (uint32_t args[4]) {
 
     // Find the child node to check priveleges
     inode_id_t childId;
-    result = _fs_getSubDir(targetDirID, name, &childID);
+    result = _fs_getSubDir(targetDirID, name, &childId);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_fremove: Could not grab node id for \"%s/%s\"\n", path, name);
         RET(_current) = E_NOT_FOUND;
@@ -1008,7 +1008,7 @@ static void _sys_fremove (uint32_t args[4]) {
 
     // Actually check node priveleges
     bool_t canMeta;
-    result = _fs_getPermission(childID, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    result = _fs_getPermission(childId, _current->uid, _current->gid, NULL, NULL, &canMeta);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_fremove: Could not grab permissions for \"%s/%s\"\n", path, name);
         RET(_current) = E_NO_PERMISSION;
@@ -1080,6 +1080,15 @@ static void _sys_fmove (uint32_t args[4]) {
         return;
     }
 
+    // Check that we have write priveleges in source node
+    bool_t permitted;
+    _fs_nodePermission(&sourceNode, _current->uid, _current->gid, NULL, &permitted, NULL);
+    if(!permitted) {
+        __cio_printf("*ERROR* in _sys_fmove: Cannot write to node \"%s\"\n", sPath);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
     // Read the dest node from the disk
     result = _fs_getInode(destDir, &destNode);
     if(result < 0) {
@@ -1095,6 +1104,14 @@ static void _sys_fmove (uint32_t args[4]) {
         return;
     }
 
+    // Check that we can write to dest
+    _fs_nodePermission(&destNode, _current->uid, _current->gid, NULL, &permitted, NULL);
+    if(!permitted) {
+        __cio_printf("*ERROR* in _sys_fmove: Cannot write to node \"%s\"\n", dPath);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
     // Get inode_id_t for source file and add it to the dest dir
     result = _fs_getSubDir(sourceDir, sName, &copyTarg); 
     if(result < 0) {
@@ -1102,7 +1119,21 @@ static void _sys_fmove (uint32_t args[4]) {
         RET(_current) = result;
         return;
     }
+
+    //Check that we have meta permissions for the file in question
+    result = _fs_getPermission(copyTarg, _current->uid, _current->gid, NULL, &permitted, NULL);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fmove: Could not get permissions for node \"%s/%s\"\n", sPath, sName);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    } else if(!permitted) {
+        __cio_printf("*ERROR* in _sys_fmove: No meta priveleges on node \"%s/%s\"\n", sPath, sName);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
     
+
+    // Add the new entry to the destination first
     result = _fs_addDirEnt(destDir, dName, copyTarg);
     if(result < 0) {
         __cio_printf("*ERROR* Unable to add \"%s\" to \"%s\"\n", dName, destDir);
