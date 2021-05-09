@@ -929,6 +929,15 @@ static void _sys_fcreate  (uint32_t args[4]) {
         return;
     }
 
+    // Fail if no write permission in this directory
+    bool_t canWrite;
+    _fs_nodePermission(&pNode, _current->uid, _current->gid, NULL, &canWrite, NULL);
+    if(!canWrite) {
+        __cio_printf("*ERROR* in _sys_fcreate: Cannot create entries in \"%s\"\n", path);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
     // Find next free inode
     result = _fs_allocNode(currentDir.devID, &newID);
     if(result < 0) {
