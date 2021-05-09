@@ -225,7 +225,7 @@ clean:
 realclean:	clean
 
 qemu: usb.image
-	qemu-system-x86_64 -serial mon:stdio usb.image
+	qemu-system-x86_64 -serial mon:stdio usb.image -hdb image.img
 	@echo ""
 
 qemu-nox: usb.image
