@@ -1,6 +1,7 @@
 #ifndef TEST_SHELL_H_
 #define TEST_SHELL_H_
 
+#include "common.h"
 int32_t testShell(uint32_t arg1, uint32_t arg2) {
     const uint32_t iBufSz = 64;
     const uint32_t oBufSz = 128;
@@ -8,6 +9,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
     char oBuf[oBufSz];
 
     int32_t nRead = 0;
+    int ret;
 
 
     swrites("Test shell started\r\nTry help for a list of commands\r\n\n");
@@ -28,6 +30,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("Main test shell help:\r\n");
             swrites("\thelp: prints this screen\r\n");
             swrites("\tlogout: return to sign in\r\n");
+            swrites("\tcls: clear the screen (print several lines to console)\r\n");
             swrites("\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
             swrites("\tlist [bank]: List all tests (if bank is specified, all tests in it)\r\n");
             swrites("\ttest <bank> <test>: perform test x from bank n\r\n");
@@ -38,6 +41,10 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("Exiting\r\n");
             exit(0);
 
+        } else if (strcmp(iBuf, "cls") == 0){   // Clear the screen
+            for(int i = 0; i < 80; i++) {
+                swrites("\r\n");
+            }
         } else if(strncmp(iBuf, "list", 4) == 0) {  // list tests
             char* tmp = &iBuf[4];
             while(*tmp == ' ') tmp++;
@@ -99,6 +106,22 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             }
 
             swrites(oBuf);
+
+        } else if(strcmp(iBuf, "cat") == 0) {
+            swrites("Enter the filepath to cat: ");
+            nRead = readLn(CHAN_SIO, iBuf, iBufSz, true);
+            if(nRead < 0) {
+                cwrites("TEST SHELL: **ERROR** encountered on file name read\n");
+                continue;
+            }
+            strTrim(oBuf, iBuf);
+
+            ret = cat((uint32_t)&oBuf, 0);
+            if(ret < 0) {
+                sprint(iBuf, "Failed to cat file \"%s\"\r\n", oBuf);
+                swrites(iBuf);
+            }
+
 
         } else {    //Unknown Command
             sprint(oBuf, "Uncrecognized command \"%s\", try \"help\"", iBuf);
