@@ -608,7 +608,7 @@ static char* getNextName(char * path, char * nextName, int* nameLen) {
         i++;
     }
     
-    for(int j = i + 1; j < 12; j++) { // 0 fill the rest of nextName
+    for(int j = i; j < 12; j++) { // 0 fill the rest of nextName
         nextName[j] = 0;
     }
     
