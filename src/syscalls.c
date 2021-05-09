@@ -993,15 +993,37 @@ static void _sys_fremove (uint32_t args[4]) {
     inode_id_t targetDirID;
     int result = _sys_seekFile(path, &targetDirID);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NOT_FOUND;
         return;
+    }
+
+    // Find the child node to check priveleges
+    inode_id_t childId;
+    result = _fs_getSubDir(targetDirID, name, &childID);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fremove: Could not grab node id for \"%s/%s\"\n", path, name);
+        RET(_current) = E_NOT_FOUND;
+        return; 
+    }
+
+    // Actually check node priveleges
+    bool_t canMeta;
+    result = _fs_getPermission(childID, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fremove: Could not grab permissions for \"%s/%s\"\n", path, name);
+        RET(_current) = E_NO_PERMISSION;
+        return; 
+    } else if(!canMeta) {
+        __cio_printf("*ERROR* in _sys_fremove: Do not have meta priveleges for \"%s/%s\"\n", path, name);
+        RET(_current) = E_NO_PERMISSION;
+        return; 
     }
 
     // Remove the entry from the parent
     result = _fs_rmDirEnt(targetDirID, name);
     if(result < 0) {
         __cio_printf("*ERROR*in _sys_fremove: Cannot remove entry from directory (fremove)\n");
-        RET(_current) = result;
+        RET(_current) = E_FAILURE;
         return; 
     }
 
