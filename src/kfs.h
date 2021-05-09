@@ -42,6 +42,8 @@ int _fs_read(fd_t * file, char * buf, uint32_t len);
  */
 int _fs_write(fd_t * file, char * buf, uint32_t len);
 
+int _fs_kRead(inode_id_t id, int offset, char* buf, int bufSize);
+
 /**
  * Reads an inode from disk
  * 

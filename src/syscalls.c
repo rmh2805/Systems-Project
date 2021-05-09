@@ -34,6 +34,7 @@ extern void exit_helper( void );
 /*
 ** PRIVATE DEFINITIONS
 */
+static int _sys_seekFile( const char* path, inode_id_t * currentDir);
 
 /*
 ** PRIVATE DATA TYPES
@@ -568,7 +569,7 @@ static void _sys_setuid ( uint32_t args[4] ) {
     
     if (_current->uid == uid) { // Report success for same user
         RET(_current) = E_SUCCESS;
-    } else if (_current->uid != UID_ROOT) { // Return no permissions if non-root user
+    } else if (_current->uid != UID_ROOT && _current->gid != GID_SUDO) { // Return no permissions if non-root user & not sudoing
         RET(_current) = E_NO_PERMISSION;
     } else { // Otherwise update uid, set default gid, and return success
         _current->uid = uid;
@@ -577,12 +578,7 @@ static void _sys_setuid ( uint32_t args[4] ) {
     }
 }
 
-
-static int _sys_fGetLn(inode_t node, int offset, char* buf, int bufSize) {
-
-    return E_FAILURE;
-}
-
+const char * kGroupFilePath = "/.groups";
 /**
 ** _sys_setgid - attempts to modify the gid of the current process
 ** 
@@ -590,7 +586,16 @@ static int _sys_fGetLn(inode_t node, int offset, char* buf, int bufSize) {
 **    uint32_t setgid( gid_t gid );
 */
 static void _sys_setgid ( uint32_t args[4] ) {
+    const int bufSize = 128;
+
     gid_t gid = args[0];
+    gid_t fGid;
+    int ret;
+
+    char buf[bufSize];
+    char lineBuf[bufSize];
+    inode_id_t id;
+
     // If this is the user's or the open gid perform the change and return success
     if (gid == GID_USER || gid == GID_OPEN) {
         _current->gid = gid;
@@ -598,11 +603,23 @@ static void _sys_setgid ( uint32_t args[4] ) {
         return;
     } 
 
-    // Next check the file to see if this gid is defined
+    // Create an FD for the groups file
+    ret = _sys_seekFile(kGroupFilePath, &id);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_setgid: Failed to seek group file (%d)\n", ret);
+        RET(_current) = E_NOT_FOUND;
+        return;
+    }
+    __cio_printf("%s\n", kGroupFilePath);
+    
+    
+    __cio_printf("*ERROR* in _sys_setgid: Find group %d in file\n", gid);
+    RET(_current) = E_EOF;
+    return;
 }
 
 // File system traversal helpers
-static char* getNextName(char * path, char * nextName, int* nameLen) {
+static int getNextName(const char * path, char * nextName, int* nameLen) {
     *nameLen = 0;
     int i = 0;
 
@@ -618,42 +635,47 @@ static char* getNextName(char * path, char * nextName, int* nameLen) {
         nextName[j] = 0;
     }
     
-    return path + i; // Return the string after the read name
+    return i; // Return the string after the read name
 }
 
-static int _sys_seekFile( char* path, inode_id_t * currentDir) {
-    char* sPath = path;
+static int _sys_seekFile(const char* path, inode_id_t * currentDir) {
+    int i = 0;
 
     // Get starting inode (either working directory or root directory)
     *currentDir = _current->wDir;
     if(path[0] == '/') {
         *currentDir = (inode_id_t){0, 1};
-        path++;
-        if(!(*path)) {
+        i++;
+        if(!(path[i])) {
             return E_SUCCESS;
         }
     }
     
     char nextName[12];
-    while(*path) {
-        if (*path == '/') {     //If targeting slash, advance
-            path++;
+    while(path[i] != 0) {
+        if (path[i] == '/') {     //If targeting slash, advance
+            i++;
+            if(!path[i]) {
+                return E_SUCCESS;
+            }
         }
         
+        __cio_printf("%d, %s\n", i, &(path[i]));
         // Grab the name of the next entry
         int nameLen = 0;
-        path = getNextName(path, nextName, &nameLen);
+        nameLen = getNextName(&(path[i]), nextName, &nameLen);
 
         if(nameLen == 0) {  // Entry names must have length > 0
-
-            __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
+            __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", path);
             return E_BAD_PARAM;
         }
         
+
+        i += nameLen;
         // Grab nextName from currentDir's entries
         int ret = _fs_getSubDir(*currentDir, nextName, currentDir);
         if(ret < 0) {
-            __cio_printf("*ERROR* in _sys_seekfile(): Unable to get subDir \"%s\"\n", nextName);
+            __cio_printf("*ERROR* in _sys_seekfile(): Unable to get subDir \"%s\" in %d.%d\n", nextName, currentDir->devID, currentDir->idx);
             return ret;
         }
     }
