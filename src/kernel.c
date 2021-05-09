@@ -23,6 +23,8 @@
 #include "ramDiskDriver.h"
 #include "scheduler.h"
 #include "support.h"
+#include "disk.h"
+#include "sata.h"
 
 // need init() and idle() addresses
 #include "users.h"

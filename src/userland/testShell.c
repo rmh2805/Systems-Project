@@ -34,6 +34,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("\tlist [bank]: List all tests (if bank is specified, all tests in it)\r\n");
             swrites("\ttest <bank> <test>: perform test x from bank n\r\n");
             swrites("\tcat <file path>: Cat the file contents out to the console\r\n");
+            swrites("\tls <file path>: Print the contents and permissions of the subdirectory\r\n");
 
         } else if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
             strcmp(iBuf, "logout") == 0 || strcmp(iBuf, "`") == 0) {    // Exit
@@ -112,6 +113,16 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             ret = cat((uint32_t)&oBuf, 0);
             if(ret < 0) {
                 sprint(iBuf, "Failed to cat file \"%s\"\r\n", oBuf);
+                swrites(iBuf);
+            }
+
+
+        } else if(strncmp(iBuf, "ls", 2) == 0) {
+            strTrim(oBuf, iBuf + 2);
+
+            ret = ls((uint32_t)&oBuf, 0);
+            if(ret < 0) {
+                sprint(iBuf, "Failed to ls directory \"%s\"\r\n", oBuf);
                 swrites(iBuf);
             }
 

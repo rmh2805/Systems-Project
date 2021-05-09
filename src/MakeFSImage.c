@@ -13,7 +13,7 @@ char * oFileName;
 char * pgmName;
 
 void printUsage(bool_t isErr) {
-    fprintf((isErr) ? stderr : stdout, "Usage: %s <output file> <disk size (kiB)> <nInodes> <device ID>\n", pgmName);
+    fprintf((isErr) ? stderr : stdout, "Usage: %s <output file> <disk size (kiB)> <nInodes> <device ID> [<dev 1 name> <dev 1 id> [...]]\n", pgmName);
 }
 
 int32_t decStr2int(char * str) {
@@ -31,6 +31,16 @@ int32_t decStr2int(char * str) {
     return val * sign;
 }
 
+int strncpy(char * dst, char * src, int n) {
+    int i;
+    for(i = 0; i < n && src[i]; i++) {
+        dst[i] = src[i];
+    }
+    for(; i < n; i++) {
+        dst[i] = 0;
+    }
+}
+
 int main(int argc, char** argv) {
     pgmName = argv[ 0 ];
     
@@ -40,7 +50,7 @@ int main(int argc, char** argv) {
     }
     
     // Parse arguments
-    if(argc != 5) {
+    if(argc < 5 || argc % 2 != 1) {
         printUsage(true);
         return -1;
     }
@@ -116,10 +126,20 @@ int main(int argc, char** argv) {
     rootNode.nRefs = 1;
     rootNode.nodeType = INODE_DIR_TYPE;
     rootNode.permissions = 0x3F;
-    rootNode.direct_pointers[0].dir.name[0] = '.';
-    rootNode.direct_pointers[0].dir.name[1] = '.';
-    rootNode.direct_pointers[0].dir.name[2] = 0;
+    strncpy(rootNode.direct_pointers[0].dir.name, "..", 12);
     rootNode.direct_pointers[0].dir.inode = rootNode.id;
+
+    int i = 0;
+    while(i + 4 < argc - 1 && rootNode.nBytes < NUM_DIRECT_POINTERS) {
+        char * name = argv[i + 5];
+        char * val = argv[i + 6];
+
+        strncpy(rootNode.direct_pointers[i + 1].dir.name, name, MAX_FILENAME_SIZE);
+        rootNode.direct_pointers[i + 1].dir.inode = (inode_id_t){decStr2int(val), 1};
+        rootNode.nBytes += 1;
+
+        i += 2;
+    }
     
     // Write out the inode array
     uint8_t blockBuf[BLOCK_SIZE];
