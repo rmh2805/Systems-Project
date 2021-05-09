@@ -689,8 +689,6 @@ static void _sys_setgid ( uint32_t args[4] ) {
             return;
         }
 
-        __cio_printf("%s\n", buf);
-
         //Skip the name to get to the gid
         while(*(dataPtr) != ':' && *(dataPtr)) {
             dataPtr++;
@@ -826,6 +824,7 @@ static void _sys_fopen( uint32_t args[4]) {
         }       
     }
 
+    // Seek the file itself
     inode_id_t currentDir;
     int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
@@ -834,7 +833,7 @@ static void _sys_fopen( uint32_t args[4]) {
         return;
     }
 
-    // check that this is a file
+    // Load the referenced inode
     inode_t tgt;
     result = _fs_getInode(currentDir, &tgt);
     if(result < 0) {
@@ -843,12 +842,23 @@ static void _sys_fopen( uint32_t args[4]) {
         return;
     }
 
+    // Check that this is an inode
     if(tgt.nodeType != INODE_FILE_TYPE) {
         __cio_printf("*ERROR* in _sys_fopen: Specified inode is not a file\n");
         RET(_current) = E_BAD_PARAM;
         return;
     }
 
+    // Check that we have either read or write permissions on this
+    bool_t canRead, canWrite;
+    _fs_nodePermission(&tgt, _current->uid, _current->gid, &canRead, &canWrite, NULL);
+    if(!canRead && !canWrite) {
+        __cio_printf("*ERROR* in _sys_fopen: No rw permissions on this file\n");
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
+    // Setup the file descriptor with this file and return the file type
     _current->files[fdIdx].inode_id = currentDir;
     _current->files[fdIdx].offset = (append) ? tgt.nBytes : 0;
     
