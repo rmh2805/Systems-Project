@@ -240,11 +240,13 @@ void _ide_initialize(void) {
                 _ide_devices[_ide_device_count].size   = *((unsigned int *)(_ide_buf + ATA_IDENT_MAX_LBA));
 
             driverInterface_t dri = { 0, _ide_device_count, _disk_read, _disk_write };
-            if (_fs_registerDev(dri) < 0) _kpanic("disk", "Errored on adding disk");
- 
             _ide_device_count++;
+            if (_fs_registerDev(dri) < 0) _kpanic("disk", "Errored on adding disk");
         }
     }
+    //char res[16];
+    //__cvtdec(res, _ide_device_count);
+    //_sio_puts(res);
 }
 
 unsigned char _ide_ata_io(unsigned char direction, unsigned char drive, unsigned int lba, 
