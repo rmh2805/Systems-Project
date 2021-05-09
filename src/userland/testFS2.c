@@ -5,7 +5,7 @@
 
 int testFS2(uint32_t arg1, uint32_t arg2) {
     char buf[100];
-    char wBuf[12] = "HELLO WORLD\n";
+    char *wBuf = "123456789012345678901234567890123456789012345678901234567890\n";
     int fp;
     int ret;
 
@@ -21,7 +21,7 @@ int testFS2(uint32_t arg1, uint32_t arg2) {
 
     // Write to the file
     swrites("\r\nEditing the file by writing 'HELLO WORLD' to it\r\n");
-    ret = write(fp, wBuf, 12);
+    ret = write(fp, wBuf, strlen(wBuf));
     if(ret < 0) {
         sprint(buf, "TEST FS %d.%d: Failed to write to \"/testLongNames.txt\" (exist status %d)\r\n", arg1, arg2, fp);
         swrites(buf);
