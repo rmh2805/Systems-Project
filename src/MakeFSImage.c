@@ -115,6 +115,7 @@ int main(int argc, char** argv) {
     rootNode.nBytes = 1;
     rootNode.nRefs = 1;
     rootNode.nodeType = INODE_DIR_TYPE;
+    rootNode.permissions = 0x3F;
     rootNode.direct_pointers[0].dir.name[0] = '.';
     rootNode.direct_pointers[0].dir.name[1] = '.';
     rootNode.direct_pointers[0].dir.name[2] = 0;
