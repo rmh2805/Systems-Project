@@ -129,7 +129,8 @@ int main(int argc, char** argv) {
     strncpy(rootNode.direct_pointers[0].dir.name, "..", 12);
     rootNode.direct_pointers[0].dir.inode = rootNode.id;
 
-    for(int i = 1; i < NUM_DIRECT_POINTERS && 2 + (i * 2) < argc; i++) {
+    for(int i = 1; i < NUM_DIRECT_POINTERS && ((i - 1) * 2) < argc - 4; i++) {
+        printf("%d\n", i);
         strncpy(rootNode.direct_pointers[i].dir.name, argv[2 * i], 12);
         rootNode.direct_pointers[i].dir.inode = (inode_id_t){decStr2int(argv[2 * i + 1]), 1};
     }
