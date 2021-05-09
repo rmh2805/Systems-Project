@@ -326,8 +326,8 @@ static void _sys_kill( uint32_t args[4] ) {
         return;
     }
     
-    // Can only kill your own procs (unless root)
-    if(_current->uid != 0 && _current->uid != pcb->uid) {
+    // Can only kill your own procs (unless root or sudo)
+    if(!(_current->uid == UID_ROOT || _current->gid == GID_SUDO) && _current->uid != pcb->uid) {
         RET(_current) = E_NO_PERMISSION;
         return;
     }
@@ -915,7 +915,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
     newNode.id = newID;
     newNode.uid = _current->uid;
     newNode.gid = _current->gid;
-    newNode.permissions = 0x0F;     // Default to only user/group access
+    newNode.permissions = DEFAULT_PERMISSIONS;     // Default to open access
     newNode.nRefs = 0; // No references yet
     newNode.nBlocks = 0;
     newNode.nBytes = 0;
