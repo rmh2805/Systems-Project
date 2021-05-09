@@ -31,6 +31,7 @@ void _fs_init( void ) {
  * @returns The number this was registered as (error if return < 0)
  */
 int _fs_registerDev(driverInterface_t interface) {
+    __cio_printf("(regStart %d) ", interface.driverNr);
     if(interface.readBlock == NULL || interface.writeBlock == NULL) {
         return E_BAD_PARAM;
     }
@@ -50,6 +51,8 @@ int _fs_registerDev(driverInterface_t interface) {
     interface.readBlock(0, inode_buffer, interface.driverNr);
     inode_t inode = *(inode_t*)(inode_buffer);
     interface.fsNr = inode.id.devID;
+    
+    __cio_printf("(RegEnd %d.%d) ", interface.driverNr, interface.fsNr);
 
     // If this device shares a number with an already present device, return 
     // failure: 
