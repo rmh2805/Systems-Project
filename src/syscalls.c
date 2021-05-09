@@ -578,7 +578,51 @@ static void _sys_setuid ( uint32_t args[4] ) {
     }
 }
 
-const char * kGroupFilePath = "/.groups";
+/**
+ * _sys_fGetLn - Helper to grab a file's next line
+ * 
+ * @param fd The file descriptor to read from
+ * @param buf The buffer to read into
+ * @param bufLen The length of the buffer
+ * 
+ * @return The number of bytes read (<0 on error, E_EOF on EOF)
+ */
+static int _sys_fGetLn(fd_t* fd, char * buf, int bufLen) {
+    int ret, nRead;
+
+    for(nRead = 0; nRead < bufLen - 1;) {
+        ret = _fs_read(fd, buf + nRead, 1);
+        if(ret == 0 || ret == E_EOF) {
+            if(nRead > 0) {
+                break;
+            }
+
+            buf[nRead] = 0;
+            return E_EOF;
+        } else if (ret < 0) {
+            __cio_printf("*ERROR* in _sys_fGetLn: Failed to read from file (%d)\n", ret);
+            return E_FAILURE;
+        }
+
+        switch(buf[nRead]) {
+            case '\b':
+            case '\r':
+            case 0:
+                continue;
+            case '\n':
+            default:
+                break;
+        }
+        if(buf[nRead] == '\n') {
+            break;
+        }
+
+        nRead++;
+    }
+    buf[nRead] = 0;
+    return nRead;
+}
+
 /**
 ** _sys_setgid - attempts to modify the gid of the current process
 ** 
@@ -593,8 +637,7 @@ static void _sys_setgid ( uint32_t args[4] ) {
     int ret;
 
     char buf[bufSize];
-    char lineBuf[bufSize];
-    inode_id_t id;
+    fd_t fd = {{0, 0}, 0};
 
     // If this is the user's or the open gid perform the change and return success
     if (gid == GID_USER || gid == GID_OPEN) {
@@ -604,22 +647,77 @@ static void _sys_setgid ( uint32_t args[4] ) {
     } 
 
     // Create an FD for the groups file
-    ret = _sys_seekFile(kGroupFilePath, &id);
+    ret = _sys_seekFile("/.groups", &(fd.inode_id));
     if(ret < 0) {
         __cio_printf("*ERROR* in _sys_setgid: Failed to seek group file (%d)\n", ret);
         RET(_current) = E_NOT_FOUND;
         return;
     }
-    __cio_printf("%s\n", kGroupFilePath);
     
-    
-    __cio_printf("*ERROR* in _sys_setgid: Find group %d in file\n", gid);
+    // Read the file line by line to look for a matching entry
+    while(true) {
+        char * dataPtr = buf;
+
+        ret = _sys_fGetLn(&fd, buf, bufSize);
+        if(ret == E_EOF) {
+            break;
+        } else if (ret < 0) {
+            __cio_printf("*ERROR* in _sys_setgid: Failed to read line from group file (%d)\n", ret);
+            RET(_current) = E_FAILURE;
+            return;
+        }
+
+        __cio_printf("%s\n", buf);
+
+        //Skip the name to get to the gid
+        while(*(dataPtr) != ':' && *(dataPtr)) {
+            dataPtr++;
+        }
+        dataPtr++;
+
+        // Decode the referenced gid
+        fGid = 0;
+        while(*(dataPtr) != ':' && *(dataPtr)) {
+            fGid = 10 * fGid + *(dataPtr) - '0';
+            dataPtr++;
+        }
+        dataPtr++;
+
+        // Try next line if wrong GID
+        if(fGid != gid) {
+            continue;
+        }
+
+        // Try to match current uid to the group's user list
+        bool_t matching = (_current->uid == UID_ROOT); // Skip matching root user
+        while(!matching && *dataPtr) {
+            uid_t fUid = 0;
+            while(*(dataPtr) != ':' && *(dataPtr)) {
+                fUid = 10 * fUid + *(dataPtr) - '0';
+                dataPtr++;
+            }
+            dataPtr++;
+
+            if(fUid == _current->uid) {
+                matching = true;
+            }
+        }
+        if(matching) {  // Update gid on success
+            _current->gid = gid;
+            RET(_current) = E_SUCCESS;
+        } else {        // Fail if not on the list
+            RET(_current) = E_NO_PERMISSION;
+        }
+        return;
+    }
+
+    // Didn't find the group in the entire file. Exit.
     RET(_current) = E_EOF;
     return;
 }
 
 // File system traversal helpers
-static int getNextName(const char * path, char * nextName, int* nameLen) {
+static int _sys_getNextName(const char * path, char * nextName, int* nameLen) {
     *nameLen = 0;
     int i = 0;
 
@@ -631,7 +729,7 @@ static int getNextName(const char * path, char * nextName, int* nameLen) {
         i++;
     }
     
-    for(int j = i; j < 12; j++) { // 0 fill the rest of nextName
+    for(int j = i; j < MAX_FILENAME_SIZE; j++) { // 0 fill the rest of nextName
         nextName[j] = 0;
     }
     
@@ -660,10 +758,9 @@ static int _sys_seekFile(const char* path, inode_id_t * currentDir) {
             }
         }
         
-        __cio_printf("%d, %s\n", i, &(path[i]));
         // Grab the name of the next entry
         int nameLen = 0;
-        nameLen = getNextName(&(path[i]), nextName, &nameLen);
+        nameLen = _sys_getNextName(&(path[i]), nextName, &nameLen);
 
         if(nameLen == 0) {  // Entry names must have length > 0
             __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", path);
