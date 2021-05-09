@@ -23,6 +23,8 @@
 #include "ramDiskDriver.h"
 #include "scheduler.h"
 #include "support.h"
+#include "disk.h"
+#include "sata.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -136,9 +138,11 @@ void _init( void ) {
     _sched_init();
     _clk_init();
     _sio_init();
+    _sata_init();
 
     _fs_init();     // Must come before driver inits
     _rd_init();
+    _disk_init();
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
