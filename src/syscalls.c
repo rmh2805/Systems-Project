@@ -1230,6 +1230,15 @@ static void _sys_dirname (uint32_t args[4]) {
         return;
     }
 
+    // Check that we can read from this node
+    bool_t canRead;
+    _fs_nodePermission(&node, _current->uid, _current->gid, &canRead, NULL, NULL);
+    if(!canRead) {
+        __cio_printf("*ERROR* in _sys_dirname: Not permitted to read from node \"%s\"\n", path);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
     // Quietly check that subDirNr is in bounds
     if(subDirNr >= node.nBytes) {
         RET(_current) = E_FILE_LIMIT;
