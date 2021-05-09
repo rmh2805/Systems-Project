@@ -16,6 +16,7 @@ int32_t cat(uint32_t arg1, uint32_t arg2) {
         return E_FAILURE;
     }
 
+    swrites("\r\n");
     while(true) {
         ret = fReadLn(fp, buf, 128);
         if(ret == E_EOF) {
