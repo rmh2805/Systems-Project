@@ -48,16 +48,20 @@ int _fs_registerDev(driverInterface_t interface) {
 
     // Read the metadata inode (inode index 0) from this device to determine its 
     // FS number:
-    interface.readBlock(0, inode_buffer, interface.driverNr);
+    int ret = interface.readBlock(0, inode_buffer, interface.driverNr);
+    if (ret < 0) {
+        __cio_printf("(Unable to read from disk (%d))", ret);
+        return E_FAILURE;
+    }
     inode_t inode = *(inode_t*)(inode_buffer);
     interface.fsNr = inode.id.devID;
     
-    __cio_printf("(RegEnd %d.%d) ", interface.driverNr, interface.fsNr);
 
     // If this device shares a number with an already present device, return 
     // failure: 
     for(int i = 0; i < MAX_DISKS; i++) {
         if(interface.fsNr == disks[i].fsNr) {
+            __cio_printf("(Override of fs %d)", disks[i].fsNr);
             return E_FAILURE;
         }
     }
