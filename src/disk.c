@@ -354,6 +354,7 @@ unsigned char _ide_ata_io(unsigned char direction, unsigned char drive, unsigned
 ** Initialize the disk protocol
 */
 void _disk_init( void ) {
+    __cio_printf( " DISK: ");
     //_disk_devices_count = 0;
     _sata_dev_itr_t itr;
     _sata_device_t dev;
@@ -364,6 +365,7 @@ void _disk_init( void ) {
             //_disk_devices_count++;
             //if (_fs_registerDev(dri) < 0) _kpanic("disk", "Errored on adding disk");
             _ide_initialize();
+            __cio_printf( "done");
             return;
         }
     }
