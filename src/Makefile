@@ -187,7 +187,9 @@ fs.img: MakeFSImage AddFile .shadow .groups testLongNames.txt
 	rm fs.dmg
 
 disk.img: MakeFSImage AddFile
-	./MakeFSImage disk.img 128 30 2
+	./MakeFSImage disk.dmg 128 30 2
+	./AddFile disk.dmg placeholder disk.img y y
+	rm disk.dmg
 
 #
 # Targets for copying bootable image onto boot devices
