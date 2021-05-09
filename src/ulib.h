@@ -127,7 +127,7 @@ prio_t getprio( void );
 ** If the indicated priority is invalid, the priority will
 ** be unchanged.
 */
-prio_t setprio( prio_t new );
+prio_t setprio( prio_t newPrio );
 
 /**
 ** kill - terminate a process with extreme prejudice
@@ -232,6 +232,94 @@ int32_t setuid( uid_t uid );
 */
 int32_t setgid( gid_t gid );
 
+/**
+ * fopen - open a file to read/write
+ * 
+ * usage: fopen(char * path, bool_t append);
+ * 
+ * @param path The path of the file to open
+ * @param append If set, offset initialized to EOF
+ * 
+ * @return file descriptor on success, negative on failure
+ */
+int32_t fopen(char* path, bool_t append);
+
+/**
+ * fclose - Close a previously opened file
+ * 
+ * usage: fclose(uint32_t chanNr);
+ * 
+ * @param chanNr The channel nr (file descriptor) of the file to close
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t fclose(uint32_t chanNr);
+
+/**
+ * fcreate - create a file/dir at the provided path
+ * 
+ * usage: fcreate(char * path, char * name, bool_t isFile);
+ * 
+ * @param path The path to put the file
+ * @param name The name of the new file
+ * @param isFile Whether or not we are making a file
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t fcreate(char* path, char* name, bool_t isFile);
+
+/**
+ * fremove - remove a file/dir at the provided path
+ * 
+ * usage: fremove(char * path, char * name);
+ * 
+ * @param path The path to put where the file is located
+ * @param name The name of the file to remove
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t fremove(char* path, char* name);
+
+/**
+ * fmove - move a file at the provided path to the second path
+ * 
+ * usage: fmove(char * sPath, char * sName, char * dPath, char * dName);
+ * 
+ * @param sPath The path where the file is located
+ * @param sName The name of the file to copy
+ * @param dPath The path where the file will be moved
+ * @param dName The name of the file when copied
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t fmove(char* sPath, char* sName, char* dPath, char* dName);
+
+/**
+ * getinode - Grabs the inode at the end of the provided path
+ *
+ * usage: getinode(char * path, inode_t * inode)
+ * 
+ * @param path The path of the node to grab
+ * @param inode A return pointer for the grabbed inode
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t getinode(char * path, inode_t * inode);
+
+/**
+ * dirname - attempts to retrieve an entry name from the subdirectory at the end
+ * of the provided path `path`
+ *
+ * usage: dirname(char * path, char* buf, uint32_t subDirNr);
+ * 
+ * @param path The path of the directory to check
+ * @param buf A buffer to insert the 12 bytes of the entry name
+ * @param subDirNr The subdirectory index to grab
+ * 
+ * @return 0 on success, negative on failure (E_FILE_LIMIT on index out of bounds)
+ */
+int32_t dirname(char * path, char* buf, uint32_t subDirNr);
+
 /*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS
@@ -308,6 +396,20 @@ int32_t swrite( const char *buf, uint32_t size );
 */
 int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho);
 
+/**
+** fReadLn - read into a buffer from a file to the next newline or end 
+**           of buffer
+**
+** usage:   n = fReadLn(channel,buf,length)
+**
+** @param fp   I/O stream to read from
+** @param buf    Buffer to read into
+** @param length Maximum capacity of the buffer
+**
+** @returns  The count of bytes transferred, or an error code
+*/
+int32_t fReadLn(int fp, char* buf, uint32_t length);
+
 /*
 **********************************************
 ** STRING MANIPULATION FUNCTIONS
@@ -344,6 +446,14 @@ uint32_t strlen( const char *str );
 ** 
 */
 int32_t strTrim(register char * dst, register const char * src);
+
+/**
+ * strLower(str) - Modify str to make all letters lowercase
+**
+** @param dst The destination buffer
+** @param src The source buffer
+ */
+void strLower(register char *dst, register const char *src );
 
 /**
 ** strcpy(dst,src) - copy a NUL-terminated string

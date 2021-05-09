@@ -29,7 +29,7 @@ int _fs_registerDev(driverInterface_t interface);
  * 
  * @returns The number of bytes read from disk
  */
-int _fs_read(fd_t file, char * buf, uint32_t len);
+int _fs_read(fd_t * file, char * buf, uint32_t len);
 
 /**
  * FS write handler
@@ -40,7 +40,7 @@ int _fs_read(fd_t file, char * buf, uint32_t len);
  * 
  * @returns The number of bytes read from disk
  */
-int _fs_write(fd_t file, char * buf, uint32_t len);
+int _fs_write(fd_t * file, char * buf, uint32_t len);
 
 /**
  * Reads an inode from disk
@@ -51,5 +51,87 @@ int _fs_write(fd_t file, char * buf, uint32_t len);
  * @return A standard exit status
  */
 int _fs_getInode(inode_id_t id, inode_t * inode);
+
+/**
+ * Writes an inode to disk
+ * 
+ * @param inode the inode to write to disk 
+ * 
+ * @return A standard exit status
+ */
+int _fs_setInode(inode_t inode);
+
+/**
+ * Helper function to return the `idx`th data entry from the passed inode
+ * 
+ * @param inode The inode to grab data entries from
+ * @param idx The index of the entry to grab
+ * @param ret A return pointer for the grabbed node entry
+ * 
+ * @return A standard exit status
+ */
+int _fs_getNodeEnt(inode_t* inode, int idx, data_u * ret);
+
+/**
+ * Adds an entry to a directory inode
+ * 
+ * @param inode The inode to update
+ * @param name The name to associate with this entry
+ * @param buf The new target inode
+ * 
+ * @return A standard exit status
+ */
+int _fs_addDirEnt(inode_id_t inode, const char* name, inode_id_t buf);
+
+/**
+ * Removes an entry from a directory inode
+ * 
+ * @param inode The inode to update
+ * @param name The entry name to remove
+ * 
+ * @return A standard exit status
+ */
+int _fs_rmDirEnt(inode_id_t inode, const char* name);
+
+/**
+ * Returns the data from a particular directory entry
+ * 
+ * @param inode The inode to access
+ * @param idx The index of the data entry to grab
+ * @param entry A return pointer for the directory entry
+ * 
+ * @return A standard exit status
+ */
+int _fs_getDirEnt(inode_id_t inode, uint32_t idx, data_u* entry);
+
+/**
+ * Returns the inode of a named directory entry
+ * 
+ * @param inode The inode to access
+ * @param name The name of the entry to grab
+ * @param entry A return pointer for the referenced inode address
+ * 
+ * @return A standard exit status
+ */
+int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret);
+
+/**
+ * Returns the index of a free inode
+ *
+ * @param devID the device ID
+ * @param ret   the inode_id_t we will fill
+ *
+ * @return A standard exit status
+ */
+int _fs_allocNode(uint8_t devID, inode_id_t * ret);
+
+/**
+ * Frees the specified inode (if possible) (Exposed)
+ * 
+ * @param id The id of the inode to free
+ * 
+ * @return A standard exit status (<0 on failure to free)
+ */
+int _fs_freeNode(inode_id_t id);
 
 #endif //KFS_H_

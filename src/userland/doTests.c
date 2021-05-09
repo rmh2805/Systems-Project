@@ -226,6 +226,55 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
                     return E_FAILURE;
             }
             break;
+        case '2': // File System tests
+            switch(arg2) {
+                case '1':
+                    entry = testFS1;
+                    prio = PRIO_STD;
+                    ch1 = 1;
+                    ch2 = 0;
+                    break;
+                case '2':
+                    entry = testFS2;
+                    prio = PRIO_STD;
+                    ch1 = 2;
+                    ch2 = 0;
+                    break;
+                case '3':
+                    entry = testFS3;
+                    prio = PRIO_STD;
+                    ch1 = 3;
+                    ch2 = 0;
+                    break;
+                case '4':
+                    entry = testFS4;
+                    prio = PRIO_STD;
+                    ch1 = 4;
+                    ch2 = 0;
+                    break;
+                case '5':
+                    entry = testFS5;
+                    prio = PRIO_STD;
+                    ch1 = 5;
+                    ch2 = 0;
+                    break;
+                case '6':
+                    entry = testFS6;
+                    prio = PRIO_STD;
+                    ch1 = 6;
+                    ch2 = 0;
+                    break;
+                case '7':
+                    entry = testFS7;
+                    prio = PRIO_STD;
+                    ch1 = 7;
+                    ch2 = 0;
+                    break;
+                default:
+                    return E_FAILURE;
+            }
+            break;
+
         default: // Unknown test banks
             return E_FAILURE;
     } 
@@ -286,6 +335,26 @@ void listTests(int chan, char bank) {
         sprint(oBuf, "\t\t      4: Test restrictions on kill\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
+    if(bank == '2' || bank == 0) {
+        didPrint = true;
+
+        sprint(oBuf, "\tFile System tests (bank 2):\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      1: File Read Test\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      2: File Write Test\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      3: File Create Test\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      4: File Remove Test\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      5: Inode get test\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      6: getdir tests\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      7: File move tests\r\n");
+        write(chan, oBuf, strlen(oBuf));
+    }
 
     if(!didPrint || bank == 0) {
         sprint(oBuf, "\tValid Banks:\r\n");
@@ -293,6 +362,8 @@ void listTests(int chan, char bank) {
         sprint(oBuf, "\t\t      0: Baseline tests\r\n");
         write(chan, oBuf, strlen(oBuf));
         sprint(oBuf, "\t\t      1: Multi-User tests\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      2: File System tests\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 }

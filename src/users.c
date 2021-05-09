@@ -57,6 +57,11 @@ int32_t userY( uint32_t, uint32_t ); int32_t userZ( uint32_t, uint32_t );
 int32_t mUser1(uint32_t, uint32_t ); int32_t mUser2(uint32_t, uint32_t );
 int32_t mUser3(uint32_t, uint32_t ); int32_t mUser4(uint32_t, uint32_t );
 
+int32_t testFS1(uint32_t, uint32_t); int32_t testFS2(uint32_t, uint32_t);
+int32_t testFS3(uint32_t, uint32_t); int32_t testFS4(uint32_t, uint32_t);
+int32_t testFS5(uint32_t, uint32_t); int32_t testFS6(uint32_t, uint32_t);
+int32_t testFS7(uint32_t, uint32_t);
+
 int32_t signIn(uint32_t, uint32_t ); int32_t testShell(uint32_t , uint32_t );
 
 /*
@@ -95,6 +100,13 @@ int32_t signIn(uint32_t, uint32_t ); int32_t testShell(uint32_t , uint32_t );
 #include "userland/mUser3.c"
 #include "userland/mUser4.c"
 
+#include "userland/testFS1.c"
+#include "userland/testFS2.c"
+#include "userland/testFS3.c"
+#include "userland/testFS4.c"
+#include "userland/testFS5.c"
+#include "userland/testFS6.c"
+#include "userland/testFS7.c"
 
 /*
 ** System processes - these should always be included here

@@ -164,6 +164,7 @@ typedef int status_t;
 
 #define E_NO_PERMISSION (-11)
 #define E_FILE_LIMIT    (-12)
+#define E_EOF           (-13)
 
 
 /*

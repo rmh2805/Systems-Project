@@ -121,12 +121,16 @@ int32_t swrite( const char *buf, uint32_t size ) {
 ** @returns  The count of bytes transferred, or an error code
 */
 int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
-    
     uint32_t i = 0;
     int32_t result;
     
     char inCh = 0;
     
+    // Ensure that this is not a file chanel
+    if(chan >= 2) {
+        return E_BAD_CHANNEL;
+    }
+
     buf[length - 1] = 0; //set last byte to null just in case
     
     while(i < length - 1) {
@@ -171,6 +175,61 @@ int32_t readLn(int chan, char* buf, uint32_t length, bool_t doEcho) {
     
     if(doEcho) {
         write(chan, "\r\n", 3);
+    }
+    
+    buf[i] = 0;
+    
+    return i;
+}
+
+/**
+** fReadLn - read into a buffer from a file to the next newline or end 
+**           of buffer
+**
+** usage:   n = fReadLn(channel,buf,length)
+**
+** @param fp   I/O stream to read from
+** @param buf    Buffer to read into
+** @param length Maximum capacity of the buffer
+**
+** @returns  The count of bytes transferred, or an error code
+*/
+int32_t fReadLn(int fp, char* buf, uint32_t length) {
+    uint32_t i = 0;
+    int32_t result;
+    
+    char inCh = 0;
+
+    buf[length - 1] = 0; //set last byte to null just in case
+    
+    while(i < length - 1) {
+        result = read(fp, &(inCh), 1);  //Read a char to the next idx
+        
+        if(result == 0) {
+            if(i > 0) {
+                break;
+            }
+            return (-1);
+        } else if (result < 0) {
+            return result;
+        }
+        
+        switch(inCh) {
+            case '\b':
+            case '\0':
+            case '\r':
+                continue;
+            
+            case '\n':
+            default:
+            break;
+        }
+        
+        if(inCh == '\n') {
+            break;
+        }
+        
+        buf[i++] = inCh;
     }
     
     buf[i] = 0;
@@ -288,6 +347,22 @@ int32_t strTrim(register char * dst, register const char * src) {
 
 }
 
+/**
+ * strLower(str) - Modify str to make all letters lowercase
+ *
+ * @param dst The destination buffer
+ * @param src The source buffer
+ */
+void strLower(register char *dst, register const char *src ) {
+    while(*src) {
+        if(*src >= 'A' && *src <= 'Z') {
+            *dst = (*src - 'A') + 'a';
+        }
+
+        src++;
+        dst++;
+    }
+}
 
 /**
 ** strcpy(dst,src) - copy a NUL-terminated string
