@@ -1178,6 +1178,11 @@ static void _sys_getinode (uint32_t args[4]) {
         return;
     }
 
+    // Clear out everything past gid and return success
+    for(int idx = (void *)(&(inode->lock)) - (void*)(inode); idx < sizeof(inode_t); idx++) {
+        ((char*)(inode))[idx] = 0;
+    }
+
     RET(_current) = E_SUCCESS;
     return;
 }
