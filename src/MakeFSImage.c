@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
     rootNode.direct_pointers[0].dir.name[0] = '.';
     rootNode.direct_pointers[0].dir.name[1] = '.';
     rootNode.direct_pointers[0].dir.name[2] = 0;
-    rootNode.direct_pointers[0].dir.block = rootNode.id;
+    rootNode.direct_pointers[0].dir.inode = rootNode.id;
     
     // Write out the inode array
     uint8_t blockBuf[BLOCK_SIZE];

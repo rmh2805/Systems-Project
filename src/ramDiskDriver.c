@@ -14,7 +14,7 @@ void _rd_init(void) {
 }
 
 void blockCpy(char* src, char* dst) {
-    for(unsigned int i = 0; i < 512; i++) {
+    for(unsigned int i = 0; i < BLOCK_SIZE; i++) {
         *dst++ = *src++;
     }
 }

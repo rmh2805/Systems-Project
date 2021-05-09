@@ -163,9 +163,23 @@ static void _sys_read( uint32_t args[4] ) {
         break;
 
     default:
-        // bad channel code
-        RET(_current) = E_BAD_CHANNEL;
-        return;
+        if(chan >= 2 + MAX_OPEN_FILES) { // Channel beyond potential for files
+            RET(_current) = E_BAD_CHANNEL;
+            return;
+        }
+
+        // File channel
+        fd_t * fd = &_current->files[chan - 2];
+        if(fd->inode_id.devID == 0 && fd->inode_id.idx == 0) {    // Blank fd_t
+            RET(_current) = E_BAD_CHANNEL;  // Can't read from a blank fd
+            return;
+        }
+
+        n = _fs_read(fd, buf, length); // Read from file
+        if(n == E_EOF) {
+            RET(_current) = n;
+            return;
+        }
     }
 
     // if there was data, return the byte count to the process;
@@ -197,6 +211,7 @@ static void _sys_write( uint32_t args[4] ) {
     uint32_t chan = args[0];
     char *buf = (char *) args[1];
     uint32_t length = args[2];
+    int ret = 0;
 
     // this is almost insanely simple, but it does separate the
     // low-level device access fromm the higher-level syscall implementation
@@ -204,18 +219,30 @@ static void _sys_write( uint32_t args[4] ) {
     switch( chan ) {
     case CHAN_CONS:
         __cio_write( buf, length );
-        RET(_current) = length;
+        ret = length;
         break;
 
     case CHAN_SIO:
-        _sio_write( buf, length );
-        RET(_current) = length;
+        ret = _sio_write( buf, length );
         break;
 
     default:
-        RET(_current) = E_BAD_CHANNEL;
-        break;
+        if(chan >= 2 + MAX_OPEN_FILES) { // Channel beyond potential for files
+            RET(_current) = E_BAD_CHANNEL;
+            return;
+        }
+
+        // File channel
+        fd_t * fd = &_current->files[chan - 2];
+        if(fd->inode_id.devID == 0 && fd->inode_id.idx == 0) {    // Blank fd_t
+            RET(_current) = E_BAD_CHANNEL;  // Can't write to a blank fd
+            return;
+        }
+
+        ret = _fs_write(fd, buf, length); // write to file
     }
+
+    RET(_current) = ret; // Return proper status
 }
 
 /**
@@ -416,7 +443,7 @@ static void _sys_spawn( uint32_t args[4] ) {
 
     // create the process
     pcb_t *pcb = _proc_create( args, _next_pid++, _current->pid, 
-                                _current->uid, _current->gid );
+                                _current->uid, _current->gid, _current->wDir);
     if( pcb == NULL ) {
         RET(_current) = E_NO_MEMORY;
         return;
@@ -552,10 +579,10 @@ static void _sys_setuid ( uint32_t args[4] ) {
 
 
 /**
-** _sys_setgid - attempts to modify the uid of the current process
+** _sys_setgid - attempts to modify the gid of the current process
 ** 
 ** implements:
-**    uint32_t setuid( uid_t uid );
+**    uint32_t setgid( gid_t gid );
 */
 static void _sys_setgid ( uint32_t args[4] ) {
     gid_t gid = args[0];
@@ -568,11 +595,37 @@ static void _sys_setgid ( uint32_t args[4] ) {
     }
 }
 
+// File system traversal helpers
+static char* getNextName(char * path, char * nextName, int* nameLen) {
+    *nameLen = 0;
+    int i = 0;
+
+    while(path[i] && path[i] != '/') {
+        if (*nameLen < 12) {
+            nextName[i] = path[i];
+            *nameLen += 1;
+        }
+        i++;
+    }
+    
+    for(int j = i; j < 12; j++) { // 0 fill the rest of nextName
+        nextName[j] = 0;
+    }
+    
+    return path + i; // Return the string after the read name
+}
+
 static int _sys_seekFile( char* path, inode_id_t * currentDir) {
-    // Get starting inode 
+    char* sPath = path;
+
+    // Get starting inode (either working directory or root directory)
     *currentDir = _current->wDir;
     if(path[0] == '/') {
         *currentDir = (inode_id_t){0, 1};
+        path++;
+        if(!(*path)) {
+            return E_SUCCESS;
+        }
     }
     
     char nextName[12];
@@ -583,65 +636,35 @@ static int _sys_seekFile( char* path, inode_id_t * currentDir) {
         
         // Grab the name of the next entry
         int nameLen = 0;
-        while(*path && *path != '/') { // Grab file until slash or EOS
-            while(nameLen < 12) {
-                nextName[nameLen++] = *path;
-            }
-            path++;
-        }
-        if(nameLen == 0) {  // Entry names must have length > 0
-            return E_BAD_PARAM;
-        }
-        
-        // Read the current inode in
-        inode_t curNode;
-        bool_t found = false;
-        _fs_getInode(*currentDir, &curNode);
-        
-        for(uint32_t i = 0; i < NUM_DIRECT_POINTERS; i++) {
-            uint8_t j = 0;
-            for(; j < nameLen; j++) { // strncmp(entry[i], nextName, nameLen)
-                if(nextName[j] != curNode.direct_pointers[i].dir.name[j]) {
-                    break;
-                }
-            }
-            if(j == nameLen) {
-                found = true;
-                *currentDir = curNode.direct_pointers[i].dir.inode;
-                break;
-            }
-        }
-        //todo Check for indirect entries here
-        
-        if(!found) { // Fail if no child was found
-            return E_BAD_PARAM;
-        }
-        if(curNode.nodeType != INODE_DIR_TYPE && *path) { // Fail if this is a leaf node but not end of path
-            return E_BAD_PARAM;
-        }
-        
-        // if (nextName not in currentDir->files) {
-        //  return error
-        //} else {
-        //  *currentDir = currentDir->files[nextName]
-        //}
+        path = getNextName(path, nextName, &nameLen);
 
-        //If (path && isFile(*currentDir)) {
-        //    return error
-        //}
+        if(nameLen == 0) {  // Entry names must have length > 0
+
+            __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
+            return E_BAD_PARAM;
+        }
+        
+        // Grab nextName from currentDir's entries
+        int ret = _fs_getSubDir(*currentDir, nextName, currentDir);
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _sys_seekfile(): Unable to get subDir \"%s\"\n", nextName);
+            return ret;
+        }
     }
 
-    return E_FAILURE;
+    // If we made our way through the path successfully, return success (currentDir already set)
+    return E_SUCCESS;
 }
 
 /**
  ** _sys_fopen - attempts to open a file and store its FD in the PCBs block
  **
  ** implements: 
- **    int32_t fopen(char * path);
+ **    int32_t fopen(char * path, bool_t append);
  */
-static void _sys_fopen( uint32_t args[4] ) {
+static void _sys_fopen( uint32_t args[4]) {
     char * path = (char*) args[0]; // Get path given to user
+    bool_t append = (bool_t) args[1];
     uint32_t fdIdx;
 
     // Check if process has available files
@@ -650,6 +673,7 @@ static void _sys_fopen( uint32_t args[4] ) {
             _current->files[fdIdx].inode_id.idx == 0) {
             break;
         } else if (fdIdx == MAX_OPEN_FILES - 1) {
+            __cio_printf("*ERROR* in _sys_fopen: Out of file pointers\n");
             RET(_current) = E_FILE_LIMIT; // ERROR NO FILES AVAILABLE
             return;
         }       
@@ -658,13 +682,29 @@ static void _sys_fopen( uint32_t args[4] ) {
     inode_id_t currentDir;
     int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fopen: failed to seek target inode \"%s\"\n", path);
         RET(_current) = result;
         return;
     }
 
-    _current->files[fdIdx].inode_id = currentDir;
-    _current->files[fdIdx].offset = 0;
+    // check that this is a file
+    inode_t tgt;
+    result = _fs_getInode(currentDir, &tgt);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fopen: failed to retrieve target inode \"%s\"\n", path);
+        RET(_current) = result;
+        return;
+    }
 
+    if(tgt.nodeType != INODE_FILE_TYPE) {
+        __cio_printf("*ERROR* in _sys_fopen: Specified inode is not a file\n");
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    _current->files[fdIdx].inode_id = currentDir;
+    _current->files[fdIdx].offset = (append) ? tgt.nBytes : 0;
+    
     RET(_current) = fdIdx + 2; // Add channel (2) How do I return this? 
 }
 
@@ -677,17 +717,20 @@ static void _sys_fopen( uint32_t args[4] ) {
 static void _sys_fclose (uint32_t args[4]) {
     uint32_t fdIdx;
 
-    if(args[0] < 2 || args[0] > 5) {
-        //return error for OOB file descriptor
+    if(args[0] < 2 || args[0] >= 2 + MAX_OPEN_FILES) {
+        RET(_current) = E_FILE_LIMIT; // Fail if not in closable file range (either SIO, CIO, or unused)
+        return;
     }
 
     fdIdx = args[0] - 2;
 
     if(_current->files[fdIdx].inode_id.devID == 0 && 
             _current->files[fdIdx].inode_id.idx == 0) {
-        //return error on unopened file
+        RET(_current) = E_BAD_CHANNEL;   // Fail on null file
+        return;
     }
 
+    // NULL out the closed file and return success
     _current->files[fdIdx].inode_id.devID = 0;
     _current->files[fdIdx].inode_id.idx = 0;
 
@@ -702,34 +745,71 @@ static void _sys_fclose (uint32_t args[4]) {
  */
 static void _sys_fcreate  (uint32_t args[4]) {
     char * path = (char*) args[0];
-    // char * name = (char*) args[1];
-    // bool_t isFile = (bool_t) args[2];
+    char * name = (char*) args[1];
+    int result;
+    bool_t isFile = (bool_t) args[2];
+    inode_id_t newID, currentDir; 
+    inode_t newNode, pNode;
 
-    inode_id_t currentDir;
-    int result = _sys_seekFile(path, &currentDir);
+    // Get Current Directory
+    result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         RET(_current) = result;
         return;
     }
 
-    /*
-    if(isFile(currentDir)) {
-        return error (create file in a file)
+    // Get the parent inode
+    result = _fs_getInode(currentDir, &pNode);
+    if(result < 0){
+        RET(_current) = result;
+        return;
     }
 
-    if(name in currentDir.files) {
-        return error (name taken)
+    // Fail if parent node is not a directory
+    if(pNode.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_fcreate: path \"%s\" leads to non-directory\n", path);
+        RET(_current) = E_BAD_PARAM;
+        return;
     }
-    */
 
-   /*
-   ** - Find the next available inode on disk (return failure if none)
-   ** - Write a basic inode of the proper type to that empty slot
-   ** - Write a reference to the new inode in the parent directory
-   */
+    // Find next free inode
+    result = _fs_allocNode(currentDir.devID, &newID);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
+
+    // Get the inode via the index
+    result = _fs_getInode(newID, &newNode);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }    
+    
+    // Setup default inode values
+    newNode.id = newID;
+    newNode.uid = _current->uid;
+    newNode.gid = _current->pid;
+    newNode.nRefs = 0; // No references yet
+    newNode.nBlocks = 0;
+    newNode.nBytes = 0;
+    newNode.nodeType = (isFile) ? INODE_FILE_TYPE : INODE_DIR_TYPE;
+    
+    // Write the inode
+    result = _fs_setInode(newNode);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
+
+    // Update parent Inode
+    result = _fs_addDirEnt(currentDir, name, newID);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
 
     RET(_current) = E_SUCCESS;
-
 }
 
 /**
@@ -739,57 +819,151 @@ static void _sys_fcreate  (uint32_t args[4]) {
  **    int32_t fremove(char * path, char * name);
  */
 static void _sys_fremove (uint32_t args[4]) {
-    /*
-    ** - Get the directory at the end of path (fail on non-driectory or seek failure)
-    ** - Find files[name] (tgt) in final directory (fail in non-existent)
-    ** - if tgt is directory, check that directory is empty or this is not final reference (return error else)
-    ** - tgt.references -= 1
-    **      - if tgt.references == 0, free tgt (inode and associated data blocks)
-    ** - Remove files[name] from parent directory
-    ** - parent.subDirs -= 1
-    */
+    char * path = (char*) args[0];
+    char * name = (char*) args[1];
+    
+    // Get Current Directory
+    inode_id_t targetDirID;
+    int result = _sys_seekFile(path, &targetDirID);
+    if(result < 0) {
+        RET(_current) = result;
+        return;
+    }
+
+    // Remove the entry from the parent
+    result = _fs_rmDirEnt(targetDirID, name);
+    if(result < 0) {
+        __cio_printf("*ERROR*in _sys_fremove: Cannot remove entry from directory (fremove)\n");
+        RET(_current) = result;
+        return; 
+    }
+
+    RET(_current) = E_SUCCESS;
+    return;
 }
 
 /**
  ** _sys_fmove - attempts to remove the file/dir at the end of the path
+                 and move it to the new location!
  **
  ** implements: 
- **    int32_t fremove(char * sPath, char * sName, char * dPath, char* dName);
+ **    int32_t fmove(char * sPath, char * sName, char * dPath, char* dName);
  */
 static void _sys_fmove (uint32_t args[4]) {
-    /*
-    ** - Seek on both paths (ensuring they end at directories)
-    ** - dst.files[dname] = src.files[sname]
-    ** - src.files[sname].references ++
-    ** - _sys_fremove()
-    */
+    char * sPath = (char *)args[0];
+    char * sName = (char *)args[1];
+    char * dPath = (char *)args[2];
+    char * dName = (char *)args[3];
+    inode_id_t sourceDir;
+    inode_id_t destDir;
+    inode_id_t copyTarg;
+    inode_t sourceNode;
+    inode_t destNode;
+
+    int result = _sys_seekFile(sPath, &sourceDir);
+    if(result < 0) {
+        // Failed to seek file on disk
+        __cio_printf("*ERROR* in _sys_fmove: Failed to seek file path %s (%d)\n", sPath, result);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    result = _sys_seekFile(dPath, &destDir);
+    if(result < 0) {
+        // Failed to seek file on disk
+        __cio_printf("*ERROR* in _sys_fmove: Failed to seek file path %s (%d)\n", dPath, result);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    // Read the source node from the disk
+    result = _fs_getInode(sourceDir, &sourceNode);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fmove: Failed to grab inode %d.%d (%d)\n", sourceDir.devID, sourceDir.idx, result);
+        RET(_current) = E_FAILURE;
+        return;
+    }
+
+    // Check that the source is a directory inode
+    if(sourceNode.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_fmove: Node at \"%s\" is not a directory\n", sPath);
+        RET(_current) = E_NO_CHILDREN;
+        return;
+    }
+
+    // Read the dest node from the disk
+    result = _fs_getInode(destDir, &destNode);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fmove: Failed to grab inode %d.%d (%d)\n", destDir.devID, destDir.idx, result);
+        RET(_current) = E_FAILURE;
+        return;
+    }
+
+    // Check that the dest is a directory inode
+    if(destNode.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_fmove: Node at \"%s\" is not a directory\n", dPath);
+        RET(_current) = E_NO_CHILDREN;
+        return;
+    }
+
+    // Get inode_id_t for source file and add it to the dest dir
+    result = _fs_getSubDir(sourceDir, sName, &copyTarg); 
+    if(result < 0) {
+        __cio_printf("*ERROR* Unable to get \"%s\" in \"%s\"\n", sName, sourceDir);
+        RET(_current) = result;
+        return;
+    }
+    
+    result = _fs_addDirEnt(destDir, dName, copyTarg);
+    if(result < 0) {
+        __cio_printf("*ERROR* Unable to add \"%s\" to \"%s\"\n", dName, destDir);
+        RET(_current) = result;
+        return;
+    }
+    
+    // Remove the file from source
+    _sys_fremove(args);
+    if(result < 0) {
+        __cio_printf("*ERROR* Unable to remove \"%s\" from \"%s\"\n", sName, sourceDir);
+        RET(_current) = E_FAILURE;
+        return;
+    }
 }
 
 /**
  ** _sys_getinode - attempts to retrieve the inode at the end of path
  **
  ** implements: 
- **    int32_t fremove(char * Path, inode_t * inode);
+ **    int32_t getinode(char * path, inode_t * inode);
  */
 static void _sys_getinode (uint32_t args[4]) {
     char* path = (char *) args[0];
-    // inode_t * inode = (inode_t *) args[1];
-
+    inode_t * inode = (inode_t *) args[1];
     inode_id_t currentDir;
+
+    // Seek the node in the directory tree
     int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
-        RET(_current) = result;
+        // Failed to seek file on disk
+        __cio_printf("*ERROR* in _sys_getinode: Failed to seek file path %s (%d)\n", path, result);
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 
-    // *inode = readFromDisk(currentDir)
+    // Read the node from the disk
+    result = _fs_getInode(currentDir, inode);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_getinode: Failed to grab inode %d.%d (%d)\n", currentDir.devID, currentDir.idx, result);
+        RET(_current) = E_FAILURE;
+        return;
+    }
 
-    RET(_current) = E_FAILURE;
+    RET(_current) = E_SUCCESS;
     return;
 }
 
 /**
- ** _sys_getdirname - attempts to retrieve a subdirectory name after end of path
+ ** _sys_dirname - attempts to retrieve a subdirectory name after end of path
  **
  ** implements: 
  **    int32_t dirname(char * path, char* buf, uint32_t subDirNr);
@@ -800,6 +974,59 @@ static void _sys_dirname (uint32_t args[4]) {
     **      - san check, grabbed dir with safe nr of subdirs
     ** - Write the subDirNr^th sub directory name from the inode to buf
     */
+   char* path = (char*)(args[0]);
+   char* buf = (char*)(args[1]);
+   uint32_t subDirNr = args[2];
+   inode_id_t id;
+   inode_t node;
+   data_u ent;
+   int result;
+
+    // Seek the node at the end of the path
+    result = _sys_seekFile(path, &id);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_dirname: Failed to seek file path %s (%d)\n", path, result);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    // Read the inode from disk
+    result = _fs_getInode(id, &node);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_dirname: Failed to grab inode %d.%d (%d)\n", id.devID, id.idx, result);
+        RET(_current) = E_FAILURE;
+        return;
+    }
+
+    // Check that this is a directory inode
+    if(node.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_dirname: Node at \"%s\" is not a directory\n", path);
+        RET(_current) = E_NO_CHILDREN;
+        return;
+    }
+
+    // Quietly check that subDirNr is in bounds
+    if(subDirNr >= node.nBytes) {
+        RET(_current) = E_FILE_LIMIT;
+        return;
+    }
+
+    // Grab the proper directory entry
+    result = _fs_getNodeEnt(&node, subDirNr, &ent);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_dirname: Failed to retrieve entry %d from directory \"%s\" (%d)\n", subDirNr, path, result);
+        RET(_current) = E_FAILURE;
+        return;
+    }
+
+    // Copy from its name field to the output buffer and return success
+    for(int i = 0; i < 12; i++) {
+        buf[i] = ent.dir.name[i];
+    }
+    RET(_current) = E_SUCCESS;
+    return;
+
+
 }
 
 /*
