@@ -23,7 +23,6 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
         }
 
         nRead = strTrim(iBuf, iBuf);
-        strLower(iBuf, iBuf);
         if(nRead == 0) {    // Skip empty commands
             continue;
         } else if(strcmp(iBuf, "help") == 0) {  // Print command lists
@@ -34,7 +33,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
             swrites("\tlist [bank]: List all tests (if bank is specified, all tests in it)\r\n");
             swrites("\ttest <bank> <test>: perform test x from bank n\r\n");
-
+            swrites("\tcat <file path>: Cat the file contents out to the console\r\n");
 
         } else if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
             strcmp(iBuf, "logout") == 0 || strcmp(iBuf, "`") == 0) {    // Exit
@@ -107,14 +106,8 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
 
             swrites(oBuf);
 
-        } else if(strcmp(iBuf, "cat") == 0) {
-            swrites("Enter the filepath to cat: ");
-            nRead = readLn(CHAN_SIO, iBuf, iBufSz, true);
-            if(nRead < 0) {
-                cwrites("TEST SHELL: **ERROR** encountered on file name read\n");
-                continue;
-            }
-            strTrim(oBuf, iBuf);
+        } else if(strncmp(iBuf, "cat", 3) == 0) {
+            strTrim(oBuf, iBuf + 3);
 
             ret = cat((uint32_t)&oBuf, 0);
             if(ret < 0) {
