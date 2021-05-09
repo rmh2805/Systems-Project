@@ -140,16 +140,28 @@ int _fs_read(fd_t * file, char * buf, uint32_t len) {
     return bytes_read;
 }
 
-int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
+int _fs_alloc_block(uint8_t fsNr, uint32_t * blockNr) {
+    fsNr = (fsNr == 0) ? disks[0].fsNr : fsNr;
 
-    int ret = disks[devID].readBlock(0, meta_buffer, disks[devID].driverNr);
+    inode_t metaNode;
+    int ret = _fs_getInode((inode_id_t){(fsNr == 0) ? disks[0].fsNr : fsNr, 0}, &metaNode);
     if(ret < 0) {
-        __cio_printf( " ERROR: Unable to read metanode from disk!\n");
+        __cio_printf( "*ERROR* in _fs_alloc_block: Unable to read meta node from disk\n");
         return E_FAILURE;
     }
-    // Read in meta
-    inode_t metaNode = *(inode_t*)(meta_buffer);
     
+    // Dereference the drive idx
+    uint8_t driveIdx, i;
+    for(i = 0; i < MAX_DISKS; i++) {
+        if(disks[i].fsNr == fsNr) {
+            driveIdx = i;
+            break;
+        }
+    }
+    if(i == MAX_DISKS) {
+        return E_BAD_CHANNEL;
+    }
+
     // Calculate nr of Inode blocks to determine start of map blocks 
     uint32_t mapBase = metaNode.nRefs / (BLOCK_SIZE/sizeof(inode_t));
     if(metaNode.nRefs % (BLOCK_SIZE/sizeof(inode_t)) != 0) {
@@ -157,23 +169,27 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
     }
     
     for(uint32_t mapIdx = 0; mapIdx < metaNode.nBlocks; mapIdx++) {
-        ret = disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+        ret = disks[driveIdx].readBlock(mapBase + mapIdx, data_buffer, disks[driveIdx].driverNr);
         if(ret < 0) {
             __cio_printf( " ERROR: Unable to read block from disk! (_fs_alloc_block)\n");
             return E_FAILURE;
         }
+
         for(uint32_t blockIdx = 0; blockIdx < BLOCK_SIZE; blockIdx++) {
             for(uint8_t bitPos = 0; bitPos < 8; bitPos++) {
                 uint8_t mask = 0x80 >> bitPos;
+                
 
                 if((data_buffer[blockIdx] & mask) ^ mask) {
                     data_buffer[blockIdx] |= mask;
-                    ret = disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+                    
+                    ret = disks[driveIdx].writeBlock(mapBase + mapIdx, data_buffer, disks[driveIdx].driverNr);
                     if(ret < 0) {
                         __cio_printf( " ERROR: Unable to write new block out to disk!\n" );
                         return E_FAILURE;
                     }
-                    *blockNr = (mapIdx * 8 * BLOCK_SIZE);
+                    *blockNr = mapBase + metaNode.nBlocks;
+                    *blockNr += (mapIdx * 8 * BLOCK_SIZE);
                     *blockNr += blockIdx * 8;
                     *blockNr += bitPos;
                     return E_SUCCESS;
@@ -184,12 +200,27 @@ int _fs_alloc_block(uint8_t devID, uint32_t * blockNr) {
     return E_FAILURE;
 }
 
-int _fs_free_block(uint8_t devID, uint32_t blockNr) {
+int _fs_free_block(uint8_t fsNr, uint32_t blockNr) {
+    fsNr = (fsNr == 0) ? disks[0].fsNr : fsNr;
+    uint8_t driveIdx = 0;
+
     inode_t metaNode;
-    int ret = _fs_getInode((inode_id_t){devID, 0}, &metaNode);
+    int ret = _fs_getInode((inode_id_t){fsNr, 0}, &metaNode);
     if(ret < 0) {
         __cio_printf( " ERROR: Unable to read metanode from disk!\n");
         return E_FAILURE;
+    }
+
+    // Dereference the device ID
+    int i = 0;
+    for(; i < MAX_DISKS; i++) {
+        if(disks[i].fsNr == fsNr) {
+            driveIdx = i;
+            break;
+        }
+    }
+    if(i == MAX_DISKS) {
+        return E_BAD_CHANNEL;
     }
 
     uint32_t mapBase = metaNode.nRefs / (BLOCK_SIZE/sizeof(inode_t));
@@ -197,19 +228,24 @@ int _fs_free_block(uint8_t devID, uint32_t blockNr) {
         mapBase += 1;
     }
 
-    uint32_t mapIdx = blockNr/(8*BLOCK_SIZE);
-    blockNr = blockNr % (8 * BLOCK_SIZE);
-    uint32_t blockIdx = blockNr / 8;
-    uint8_t bitPos = blockNr % 8;
     
-    ret = disks[devID].readBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+    int blockNr2 = blockNr - (mapBase + metaNode.nBlocks);
+
+    uint32_t mapIdx = blockNr2/(8*BLOCK_SIZE);
+    blockNr2 = blockNr2 % (8 * BLOCK_SIZE);
+    uint32_t blockIdx = blockNr2 / 8;
+    uint8_t bitPos = blockNr2 % 8;
+    
+    ret = disks[driveIdx].readBlock(mapBase + mapIdx, data_buffer, disks[driveIdx].driverNr);
     if(ret < 0) {
         __cio_printf( " ERROR: Unable to read block from disk! (_fs_free_block)\n");
         return E_FAILURE;
     }
-    uint8_t bitMask = (0x80 >> bitPos) ^ 0xFF;
-    data_buffer[blockIdx] &= bitMask;
-    ret = disks[devID].writeBlock(mapBase + mapIdx, data_buffer, disks[devID].driverNr);
+    uint8_t bitMask = ~(0x80 >> bitPos);
+
+    data_buffer[blockIdx] &= (bitMask & 0xFF);
+
+    ret = disks[driveIdx].writeBlock(mapBase + mapIdx, data_buffer, disks[driveIdx].driverNr);
     if(ret < 0) {
         __cio_printf( " ERROR: Unable to write block to disk! (_fs_free_block)\n");
         return E_FAILURE;
@@ -286,7 +322,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
             block_t newBlock = 0;
 
             // Allocate the new data block
-            ret = _fs_alloc_block(devID, &newBlock);
+            ret = _fs_alloc_block(file->inode_id.devID, &newBlock);
             if(ret < 0) {
                 __cio_printf("*ERROR* in _fs_write: Unable to alloc new block\n");
                 return ret;
@@ -449,7 +485,7 @@ int _fs_clearInode(inode_id_t id) {
     uint32_t disk, inodeOffset;
     int ret;
     block_t inodeBlock;
-    
+
     if(id.devID == 0) { // There is no device zero
         return E_BAD_CHANNEL;
     }
