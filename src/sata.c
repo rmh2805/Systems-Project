@@ -45,6 +45,19 @@ static uint16_t _sata_pci_config_read( uint32_t bus, uint32_t slot, uint32_t fun
     return (uint16_t)((__inl(0xCFC) >> ((offset & 2) * 8)) & 0xffff);
 }
 
+
+/**
+** _sata_pci_config_read_32()
+**
+** Reads the PCI config doubleword
+** @return read doubleword
+*/
+static uint32_t _sata_pci_config_read_32( uint32_t bus, uint32_t slot, uint32_t func, uint8_t offset ){
+    uint32_t address = (((uint32_t)0x80000000) | (bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc));
+    __outl(0xCF8, address);
+    return __inl(0xCFC);
+}
+
 /**
 ** _sata_load_func()
 **
@@ -61,6 +74,12 @@ static void _sata_load_device( _sata_dev_itr_t *itr. _sata_device_t *dev_buf ){
     dev_buf->class_code = (uint8_t) (offset0xA >> 8);
     dev_buf->subclass = (uint8_t) (offset0xA & 0xff);
     dev_buf->prog_if = (uint8_t) (_sata_pci_config_read(bus, device, func, 0x8) >> 8);
+    dev_buf->bar0 = _sata_pci_config_read_32(bus, device, func, 0x10);
+    dev_buf->bar1 = _sata_pci_config_read_32(bus, device, func, 0x14);
+    dev_buf->bar2 = _sata_pci_config_read_32(bus, device, func, 0x18);
+    dev_buf->bar3 = _sata_pci_config_read_32(bus, device, func, 0x1C);
+    dev_buf->bar4 = _sata_pci_config_read_32(bus, device, func, 0x20);
+    dev_buf->bar5 = _sata_pci_config_read_32(bus, device, func, 0x24);
 }
 
 /**

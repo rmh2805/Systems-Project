@@ -137,10 +137,10 @@ void _init( void ) {
     _clk_init();
     _sio_init();
     _sata_init();
-    _disk_init();
 
     _fs_init();     // Must come before driver inits
     _rd_init();
+    _disk_init();
 
     __cio_puts( "\nModule initialization complete.\n" );
     __cio_puts( "-------------------------------\n" );
