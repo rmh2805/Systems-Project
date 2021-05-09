@@ -102,8 +102,7 @@ struct _ide_device {
 int _ide_device_count = 0;
 
 static void _sleep1ms(void) {
-    time_t start = _system_time;
-    while (_system_time < start + 2); 
+    __delay(1);
 }
 
 static void _ide_write(unsigned char channel, unsigned char reg, unsigned char data) {
