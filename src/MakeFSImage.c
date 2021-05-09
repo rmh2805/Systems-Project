@@ -129,10 +129,15 @@ int main(int argc, char** argv) {
     strncpy(rootNode.direct_pointers[0].dir.name, "..", 12);
     rootNode.direct_pointers[0].dir.inode = rootNode.id;
 
-    for(int i = 1; i < NUM_DIRECT_POINTERS && ((i - 1) * 2) < argc - 4; i++) {
-        printf("%d\n", i);
-        strncpy(rootNode.direct_pointers[i].dir.name, argv[2 * i], 12);
-        rootNode.direct_pointers[i].dir.inode = (inode_id_t){decStr2int(argv[2 * i + 1]), 1};
+    int i = 0;
+    while(i + 4 < argc - 1) {
+        char * name = argv[i];
+        char * val = argv[i + 1];
+
+        strncpy(rootNode.direct_pointers[i + 1].dir.name, name, MAX_FILENAME_SIZE);
+        rootNode.direct_pointers[i + 1].dir.inode = (inode_id_t){decStr2int(val), 1};
+
+        i += 2;
     }
     
     // Write out the inode array
