@@ -1050,6 +1050,11 @@ int _fs_getPermission(inode_id_t id, uid_t uid, gid_t gid, bool_t * canRead, boo
  * @return A standard exit status (<0 on failure)
  */
 int _fs_nodePermission(inode_t * node, uid_t uid, gid_t gid, bool_t * canRead, bool_t * canWrite, bool_t * canMeta) {
+    bool_t back;    // Safe referand to handle null return pointers
+    if(canRead == NULL) canRead = &back;
+    if(canWrite == NULL) canWrite = &back;
+    if(canMeta == NULL) canMeta = &back;
+
     // First check for bypass UID or GID
     if(uid == UID_ROOT || gid == GID_SUDO) {
         *canRead = true;

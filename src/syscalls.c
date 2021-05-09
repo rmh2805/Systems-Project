@@ -176,16 +176,25 @@ static void _sys_read( uint32_t args[4] ) {
             return;
         }
 
-        n = _fs_read(fd, buf, length); // Read from file
-        if(n == E_EOF) {
-            RET(_current) = n;
+        // Check that you have read permissions
+        bool_t canRead;
+        int ret = _fs_getPermission(fd->inode_id, _current->uid, _current->gid, &canRead, NULL, NULL);
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _sys_read: Failed to read file %d.%d's permissions (%d)\n", fd->inode_id.devID, fd->inode_id.idx, ret);
+            RET(_current) = E_NO_PERMISSION;
+            return;
+        } else if(!canRead) {
+            __cio_printf("*ERROR* in _sys_read: No read permission on file %d.%d\n", fd->inode_id.devID, fd->inode_id.idx);
+            RET(_current) = E_NO_PERMISSION;
             return;
         }
+
+        n = _fs_read(fd, buf, length); // Read from file
     }
 
-    // if there was data, return the byte count to the process;
+    // if there was data (or EOF), return the byte count to the process;
     // otherwise, block the process until data is available
-    if( n > 0 ) {
+    if( n > 0 || n == E_EOF) {
 
         RET(_current) = n;
 
@@ -237,6 +246,19 @@ static void _sys_write( uint32_t args[4] ) {
         fd_t * fd = &_current->files[chan - 2];
         if(fd->inode_id.devID == 0 && fd->inode_id.idx == 0) {    // Blank fd_t
             RET(_current) = E_BAD_CHANNEL;  // Can't write to a blank fd
+            return;
+        }
+        
+        // Check that you have read permissions
+        bool_t canWrite;
+        ret = _fs_getPermission(fd->inode_id, _current->uid, _current->gid, NULL, &canWrite, NULL);
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _sys_write: Failed to read file %d.%d's permissions (%d)\n", fd->inode_id.devID, fd->inode_id.idx, ret);
+            RET(_current) = E_NO_PERMISSION;
+            return;
+        } else if(!canWrite) {
+            __cio_printf("*ERROR* in _sys_read: No write permission on file %d.%d\n", fd->inode_id.devID, fd->inode_id.idx);
+            RET(_current) = E_NO_PERMISSION;
             return;
         }
 
