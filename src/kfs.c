@@ -1071,8 +1071,13 @@ int _fs_nodePermission(inode_t * node, uid_t uid, gid_t gid, bool_t * canRead, b
     *canWrite = (node->permissions & 0x20) ? true : false;
     *canRead = (node->permissions & 0x10) ? true : false;
 
-    // Next consider group permissions  (retaining pervious setting)
-    if(node->gid == gid) {
+    // Next consider group permissions (retaining pervious setting)
+    if(node->gid == 0) { // Check for user group first
+        if(node->uid == uid) {
+            *canWrite |= (node->permissions & 0x08) ? true : false;
+            *canRead |= (node->permissions & 0x04) ? true : false;
+        }
+    } else if(node->gid == gid) {
         *canWrite |= (node->permissions & 0x08) ? true : false;
         *canRead |= (node->permissions & 0x04) ? true : false;
     }
