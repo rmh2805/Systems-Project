@@ -170,19 +170,35 @@ File System syscalls
         DESC:
             Attempts to remove the file/dir at the end of the path
         RETURN VALUE:
+            Returns E_SUCCESS on success and a negative error status 
+            on failure.
 
     SYS_fmove
         SIGNATURE:
+            int32_t fmove( char * sPath, char * sName, char * dPath, char * dName )
         DESC:
+            Attempts to remove the file/dir at the end of sPath and move it 
+            to a new location at dPath with the name dName.
         RETURN VALUE:
+            Returns E_SUCCESS on success and a negative error status
+            on failure.
 
     SYS_getinode
         SIGNATURE:
+            int32_t getinode( char * path, inode_t * inode )
         DESC:
+            Attempts to retrieve the inode at the end of the given path.
         RETURN VALUE:
+            Returns E_SUCCESS on success and a negative error status
+            on failure.
 
     SYS_dirname
         SIGNATURE:
+            int32_t dirname( char * path, char * buf, uint32_t subDirNr )
         DESC:
+            Attempts to retrieve a subdirectory name after the end of the 
+            given path and put it in the given buffer.
         RETURN VALUE:
+            Returns E_SUCCESS on success and a negative error status
+            on failure.
 
