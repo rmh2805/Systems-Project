@@ -130,12 +130,13 @@ int main(int argc, char** argv) {
     rootNode.direct_pointers[0].dir.inode = rootNode.id;
 
     int i = 0;
-    while(i + 4 < argc - 1) {
-        char * name = argv[i];
-        char * val = argv[i + 1];
+    while(i + 4 < argc - 1 && rootNode.nBytes < NUM_DIRECT_POINTERS) {
+        char * name = argv[i + 5];
+        char * val = argv[i + 6];
 
         strncpy(rootNode.direct_pointers[i + 1].dir.name, name, MAX_FILENAME_SIZE);
         rootNode.direct_pointers[i + 1].dir.inode = (inode_id_t){decStr2int(val), 1};
+        rootNode.nBytes += 1;
 
         i += 2;
     }
