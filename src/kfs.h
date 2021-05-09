@@ -128,12 +128,40 @@ int _fs_getSubDir(inode_id_t inode, char* name, inode_id_t * ret);
 int _fs_allocNode(uint8_t devID, inode_id_t * ret);
 
 /**
- * Frees the specified inode (if possible) (Exposed)
+ * Frees the specified inode (if possible)
  * 
  * @param id The id of the inode to free
  * 
  * @return A standard exit status (<0 on failure to free)
  */
 int _fs_freeNode(inode_id_t id);
+
+/**
+ * Checks for permissions on the specified inode
+ * 
+ * @param id The id of the inode to check
+ * @param uid The uid of the accessor
+ * @param gid The gid of the accessor
+ * @param canRead A return pointer for read permission status
+ * @param canWrite A return pointer for write permission status
+ * @param canMeta A return pointer for meta (i.e. change ownership/permissions) permission status
+ * 
+ * @return A standard exit status (<0 on failure)
+ */
+int _fs_getPermission(inode_id_t id, uid_t uid, gid_t gid, bool_t * canRead, bool_t * canWrite, bool_t * canMeta);
+
+/**
+ * Checks for permissions on the passed inode
+ * 
+ * @param node The inode to check
+ * @param uid The uid of the accessor
+ * @param gid The gid of the accessor
+ * @param canRead A return pointer for read permission status
+ * @param canWrite A return pointer for write permission status
+ * @param canMeta A return pointer for meta (i.e. change ownership/permissions) permission status
+ * 
+ * @return A standard exit status (<0 on failure)
+ */
+int _fs_nodePermission(inode_t * node, uid_t uid, gid_t gid, bool_t * canRead, bool_t * canWrite, bool_t * canMeta);
 
 #endif //KFS_H_

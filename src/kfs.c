@@ -1010,3 +1010,73 @@ int _fs_freeNode(inode_id_t id) {
 
     return E_SUCCESS;
 }
+
+
+/**
+ * Checks for permissions on the specified inode
+ * 
+ * @param id The id of the inode to check
+ * @param uid The uid of the accessor
+ * @param gid The gid of the accessor
+ * @param canRead A return pointer for read permission status
+ * @param canWrite A return pointer for write permission status
+ * @param canMeta A return pointer for meta (i.e. change ownership/permissions) permission status
+ * 
+ * @return A standard exit status (<0 on failure)
+ */
+int _fs_getPermission(inode_id_t id, uid_t uid, gid_t gid, bool_t * canRead, bool_t * canWrite, bool_t * canMeta) {
+    int ret;
+    inode_t node;
+
+    ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _fs_getPermission: Failed to read inode (%d)\n", ret);
+        return E_FAILURE;
+    }
+
+    return _fs_nodePermission(&node, uid, gid, canRead, canWrite, canMeta);
+}
+
+/**
+ * Checks for permissions on the passed inode
+ * 
+ * @param node The inode to check
+ * @param uid The uid of the accessor
+ * @param gid The gid of the accessor
+ * @param canRead A return pointer for read permission status
+ * @param canWrite A return pointer for write permission status
+ * @param canMeta A return pointer for meta (i.e. change ownership/permissions) permission status
+ * 
+ * @return A standard exit status (<0 on failure)
+ */
+int _fs_nodePermission(inode_t * node, uid_t uid, gid_t gid, bool_t * canRead, bool_t * canWrite, bool_t * canMeta) {
+    // First check for bypass UID or GID
+    if(uid == UID_ROOT || gid == GID_SUDO) {
+        *canRead = true;
+        *canWrite = true;
+        *canMeta = true;
+
+        return E_SUCCESS;
+    }
+
+    // Set meta iff this is the owner
+    *canMeta = (uid == node->uid);
+
+    // First consider general permissions
+    *canWrite = (node->permissions & 0x20) ? true : false;
+    *canRead = (node->permissions & 0x10) ? true : false;
+
+    // Next consider group permissions  (retaining pervious setting)
+    if(node->gid == gid) {
+        *canWrite |= (node->permissions & 0x08) ? true : false;
+        *canRead |= (node->permissions & 0x04) ? true : false;
+    }
+
+    // Finally consider user permissions
+    if(node->uid == uid) {
+        *canWrite |= (node->permissions & 0x02) ? true : false;
+        *canRead |= (node->permissions & 0x01) ? true : false;
+    }
+
+    return E_SUCCESS;
+}
