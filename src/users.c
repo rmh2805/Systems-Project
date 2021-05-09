@@ -63,7 +63,7 @@ int32_t testFS5(uint32_t, uint32_t); int32_t testFS6(uint32_t, uint32_t);
 int32_t testFS7(uint32_t, uint32_t);
 
 int32_t signIn(uint32_t, uint32_t ); int32_t testShell(uint32_t , uint32_t );
-int32_t cat(uint32_t, uint32_t);
+int32_t cat(uint32_t, uint32_t);     int32_t ls(uint32_t, uint32_t);
 
 /*
 ** The user processes
@@ -114,11 +114,10 @@ int32_t cat(uint32_t, uint32_t);
 */
 
 #include "userland/init.c"
-
 #include "userland/idle.c"
 
 #include "userland/signIn.c"
-
 #include "userland/testShell.c"
 
 #include "userland/cat.c"
+#include "userland/ls.c"
