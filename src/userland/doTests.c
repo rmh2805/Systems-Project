@@ -264,6 +264,12 @@ int32_t spawnTests(uint32_t arg1, uint32_t arg2) {
                     ch1 = 6;
                     ch2 = 0;
                     break;
+                case '7':
+                    entry = testFS7;
+                    prio = PRIO_STD;
+                    ch1 = 7;
+                    ch2 = 0;
+                    break;
                 default:
                     return E_FAILURE;
             }
@@ -345,6 +351,8 @@ void listTests(int chan, char bank) {
         sprint(oBuf, "\t\t      5: Inode get test\r\n");
         write(chan, oBuf, strlen(oBuf));
         sprint(oBuf, "\t\t      6: getdir tests\r\n");
+        write(chan, oBuf, strlen(oBuf));
+        sprint(oBuf, "\t\t      7: File move tests\r\n");
         write(chan, oBuf, strlen(oBuf));
     }
 

@@ -309,6 +309,7 @@ users.o: userland/userY.c userland/userZ.c userland/mUser1.c
 users.o: userland/mUser2.c userland/mUser3.c userland/mUser4.c
 users.o: userland/testFS1.c userland/testFS2.c userland/testFS3.c
 users.o: userland/testFS4.c userland/testFS5.c userland/testFS6.c
+users.o: userland/testFS7.c
 users.o: userland/init.c userland/doTests.c userland/idle.c userland/signIn.c
 users.o: userland/testShell.c
 ulibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h

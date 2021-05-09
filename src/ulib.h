@@ -281,6 +281,20 @@ int32_t fcreate(char* path, char* name, bool_t isFile);
 int32_t fremove(char* path, char* name);
 
 /**
+ * fmove - move a file at the provided path to the second path
+ * 
+ * usage: fmove(char * sPath, char * sName, char * dPath, char * dName);
+ * 
+ * @param sPath The path where the file is located
+ * @param sName The name of the file to copy
+ * @param dPath The path where the file will be moved
+ * @param dName The name of the file when copied
+ * 
+ * @return 0 on success, negative on failure
+ */
+int32_t fmove(char* sPath, char* sName, char* dPath, char* dName);
+
+/**
  * getinode - Grabs the inode at the end of the provided path
  *
  * usage: getinode(char * path, inode_t * inode)
