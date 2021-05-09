@@ -273,7 +273,7 @@ clock.o: driverInterface.h klib.h clock.h scheduler.h
 kernel.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 kernel.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h
 kernel.o: klib.h clock.h bootstrap.h syscalls.h sio.h ramDiskDriver.h
-kernel.o: scheduler.h users.h
+kernel.o: scheduler.h disk.h sata.h users.h
 klibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 klibc.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
 kmem.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
@@ -303,6 +303,12 @@ kfs.o: x86arch.h process.h stacks.h queues.h klib.h driverInterface.h
 ramDiskDriver.o: ramDiskDriver.h common.h fs.h kdefs.h cio.h kmem.h compat.h
 ramDiskDriver.o: support.h kernel.h x86arch.h process.h stacks.h queues.h
 ramDiskDriver.o: kfs.h driverInterface.h klib.h
+sata.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+sata.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
+sata.o: sata.h
+disk.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+disk.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
+disk.o: sata.h disk.h clock.h
 users.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 users.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
 users.o: users.h userland/main1.c userland/main2.c userland/main3.c
