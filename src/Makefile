@@ -11,9 +11,9 @@
 #
 
 OS_C_SRC = clock.c kernel.c klibc.c kmem.c process.c queues.c \
-	scheduler.c sio.c stacks.c syscalls.c kfs.c ramDiskDriver.c
+	scheduler.c sio.c stacks.c syscalls.c kfs.c ramDiskDriver.c sata.c disk.c
 OS_C_OBJ = clock.o kernel.o klibc.o kmem.o process.o queues.o \
-	scheduler.o sio.o stacks.o syscalls.o kfs.o ramDiskDriver.o
+	scheduler.o sio.o stacks.o syscalls.o kfs.o ramDiskDriver.o sata.o disk.o
 
 OS_S_SRC = klibs.S
 OS_S_OBJ = klibs.o
@@ -179,12 +179,17 @@ prog.o:	$(OBJECTS)
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
-fs.img: MakeFSImage AddFile .shadow .groups testLongNames.txt
-	./MakeFSImage fs.dmg 16 10 1
+fs.img: MakeFSImage AddFile .shadow .groups testLongNames.txt 
+	./MakeFSImage fs.dmg 16 10 1 disk 2
 	./AddFile fs.dmg .shadow fs.img n n
 	./AddFile fs.img testLongNames.txt fs.dmg y y
 	./AddFile fs.dmg .groups fs.img y n
 	rm fs.dmg
+
+disk.img: MakeFSImage AddFile
+	./MakeFSImage disk.dmg 128 30 2
+	./AddFile disk.dmg placeholder disk.img y y
+	rm disk.dmg
 
 #
 # Targets for copying bootable image onto boot devices
@@ -225,7 +230,9 @@ clean:
 realclean:	clean
 
 qemu: usb.image
-	qemu-system-x86_64 -serial mon:stdio usb.image
+	qemu-system-x86_64 -serial mon:stdio -drive format=raw,id=usb,file=usb.image \
+	-drive format=raw,id=disk,file='disk.img',if=none \
+	-device ide-drive,drive=disk,bus=ide.0
 	@echo ""
 
 qemu-nox: usb.image
@@ -273,7 +280,7 @@ clock.o: driverInterface.h klib.h clock.h scheduler.h
 kernel.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 kernel.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h
 kernel.o: klib.h clock.h bootstrap.h syscalls.h sio.h ramDiskDriver.h
-kernel.o: scheduler.h users.h
+kernel.o: scheduler.h disk.h sata.h users.h
 klibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 klibc.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
 kmem.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
@@ -303,6 +310,12 @@ kfs.o: x86arch.h process.h stacks.h queues.h klib.h driverInterface.h
 ramDiskDriver.o: ramDiskDriver.h common.h fs.h kdefs.h cio.h kmem.h compat.h
 ramDiskDriver.o: support.h kernel.h x86arch.h process.h stacks.h queues.h
 ramDiskDriver.o: kfs.h driverInterface.h klib.h
+sata.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+sata.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
+sata.o: sata.h
+disk.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
+disk.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
+disk.o: sata.h disk.h clock.h
 users.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 users.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
 users.o: users.h userland/main1.c userland/main2.c userland/main3.c
