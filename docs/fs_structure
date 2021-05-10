@@ -1,4 +1,4 @@
-Our filesystem is built of (512 byte) blocks, and dividec into 3 sections:
+Our filesystem is built of (512 byte) blocks, and divided into 3 sections:
     1. Inode array
     2. Allocation map
     3. Data Blocks

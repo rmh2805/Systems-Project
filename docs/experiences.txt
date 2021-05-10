@@ -1,0 +1,70 @@
+CSCI 452 Final submission - Experiences Doc
+Raymond Healy, Ian Campbell, Koen Komeya
+
+Permission System (Raymond) -
+
+File System (Ian & Raymond) -
+
+    The file system (FS) was a really unique experience to develop over the course of the semester.
+I belive that it can generally be broken down into 3 major parts across the semester: early 
+planning and groundwork, developing sys calls and helper functions, and developing test applications.
+These can be more easily sumarized as planning, developing, and testing. And while some of these 
+had minor overlap the project was generally approached in this order.
+    
+ Early Planning: 
+    We started by defining the core element of any FS which is the inode. Our inode is a 256 byte 
+structure (see fs.h) that contains all the necessary elements to store and keep track of files in 
+our system. We put a lot of thought into what we wanted to include. A lot of the basics were no 
+brainers such as: inode index, number of bytes, number of blocks etc. But there are a few decisions 
+worth mentioning. We wanted the inode to be 256 bytes so we could fit 2 inodes into a single 512 
+block on disk. This meant we were able to store 14 direct pointers that each point to a data block 
+(for directories they contain a directory entry). This meant each file could have a max size 
+of 14 * 512 bytes covered by direct pointers. We also defined a structure block_t and gave space 
+for an extension block in the inode. We ended up running out of time and steam and were not 
+able to use extension blocks and if we had extra time this would be one of the first things we 
+would focus on. 
+    At this stage Raymond came up with and developed a RAMdisk that was easy to implement that 
+would allow us to test the software side of our FS without waiting on a disk driver at the last 
+minute. This became pivotal in our successes with the FS. We developed a simple device registration 
+method that essentially passes a read and write functin pointer to the FS agnostic of the device. 
+This approach meant that if we got a working driver down the line we would theoretically just plug 
+and play. It is also worth mentioning that the RAMdisk is located right after the bootstrap stack 
+and before the OS stack. We essentially just took a chunk out of the OS stack of about 16Kb 
+(see Memory.txt for specific addresses). We initially attempted to put this section after the OS
+stack but had problems editing bootstrap to make this possible, so we just shoved it in there.
+    We also added a section to each processes PCB that stored MAX_OPEN_FILES of file desriptors. 
+These descriptors simply contained an inode_id and the current offset into a file. 
+
+ Developing:
+    We started developing by outlining the new syscalls we wanted to implement to faciliate solid
+FS facilities. These syscalls were: fCreate, fRemove, fMove, fOpen, fClose, getInode and dirName.
+The combination of these syscalls allow us to make new files and directories, move files, and open 
+and close files as well. GetInode and dirName are primarily used as helper syscalls that are also
+used in some tests and applications. We decided that we would implement read and write by selecting
+additional channel via the already available read and write syscall. This allowed us to essentially 
+just to update the current default cases of the switch statements. If it wasn't a read/write to 
+sio/cio then we would take the channel number and attempt to read/write to the file that is located
+at that file descriptor in the processes PCB. If that doesn't work we error out, but if that is a 
+valid open FD we will then call the FS read/write. At this point the FS will call the 
+driver_interface.h corresponding to the inode we are reading and writing. This driver interface 
+contains the drivers read/write that is going to be called to actually do the read/write. Both 
+located in kfs.c.
+    It turns out that implementing reading (especially with a RAMDisk) was honestly pretty trivial.
+Essentially you just need to make sure you can grab the necessary inode on the disk then we read
+byte by byte and copy it into the given buffer. This was fairly simple once we established
+that we could read 512 bytes from a given offset with our drivers. It required reading a handful
+of blocks to get the inode and to read each block containing data of the file. 
+    Write is where things started to get complicated. Writing to a disk requries first identifying
+that we are located in a valid file and that we are offset to the end of the file. We dropped the 
+idea of implementing setting offset operations. This means we open a file we can either start 
+reading from the file at the beginning, or we can write to the end of the file. After we verify
+that the file is valid and we are at the end we have to write byte by byte to the last block 
+that is allocated. If this block is filled OR there is not any blocks allocated we have to allocate
+the block. Allocating a block (kfs.c) was a hot bed for minor bugs that we encountered througout
+development. 
+    Overall, the development period went pretty well. It required a lot iterative development and
+debugging. But once we finished most the code we were ready for testing. 
+    
+ Testing:    
+    
+Driver (Koen) -
