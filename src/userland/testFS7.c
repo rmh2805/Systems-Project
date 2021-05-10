@@ -39,7 +39,7 @@ int testFS7(uint32_t arg1, uint32_t arg2) {
         swrites(buf);
         return ret;
     }
-    sprint(buf, "Test FS %d.%d: \"test7.txt\" copied to \"testFS7direc\" successfully.\r\n", arg1, arg2);
+    sprint(buf, "Test FS %d.%d: \"test7.txt\" moved to \"testFS7direc\\t7copy.txt\" successfully.\r\n", arg1, arg2);
     swrites(buf);
 
     sprint(buf, "Test FS %d.%d: Printing contents of \"testFS7direc\".\r\n", arg1, arg2);
