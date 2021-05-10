@@ -230,10 +230,9 @@ clean:
 realclean:	clean
 
 qemu: usb.image
-	qemu-system-x86_64 -serial mon:stdio usb.image \
-	-drive id=disk,file=disk.img,if=none \
-	-device ahci,id=ahci \
-	-device ide-drive,drive=disk,bus=ahci.0
+	qemu-system-x86_64 -serial mon:stdio -drive format=raw,id=usb,file=usb.image \
+	-drive format=raw,id=disk,file='disk.img',if=none \
+	-device ide-drive,drive=disk,bus=ide.0
 	@echo ""
 
 qemu-nox: usb.image
