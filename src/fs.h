@@ -13,6 +13,8 @@
 
 #define MAX_OPEN_FILES 4
 
+#define DEFAULT_PERMISSIONS 0x3F
+
 //#define MAX_DISK_SIZE (1 << 28) // 256 MB
 
 //#define MIN_DISK_SIZE (1 << 20) // 1 MB

@@ -179,10 +179,11 @@ prog.o:	$(OBJECTS)
 prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
-fs.img: MakeFSImage AddFile .shadow testLongNames.txt
-	./MakeFSImage fs.img 16 10 1
-	./AddFile fs.img .shadow fs.dmg 
-	./AddFile fs.dmg testLongNames.txt fs.img
+fs.img: MakeFSImage AddFile .shadow .groups testLongNames.txt
+	./MakeFSImage fs.dmg 16 10 1
+	./AddFile fs.dmg .shadow fs.img n n
+	./AddFile fs.img testLongNames.txt fs.dmg y y
+	./AddFile fs.dmg .groups fs.img y n
 	rm fs.dmg
 
 #
@@ -262,55 +263,61 @@ bootstrap.o: bootstrap.h
 startup.o: bootstrap.h
 isr_stubs.o: bootstrap.h
 cio.o: cio.h klib.h common.h fs.h kdefs.h kmem.h compat.h support.h kernel.h
-cio.o: x86arch.h process.h stacks.h queues.h x86pic.h
+cio.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h x86pic.h
 support.o: support.h klib.h common.h fs.h kdefs.h cio.h kmem.h compat.h
-support.o: kernel.h x86arch.h process.h stacks.h queues.h x86pic.h
-support.o: bootstrap.h
+support.o: kernel.h x86arch.h process.h stacks.h queues.h kfs.h
+support.o: driverInterface.h x86pic.h bootstrap.h
 clock.o: x86arch.h x86pic.h x86pit.h common.h fs.h kdefs.h cio.h kmem.h
-clock.o: compat.h support.h kernel.h process.h stacks.h queues.h klib.h
-clock.o: clock.h scheduler.h
+clock.o: compat.h support.h kernel.h process.h stacks.h queues.h kfs.h
+clock.o: driverInterface.h klib.h clock.h scheduler.h
 kernel.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-kernel.o: x86arch.h process.h stacks.h queues.h klib.h clock.h bootstrap.h
-kernel.o: syscalls.h sio.h kfs.h driverInterface.h ramDiskDriver.h
+kernel.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h
+kernel.o: klib.h clock.h bootstrap.h syscalls.h sio.h ramDiskDriver.h
 kernel.o: scheduler.h users.h
 klibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-klibc.o: x86arch.h process.h stacks.h queues.h klib.h
+klibc.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
 kmem.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-kmem.o: x86arch.h process.h stacks.h queues.h klib.h bootstrap.h
+kmem.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
+kmem.o: bootstrap.h
 process.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-process.o: x86arch.h process.h stacks.h queues.h klib.h bootstrap.h
-process.o: scheduler.h
+process.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h
+process.o: klib.h bootstrap.h scheduler.h
 queues.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-queues.o: x86arch.h process.h stacks.h queues.h klib.h
+queues.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h
+queues.o: klib.h
 scheduler.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-scheduler.o: x86arch.h process.h stacks.h queues.h klib.h syscalls.h
+scheduler.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h
+scheduler.o: klib.h syscalls.h
 sio.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-sio.o: x86arch.h process.h stacks.h queues.h klib.h ./uart.h x86pic.h sio.h
-sio.o: scheduler.h
+sio.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
+sio.o: ./uart.h x86pic.h sio.h scheduler.h
 stacks.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-stacks.o: x86arch.h process.h stacks.h queues.h klib.h
+stacks.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h
+stacks.o: klib.h
 syscalls.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-syscalls.o: x86arch.h process.h stacks.h queues.h klib.h x86pic.h ./uart.h
-syscalls.o: bootstrap.h syscalls.h scheduler.h clock.h sio.h kfs.h
-syscalls.o: driverInterface.h
+syscalls.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h
+syscalls.o: klib.h x86pic.h ./uart.h bootstrap.h syscalls.h scheduler.h
+syscalls.o: clock.h sio.h
 kfs.o: kfs.h common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 kfs.o: x86arch.h process.h stacks.h queues.h klib.h driverInterface.h
 ramDiskDriver.o: ramDiskDriver.h common.h fs.h kdefs.h cio.h kmem.h compat.h
 ramDiskDriver.o: support.h kernel.h x86arch.h process.h stacks.h queues.h
-ramDiskDriver.o: klib.h driverInterface.h kfs.h
+ramDiskDriver.o: kfs.h driverInterface.h klib.h
 users.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-users.o: x86arch.h process.h stacks.h queues.h klib.h users.h
-users.o: userland/main1.c userland/main2.c userland/main3.c userland/main4.c
-users.o: userland/main5.c userland/main6.c userland/userH.c userland/userI.c
-users.o: userland/userJ.c userland/userP.c userland/userQ.c userland/userR.c
-users.o: userland/userS.c userland/userV.c userland/userW.c userland/userX.c
-users.o: userland/userY.c userland/userZ.c userland/mUser1.c
+users.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
+users.o: users.h userland/main1.c userland/main2.c userland/main3.c
+users.o: userland/main4.c userland/main5.c userland/main6.c userland/userH.c
+users.o: userland/userI.c userland/userJ.c userland/userP.c userland/userQ.c
+users.o: userland/userR.c userland/userS.c userland/userV.c userland/userW.c
+users.o: userland/userX.c userland/userY.c userland/userZ.c userland/mUser1.c
 users.o: userland/mUser2.c userland/mUser3.c userland/mUser4.c
 users.o: userland/testFS1.c userland/testFS2.c userland/testFS3.c
-users.o: userland/testFS4.c userland/testFS5.c userland/init.c
-users.o: userland/doTests.c userland/idle.c userland/signIn.c
-users.o: userland/testShell.c
+users.o: userland/testFS4.c userland/testFS5.c userland/testFS6.c
+users.o: userland/testFS7.c userland/init.c userland/doTests.c
+users.o: userland/idle.c userland/signIn.c userland/testShell.c
+users.o: userland/cat.c
 ulibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
-ulibc.o: x86arch.h process.h stacks.h queues.h klib.h
+ulibc.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
 ulibs.o: syscalls.h common.h fs.h kdefs.h cio.h kmem.h compat.h support.h
-ulibs.o: kernel.h x86arch.h process.h stacks.h queues.h klib.h
+ulibs.o: kernel.h x86arch.h process.h stacks.h queues.h kfs.h
+ulibs.o: driverInterface.h klib.h

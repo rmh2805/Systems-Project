@@ -34,6 +34,7 @@ extern void exit_helper( void );
 /*
 ** PRIVATE DEFINITIONS
 */
+static int _sys_seekFile( const char* path, inode_id_t * currentDir);
 
 /*
 ** PRIVATE DATA TYPES
@@ -175,16 +176,25 @@ static void _sys_read( uint32_t args[4] ) {
             return;
         }
 
-        n = _fs_read(fd, buf, length); // Read from file
-        if(n == E_EOF) {
-            RET(_current) = n;
+        // Check that you have read permissions
+        bool_t canRead;
+        int ret = _fs_getPermission(fd->inode_id, _current->uid, _current->gid, &canRead, NULL, NULL);
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _sys_read: Failed to read file %d.%d's permissions (%d)\n", fd->inode_id.devID, fd->inode_id.idx, ret);
+            RET(_current) = E_NO_PERMISSION;
+            return;
+        } else if(!canRead) {
+            __cio_printf("*ERROR* in _sys_read: No read permission on file %d.%d\n", fd->inode_id.devID, fd->inode_id.idx);
+            RET(_current) = E_NO_PERMISSION;
             return;
         }
+
+        n = _fs_read(fd, buf, length); // Read from file
     }
 
-    // if there was data, return the byte count to the process;
+    // if there was data (or EOF), return the byte count to the process;
     // otherwise, block the process until data is available
-    if( n > 0 ) {
+    if( n > 0 || n == E_EOF) {
 
         RET(_current) = n;
 
@@ -236,6 +246,19 @@ static void _sys_write( uint32_t args[4] ) {
         fd_t * fd = &_current->files[chan - 2];
         if(fd->inode_id.devID == 0 && fd->inode_id.idx == 0) {    // Blank fd_t
             RET(_current) = E_BAD_CHANNEL;  // Can't write to a blank fd
+            return;
+        }
+        
+        // Check that you have read permissions
+        bool_t canWrite;
+        ret = _fs_getPermission(fd->inode_id, _current->uid, _current->gid, NULL, &canWrite, NULL);
+        if(ret < 0) {
+            __cio_printf("*ERROR* in _sys_write: Failed to read file %d.%d's permissions (%d)\n", fd->inode_id.devID, fd->inode_id.idx, ret);
+            RET(_current) = E_NO_PERMISSION;
+            return;
+        } else if(!canWrite) {
+            __cio_printf("*ERROR* in _sys_read: No write permission on file %d.%d\n", fd->inode_id.devID, fd->inode_id.idx);
+            RET(_current) = E_NO_PERMISSION;
             return;
         }
 
@@ -325,8 +348,8 @@ static void _sys_kill( uint32_t args[4] ) {
         return;
     }
     
-    // Can only kill your own procs (unless root)
-    if(_current->uid != 0 && _current->uid != pcb->uid) {
+    // Can only kill your own procs (unless root or sudo)
+    if(!(_current->uid == UID_ROOT || _current->gid == GID_SUDO) && _current->uid != pcb->uid) {
         RET(_current) = E_NO_PERMISSION;
         return;
     }
@@ -568,7 +591,7 @@ static void _sys_setuid ( uint32_t args[4] ) {
     
     if (_current->uid == uid) { // Report success for same user
         RET(_current) = E_SUCCESS;
-    } else if (_current->uid != UID_ROOT) { // Return no permissions if non-root user
+    } else if (_current->uid != UID_ROOT && _current->gid != GID_SUDO) { // Return no permissions if non-root user & not sudoing
         RET(_current) = E_NO_PERMISSION;
     } else { // Otherwise update uid, set default gid, and return success
         _current->uid = uid;
@@ -577,6 +600,50 @@ static void _sys_setuid ( uint32_t args[4] ) {
     }
 }
 
+/**
+ * _sys_fGetLn - Helper to grab a file's next line
+ * 
+ * @param fd The file descriptor to read from
+ * @param buf The buffer to read into
+ * @param bufLen The length of the buffer
+ * 
+ * @return The number of bytes read (<0 on error, E_EOF on EOF)
+ */
+static int _sys_fGetLn(fd_t* fd, char * buf, int bufLen) {
+    int ret, nRead;
+
+    for(nRead = 0; nRead < bufLen - 1;) {
+        ret = _fs_read(fd, buf + nRead, 1);
+        if(ret == 0 || ret == E_EOF) {
+            if(nRead > 0) {
+                break;
+            }
+
+            buf[nRead] = 0;
+            return E_EOF;
+        } else if (ret < 0) {
+            __cio_printf("*ERROR* in _sys_fGetLn: Failed to read from file (%d)\n", ret);
+            return E_FAILURE;
+        }
+
+        switch(buf[nRead]) {
+            case '\b':
+            case '\r':
+            case 0:
+                continue;
+            case '\n':
+            default:
+                break;
+        }
+        if(buf[nRead] == '\n') {
+            break;
+        }
+
+        nRead++;
+    }
+    buf[nRead] = 0;
+    return nRead;
+}
 
 /**
 ** _sys_setgid - attempts to modify the gid of the current process
@@ -585,18 +652,92 @@ static void _sys_setuid ( uint32_t args[4] ) {
 **    uint32_t setgid( gid_t gid );
 */
 static void _sys_setgid ( uint32_t args[4] ) {
+    const int bufSize = 128;
+
     gid_t gid = args[0];
+    gid_t fGid;
+    int ret;
+
+    char buf[bufSize];
+    fd_t fd = {{0, 0}, 0};
+
     // If this is the user's or the open gid perform the change and return success
     if (gid == GID_USER || gid == GID_OPEN) {
         _current->gid = gid;
         RET(_current) = E_SUCCESS;
-    } else { // Otherwise return lack of permission
-        RET(_current) = E_NO_PERMISSION;
+        return;
+    } 
+
+    // Create an FD for the groups file
+    ret = _sys_seekFile("/.groups", &(fd.inode_id));
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_setgid: Failed to seek group file (%d)\n", ret);
+        RET(_current) = E_NOT_FOUND;
+        return;
     }
+    
+    // Read the file line by line to look for a matching entry
+    while(true) {
+        char * dataPtr = buf;
+
+        ret = _sys_fGetLn(&fd, buf, bufSize);
+        if(ret == E_EOF) {
+            break;
+        } else if (ret < 0) {
+            __cio_printf("*ERROR* in _sys_setgid: Failed to read line from group file (%d)\n", ret);
+            RET(_current) = E_FAILURE;
+            return;
+        }
+
+        //Skip the name to get to the gid
+        while(*(dataPtr) != ':' && *(dataPtr)) {
+            dataPtr++;
+        }
+        dataPtr++;
+
+        // Decode the referenced gid
+        fGid = 0;
+        while(*(dataPtr) != ':' && *(dataPtr)) {
+            fGid = 10 * fGid + *(dataPtr) - '0';
+            dataPtr++;
+        }
+        dataPtr++;
+
+        // Try next line if wrong GID
+        if(fGid != gid) {
+            continue;
+        }
+
+        // Try to match current uid to the group's user list
+        bool_t matching = (_current->uid == UID_ROOT); // Skip matching root user
+        while(!matching && *dataPtr) {
+            uid_t fUid = 0;
+            while(*(dataPtr) != ':' && *(dataPtr)) {
+                fUid = 10 * fUid + *(dataPtr) - '0';
+                dataPtr++;
+            }
+            dataPtr++;
+
+            if(fUid == _current->uid) {
+                matching = true;
+            }
+        }
+        if(matching) {  // Update gid on success
+            _current->gid = gid;
+            RET(_current) = E_SUCCESS;
+        } else {        // Fail if not on the list
+            RET(_current) = E_NO_PERMISSION;
+        }
+        return;
+    }
+
+    // Didn't find the group in the entire file. Exit.
+    RET(_current) = E_EOF;
+    return;
 }
 
 // File system traversal helpers
-static char* getNextName(char * path, char * nextName, int* nameLen) {
+static int _sys_getNextName(const char * path, char * nextName, int* nameLen) {
     *nameLen = 0;
     int i = 0;
 
@@ -608,46 +749,50 @@ static char* getNextName(char * path, char * nextName, int* nameLen) {
         i++;
     }
     
-    for(int j = i; j < 12; j++) { // 0 fill the rest of nextName
+    for(int j = i; j < MAX_FILENAME_SIZE; j++) { // 0 fill the rest of nextName
         nextName[j] = 0;
     }
     
-    return path + i; // Return the string after the read name
+    return i; // Return the string after the read name
 }
 
-static int _sys_seekFile( char* path, inode_id_t * currentDir) {
-    char* sPath = path;
+static int _sys_seekFile(const char* path, inode_id_t * currentDir) {
+    int i = 0;
 
     // Get starting inode (either working directory or root directory)
     *currentDir = _current->wDir;
     if(path[0] == '/') {
         *currentDir = (inode_id_t){0, 1};
-        path++;
-        if(!(*path)) {
+        i++;
+        if(!(path[i])) {
             return E_SUCCESS;
         }
     }
     
     char nextName[12];
-    while(*path) {
-        if (*path == '/') {     //If targeting slash, advance
-            path++;
+    while(path[i] != 0) {
+        if (path[i] == '/') {     //If targeting slash, advance
+            i++;
+            if(!path[i]) {
+                return E_SUCCESS;
+            }
         }
         
         // Grab the name of the next entry
         int nameLen = 0;
-        path = getNextName(path, nextName, &nameLen);
+        nameLen = _sys_getNextName(&(path[i]), nextName, &nameLen);
 
         if(nameLen == 0) {  // Entry names must have length > 0
-
-            __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", sPath);
+            __cio_printf("*ERROR* in _sys_seekfile(): 0 length fs entry name in path \"%s\"\n", path);
             return E_BAD_PARAM;
         }
         
+
+        i += nameLen;
         // Grab nextName from currentDir's entries
         int ret = _fs_getSubDir(*currentDir, nextName, currentDir);
         if(ret < 0) {
-            __cio_printf("*ERROR* in _sys_seekfile(): Unable to get subDir \"%s\"\n", nextName);
+            __cio_printf("*ERROR* in _sys_seekfile(): Unable to get subDir \"%s\" in %d.%d\n", nextName, currentDir->devID, currentDir->idx);
             return ret;
         }
     }
@@ -679,6 +824,7 @@ static void _sys_fopen( uint32_t args[4]) {
         }       
     }
 
+    // Seek the file itself
     inode_id_t currentDir;
     int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
@@ -687,7 +833,7 @@ static void _sys_fopen( uint32_t args[4]) {
         return;
     }
 
-    // check that this is a file
+    // Load the referenced inode
     inode_t tgt;
     result = _fs_getInode(currentDir, &tgt);
     if(result < 0) {
@@ -696,12 +842,23 @@ static void _sys_fopen( uint32_t args[4]) {
         return;
     }
 
+    // Check that this is an inode
     if(tgt.nodeType != INODE_FILE_TYPE) {
         __cio_printf("*ERROR* in _sys_fopen: Specified inode is not a file\n");
         RET(_current) = E_BAD_PARAM;
         return;
     }
 
+    // Check that we have either read or write permissions on this
+    bool_t canRead, canWrite;
+    _fs_nodePermission(&tgt, _current->uid, _current->gid, &canRead, &canWrite, NULL);
+    if(!canRead && !canWrite) {
+        __cio_printf("*ERROR* in _sys_fopen: No rw permissions on this file\n");
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
+    // Setup the file descriptor with this file and return the file type
     _current->files[fdIdx].inode_id = currentDir;
     _current->files[fdIdx].offset = (append) ? tgt.nBytes : 0;
     
@@ -772,6 +929,15 @@ static void _sys_fcreate  (uint32_t args[4]) {
         return;
     }
 
+    // Fail if no write permission in this directory
+    bool_t canWrite;
+    _fs_nodePermission(&pNode, _current->uid, _current->gid, NULL, &canWrite, NULL);
+    if(!canWrite) {
+        __cio_printf("*ERROR* in _sys_fcreate: Cannot create entries in \"%s\"\n", path);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
     // Find next free inode
     result = _fs_allocNode(currentDir.devID, &newID);
     if(result < 0) {
@@ -789,7 +955,8 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Setup default inode values
     newNode.id = newID;
     newNode.uid = _current->uid;
-    newNode.gid = _current->pid;
+    newNode.gid = _current->gid;
+    newNode.permissions = DEFAULT_PERMISSIONS;     // Default to open access
     newNode.nRefs = 0; // No references yet
     newNode.nBlocks = 0;
     newNode.nBytes = 0;
@@ -826,15 +993,37 @@ static void _sys_fremove (uint32_t args[4]) {
     inode_id_t targetDirID;
     int result = _sys_seekFile(path, &targetDirID);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NOT_FOUND;
         return;
+    }
+
+    // Find the child node to check priveleges
+    inode_id_t childId;
+    result = _fs_getSubDir(targetDirID, name, &childId);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fremove: Could not grab node id for \"%s/%s\"\n", path, name);
+        RET(_current) = E_NOT_FOUND;
+        return; 
+    }
+
+    // Actually check node priveleges
+    bool_t canMeta;
+    result = _fs_getPermission(childId, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fremove: Could not grab permissions for \"%s/%s\"\n", path, name);
+        RET(_current) = E_NO_PERMISSION;
+        return; 
+    } else if(!canMeta) {
+        __cio_printf("*ERROR* in _sys_fremove: Do not have meta priveleges for \"%s/%s\"\n", path, name);
+        RET(_current) = E_NO_PERMISSION;
+        return; 
     }
 
     // Remove the entry from the parent
     result = _fs_rmDirEnt(targetDirID, name);
     if(result < 0) {
         __cio_printf("*ERROR*in _sys_fremove: Cannot remove entry from directory (fremove)\n");
-        RET(_current) = result;
+        RET(_current) = E_FAILURE;
         return; 
     }
 
@@ -891,6 +1080,15 @@ static void _sys_fmove (uint32_t args[4]) {
         return;
     }
 
+    // Check that we have write priveleges in source node
+    bool_t permitted;
+    _fs_nodePermission(&sourceNode, _current->uid, _current->gid, NULL, &permitted, NULL);
+    if(!permitted) {
+        __cio_printf("*ERROR* in _sys_fmove: Cannot write to node \"%s\"\n", sPath);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
     // Read the dest node from the disk
     result = _fs_getInode(destDir, &destNode);
     if(result < 0) {
@@ -906,6 +1104,14 @@ static void _sys_fmove (uint32_t args[4]) {
         return;
     }
 
+    // Check that we can write to dest
+    _fs_nodePermission(&destNode, _current->uid, _current->gid, NULL, &permitted, NULL);
+    if(!permitted) {
+        __cio_printf("*ERROR* in _sys_fmove: Cannot write to node \"%s\"\n", dPath);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
     // Get inode_id_t for source file and add it to the dest dir
     result = _fs_getSubDir(sourceDir, sName, &copyTarg); 
     if(result < 0) {
@@ -913,7 +1119,21 @@ static void _sys_fmove (uint32_t args[4]) {
         RET(_current) = result;
         return;
     }
+
+    //Check that we have meta permissions for the file in question
+    result = _fs_getPermission(copyTarg, _current->uid, _current->gid, NULL, &permitted, NULL);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fmove: Could not get permissions for node \"%s/%s\"\n", sPath, sName);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    } else if(!permitted) {
+        __cio_printf("*ERROR* in _sys_fmove: No meta priveleges on node \"%s/%s\"\n", sPath, sName);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
     
+
+    // Add the new entry to the destination first
     result = _fs_addDirEnt(destDir, dName, copyTarg);
     if(result < 0) {
         __cio_printf("*ERROR* Unable to add \"%s\" to \"%s\"\n", dName, destDir);
@@ -956,6 +1176,11 @@ static void _sys_getinode (uint32_t args[4]) {
         __cio_printf("*ERROR* in _sys_getinode: Failed to grab inode %d.%d (%d)\n", currentDir.devID, currentDir.idx, result);
         RET(_current) = E_FAILURE;
         return;
+    }
+
+    // Clear out everything past gid and return success
+    for(int idx = (void *)(&(inode->lock)) - (void*)(inode); idx < sizeof(inode_t); idx++) {
+        ((char*)(inode))[idx] = 0;
     }
 
     RET(_current) = E_SUCCESS;
@@ -1002,6 +1227,15 @@ static void _sys_dirname (uint32_t args[4]) {
     if(node.nodeType != INODE_DIR_TYPE) {
         __cio_printf("*ERROR* in _sys_dirname: Node at \"%s\" is not a directory\n", path);
         RET(_current) = E_NO_CHILDREN;
+        return;
+    }
+
+    // Check that we can read from this node
+    bool_t canRead;
+    _fs_nodePermission(&node, _current->uid, _current->gid, &canRead, NULL, NULL);
+    if(!canRead) {
+        __cio_printf("*ERROR* in _sys_dirname: Not permitted to read from node \"%s\"\n", path);
+        RET(_current) = E_NO_PERMISSION;
         return;
     }
 

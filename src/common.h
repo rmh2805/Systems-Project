@@ -95,9 +95,14 @@ typedef uint16_t uid_t;
 // Group ID definitions
 #define GID_USER    (0)
 #define GID_OPEN    (1)
+#define GID_SUDO    (2)
 
 // User ID definitions
 #define UID_ROOT    (0)
+#define UID_MIN     (100)
+
+// Other multi-user definitions
+#define MAX_UNAME_SIZE (16)
 
 
 // Process state and state values

@@ -1,6 +1,7 @@
 #ifndef TEST_SHELL_H_
 #define TEST_SHELL_H_
 
+#include "common.h"
 int32_t testShell(uint32_t arg1, uint32_t arg2) {
     const uint32_t iBufSz = 64;
     const uint32_t oBufSz = 128;
@@ -8,6 +9,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
     char oBuf[oBufSz];
 
     int32_t nRead = 0;
+    int ret;
 
 
     swrites("Test shell started\r\nTry help for a list of commands\r\n\n");
@@ -21,23 +23,28 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
         }
 
         nRead = strTrim(iBuf, iBuf);
-        strLower(iBuf, iBuf);
         if(nRead == 0) {    // Skip empty commands
             continue;
         } else if(strcmp(iBuf, "help") == 0) {  // Print command lists
             swrites("Main test shell help:\r\n");
             swrites("\thelp: prints this screen\r\n");
             swrites("\tlogout: return to sign in\r\n");
+            swrites("\tcls: clear the screen (print several lines to console)\r\n");
             swrites("\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
             swrites("\tlist [bank]: List all tests (if bank is specified, all tests in it)\r\n");
             swrites("\ttest <bank> <test>: perform test x from bank n\r\n");
-
+            swrites("\tcat <file path>: Cat the file contents out to the console\r\n");
+            swrites("\tls <file path>: Print the contents and permissions of the subdirectory\r\n");
 
         } else if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
             strcmp(iBuf, "logout") == 0 || strcmp(iBuf, "`") == 0) {    // Exit
             swrites("Exiting\r\n");
             exit(0);
 
+        } else if (strcmp(iBuf, "cls") == 0){   // Clear the screen
+            for(int i = 0; i < 80; i++) {
+                swrites("\r\n");
+            }
         } else if(strncmp(iBuf, "list", 4) == 0) {  // list tests
             char* tmp = &iBuf[4];
             while(*tmp == ' ') tmp++;
@@ -99,6 +106,26 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             }
 
             swrites(oBuf);
+
+        } else if(strncmp(iBuf, "cat", 3) == 0) {
+            strTrim(oBuf, iBuf + 3);
+
+            ret = cat((uint32_t)&oBuf, 0);
+            if(ret < 0) {
+                sprint(iBuf, "Failed to cat file \"%s\"\r\n", oBuf);
+                swrites(iBuf);
+            }
+
+
+        } else if(strncmp(iBuf, "ls", 2) == 0) {
+            strTrim(oBuf, iBuf + 2);
+
+            ret = ls((uint32_t)&oBuf, 0);
+            if(ret < 0) {
+                sprint(iBuf, "Failed to ls directory \"%s\"\r\n", oBuf);
+                swrites(iBuf);
+            }
+
 
         } else {    //Unknown Command
             sprint(oBuf, "Uncrecognized command \"%s\", try \"help\"", iBuf);

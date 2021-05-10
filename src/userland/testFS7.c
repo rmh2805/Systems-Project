@@ -22,6 +22,23 @@ int testFS7(uint32_t arg1, uint32_t arg2) {
     sprint(buf, "Test FS %d.%d: File \"test7.txt\" created successfully.\r\n", arg1, arg2);
     swrites(buf);
 
+    // Write data to the test file
+    int fp = fopen("/test7.txt", true);
+    if(fp < 0) {
+        sprint(buf, "Test FS %d.%d: Failed to open \"/test7.txt\" (exit status %d)\r\n", arg1, arg2, fp);
+        swrites(buf);
+        return fp;
+    }
+    
+    ret = write(fp, "foo bar baz\n", 13);
+    if(ret < 0) {
+        sprint(buf, "Test FS %d.%d: Failed to write to \"/test7.txt\" (exit status %d)\r\n", arg1, arg2, fp);
+        swrites(buf);
+        return fp;
+    }
+
+    fclose(fp);
+
     // Create target dir
     ret = fcreate("/", "testFS7direc", false);
     if(ret < 0) {

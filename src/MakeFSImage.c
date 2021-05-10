@@ -1,3 +1,4 @@
+#define ULIB_H_
 #include "common.h"
 
 // avoid complaints about stdio.h
@@ -49,7 +50,7 @@ int main(int argc, char** argv) {
     FILE * outF = fopen(oFileName, "wb");
     if(outF == (FILE *) -1) {
         fprintf(stderr, "Failed to open file %s\n", oFileName);
-        exit(-1);
+        return (-1);
     }
 
     diskSize = decStr2int(argv[2]) * 1024;
@@ -114,6 +115,7 @@ int main(int argc, char** argv) {
     rootNode.nBytes = 1;
     rootNode.nRefs = 1;
     rootNode.nodeType = INODE_DIR_TYPE;
+    rootNode.permissions = 0x3F;
     rootNode.direct_pointers[0].dir.name[0] = '.';
     rootNode.direct_pointers[0].dir.name[1] = '.';
     rootNode.direct_pointers[0].dir.name[2] = 0;
