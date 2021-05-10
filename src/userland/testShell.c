@@ -35,8 +35,8 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("\tcls: clear the screen (print several lines to console)\r\n");
 
             swrites("\r\n\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
-            swrites("\r\n\tchown <uid> <gid> <path>: Set a new group and user owner for path\r\n");
-            swrites("\r\n\tchmod <permStr> <path>: Set new permissions for path\r\n");
+            swrites("\tchown <uid> <gid> <path>: Set a new group and user owner for path\r\n");
+            swrites("\tchmod <permStr> <path>: Set new permissions for path\r\n");
             
             swrites("\r\n\tcat <file path>: Cat the file contents out to the console\r\n");
             swrites("\tls <file path>: Print the contents and permissions of the subdirectory\r\n");
