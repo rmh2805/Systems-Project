@@ -1263,6 +1263,116 @@ static void _sys_dirname (uint32_t args[4]) {
 
 }
 
+/**
+ * _sys_fchown - Changes the ownership of a directory 
+ * 
+ * implements:
+ *    int32_t fchown(char * path, uid_t uid, gid_t gid)
+ */
+static void _sys_fchown(uint32_t args[4]) {
+    char * path = (char *) args[0];
+    uid_t uid = (uid_t) args[1];
+    gid_t gid = (gid_t) args[2];
+
+    inode_id_t id;
+    inode_t node;
+    int ret;
+
+    // Seek the file
+    ret = _sys_seekFile(path, &id);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fchown: Failed to get file at %s (%d)\n", path, ret);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    // Get the file's inode
+    ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fchown: Failed to get inode at %s (%d)\n", path, ret);
+        RET(_current) = E_NO_DATA;
+        return;
+    }
+
+    // Check that we have permissions
+    bool_t canMeta;
+    _fs_nodePermission(&node, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    if(!canMeta) {
+        __cio_printf("*ERROR* in _sys_fchown: No meta permissions on %s\n", path);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
+    // Update the node
+    node.uid = uid;
+    node.gid = gid;
+
+    // Write the updated node to disk
+    ret = _fs_setInode(node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fchown: Failed to update inode at %s (%d)\n", path, ret);
+        RET(_current) = E_NO_DATA;
+        return;
+    }
+
+    RET(_current) = E_SUCCESS;
+    return;
+}
+
+/**
+ * _sys_fSetPerm - Changes the permissions of a directory 
+ * 
+ * implements:
+ *    int32_t fSetPerm(char * path, uint32_t permissions);
+ */
+static void _sys_fSetPerm(uint32_t args[4]) {
+    char * path = (char *) args[0];
+    uint32_t permissions = args[1];
+
+    inode_id_t id;
+    inode_t node;
+    int ret;
+
+    // Seek the file
+    ret = _sys_seekFile(path, &id);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fSetPerm: Failed to get file at %s (%d)\n", path, ret);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    // Get the file's inode
+    ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fSetPerm: Failed to get inode at %s (%d)\n", path, ret);
+        RET(_current) = E_NO_DATA;
+        return;
+    }
+
+    // Check that we have permissions
+    bool_t canMeta;
+    _fs_nodePermission(&node, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    if(!canMeta) {
+        __cio_printf("*ERROR* in _sys_fSetPerm: No meta permissions on %s\n", path);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
+    // Update the node
+    node.permissions = permissions;
+
+    // Write the updated node to disk
+    ret = _fs_setInode(node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fSetPerm: Failed to update inode at %s (%d)\n", path, ret);
+        RET(_current) = E_NO_DATA;
+        return;
+    }
+
+    RET(_current) = E_SUCCESS;
+    return;
+}
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -1311,6 +1421,8 @@ void _sys_init( void ) {
     _syscalls[ SYS_fmove ]    = _sys_fmove;
     _syscalls[ SYS_getinode ] = _sys_getinode;
     _syscalls[ SYS_dirname]   = _sys_dirname;
+    _syscalls[ SYS_fchown]    = _sys_fchown;
+    _syscalls[ SYS_fSetPerm]  = _sys_fSetPerm;
 
 
     /*

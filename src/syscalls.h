@@ -48,9 +48,11 @@
 #define SYS_fmove     20
 #define SYS_getinode  21
 #define SYS_dirname   22
+#define SYS_fchown    23
+#define SYS_fSetPerm  24
 
 // UPDATE THIS DEFINITION IF MORE SYSCALLS ARE ADDED!
-#define N_SYSCALLS    23
+#define N_SYSCALLS    25
 
 // dummy system call code for testing our ISR
 #define SYS_bogus     0xbad
