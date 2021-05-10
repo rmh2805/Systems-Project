@@ -113,6 +113,48 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
 
             swrites(oBuf);
 
+        } else if (strncmp(iBuf, "chown", 5) == 0) {
+            nRead = strTrim(oBuf, &iBuf[6]);
+            char modBuf[32];
+            char * dataPtr = oBuf;
+
+            // Get the UID
+            for(int i = 0; oBuf[i] && oBuf[i] != ' '; i++) {
+                modBuf[i] = oBuf[i];
+                modBuf[i + 1] = 0;
+                dataPtr++;
+            }
+            while(*dataPtr && *dataPtr != ' ') {
+                dataPtr++;
+            }
+            dataPtr++;
+            
+            
+            nRead = strTrim(oBuf, modBuf);
+            if(nRead <= 0) {
+                swrites("SHELL: No uid specified for chown\r\n");
+            }
+            uid_t uid = str2int(modBuf, 10);
+
+            // Get the GID
+            for(int i = 0; *dataPtr && *dataPtr != ' '; i++) {
+                modBuf[i] = *dataPtr;
+                modBuf[i + 1] = 0;
+                dataPtr++;
+            }
+            
+            nRead = strTrim(oBuf, modBuf);
+            if(nRead <= 0) {
+                swrites("SHELL: No gid specified for chown\r\n");
+            }
+            gid_t gid = str2int(modBuf, 10);
+
+            // Get the path
+            strTrim(oBuf, dataPtr);
+            
+            fchown(oBuf, uid, gid);
+
+
         } else if (strncmp(iBuf, "chmod", 5) == 0) {
             nRead = strTrim(oBuf, &iBuf[6]);
             char modBuf[32];
@@ -127,7 +169,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
 
             chmod((uint32_t) modBuf, (uint32_t) oBuf);
 
-        }else if(strncmp(iBuf, "cat", 3) == 0) {
+        } else if(strncmp(iBuf, "cat", 3) == 0) {
             strTrim(oBuf, iBuf + 3);
 
             ret = cat((uint32_t)&oBuf, 0);
