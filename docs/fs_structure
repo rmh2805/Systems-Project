@@ -65,3 +65,8 @@ unavailable), and if it is not set, it is free for allocation.
 # Data Blocks
 These blocks store all filesystem data not contained within the inodes themselves (e.g. file 
 contents).
+
+# Using FS
+Our FS images are accessible by a variety of syscalls made available to users. These syscalls are: fcreate, fremove, fopen, fclose, fmove, getinode, and dirname. A complete reference of these syscalls is available in `api_information`. Read and writing to a file are done with the already present read and write syscalls. Now users can call read or write and pass a file descriptor (returned to them after a successful fopen) which will the internal _fs_read/_fs_write (kfs.c) which will then determine which device is being used and call that devices read and write.
+
+Our FS is device agnostic. This is done by having each driver that is loaded in the kernels initialization call a function called _fs_register. This stores the read and write function pointers for the driver and gives it a number to be referenced by. Once the device is registered the user just has to do operations on files and it all comes together in fs. 
