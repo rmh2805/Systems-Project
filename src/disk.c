@@ -439,11 +439,11 @@ void _disk_init( void ) {
 //512 bytes
 
 int _disk_read( uint32_t blockNr, char* buf, uint8_t devId ) {
-    char res[16];
-    __cvtdec(res, blockNr);
-    __cio_puts("Block ");__cio_puts(res); __cio_putchar('\n');
-    __cvtdec(res, devId);
-    __cio_puts("DI ");__cio_puts(res); __cio_putchar('\n');
+    //char res[16];
+    //__cvtdec(res, blockNr);
+    //__cio_puts("Block ");__cio_puts(res); __cio_putchar('\n');
+    //__cvtdec(res, devId);
+    //__cio_puts("DI ");__cio_puts(res); __cio_putchar('\n');
     
     if (devId >= _ide_device_count) 
         return -1;
