@@ -113,7 +113,21 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
 
             swrites(oBuf);
 
-        } else if(strncmp(iBuf, "cat", 3) == 0) {
+        } else if (strncmp(iBuf, "chmod", 5) == 0) {
+            nRead = strTrim(oBuf, &iBuf[6]);
+            char modBuf[32];
+            char * dataPtr = oBuf;
+            for(int i = 0; oBuf[i] && oBuf[i] != ' '; i++) {
+                modBuf[i] = oBuf[i];
+                modBuf[i + 1] = 0;
+                dataPtr++;
+            }
+            
+            strTrim(oBuf, dataPtr);
+
+            chmod((uint32_t) modBuf, (uint32_t) oBuf);
+
+        }else if(strncmp(iBuf, "cat", 3) == 0) {
             strTrim(oBuf, iBuf + 3);
 
             ret = cat((uint32_t)&oBuf, 0);
