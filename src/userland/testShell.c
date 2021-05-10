@@ -28,13 +28,19 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
         } else if(strcmp(iBuf, "help") == 0) {  // Print command lists
             swrites("Main test shell help:\r\n");
             swrites("\thelp: prints this screen\r\n");
-            swrites("\tlogout: return to sign in\r\n");
-            swrites("\tcls: clear the screen (print several lines to console)\r\n");
-            swrites("\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
             swrites("\tlist [bank]: List all tests (if bank is specified, all tests in it)\r\n");
             swrites("\ttest <bank> <test>: perform test x from bank n\r\n");
-            swrites("\tcat <file path>: Cat the file contents out to the console\r\n");
+
+            swrites("\r\n\tlogout: return to sign in\r\n");
+            swrites("\tcls: clear the screen (print several lines to console)\r\n");
+
+            swrites("\r\n\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
+            swrites("\r\n\tchown <uid> <gid> <path>: Set a new group and user owner for path\r\n");
+            swrites("\r\n\tchmod <permStr> <path>: Set new permissions for path\r\n");
+            
+            swrites("\r\n\tcat <file path>: Cat the file contents out to the console\r\n");
             swrites("\tls <file path>: Print the contents and permissions of the subdirectory\r\n");
+
 
         } else if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
             strcmp(iBuf, "logout") == 0 || strcmp(iBuf, "`") == 0) {    // Exit
