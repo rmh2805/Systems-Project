@@ -320,6 +320,31 @@ int32_t getinode(char * path, inode_t * inode);
  */
 int32_t dirname(char * path, char* buf, uint32_t subDirNr);
 
+/**
+ * fchown - Changes the ownership of a file 
+ * 
+ * usage: fchown(char * path, uid_t uid, gid_t gid);
+ * 
+ * @param path The path of the file to change
+ * @param uid The uid of the new owner
+ * @param gid The gid of the new owner
+ * 
+ * @result 0 on success, negative on failure
+ */
+int32_t fchown(char * path, uid_t uid, gid_t gid);
+
+/**
+ * fSetPerm - Changes the permissions of a directory 
+ * 
+ * usage: fSetPerm(char * path, uint32_t permissions);
+ * 
+ * @param path The path of the file to change
+ * @param permissions The new permissions of the file
+ * 
+ * @result 0 on success, negative on failure
+ */
+int32_t fSetPerm(char * path, uint32_t permissions);
+
 /*
 **********************************************
 ** CONVENIENT "SHORTHAND" VERSIONS OF SYSCALLS
