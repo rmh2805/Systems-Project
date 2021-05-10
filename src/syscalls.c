@@ -829,7 +829,7 @@ static void _sys_fopen( uint32_t args[4]) {
     int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_fopen: failed to seek target inode \"%s\"\n", path);
-        RET(_current) = result;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
@@ -838,7 +838,7 @@ static void _sys_fopen( uint32_t args[4]) {
     result = _fs_getInode(currentDir, &tgt);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_fopen: failed to retrieve target inode \"%s\"\n", path);
-        RET(_current) = result;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
@@ -911,14 +911,14 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Get Current Directory
     result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
     // Get the parent inode
     result = _fs_getInode(currentDir, &pNode);
     if(result < 0){
-        RET(_current) = result;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
@@ -927,6 +927,35 @@ static void _sys_fcreate  (uint32_t args[4]) {
         __cio_printf("*ERROR* in _sys_fcreate: path \"%s\" leads to non-directory\n", path);
         RET(_current) = E_BAD_PARAM;
         return;
+    }
+
+    // Check for name overlap
+    for(uint32_t i = 0; i < pNode.nBytes; i++) {
+        data_u temp;
+        bool_t matched;
+
+        result = _fs_getNodeEnt(&pNode, i, &temp);
+        if(result < 0) { 
+            RET(_current) = E_BAD_PARAM;
+            return;
+        }
+
+        matched = true;
+        for(uint32_t j = 0; j < MAX_FILENAME_SIZE; j++) {
+            if(temp.dir.name[j] == 0 && name[j] == 0) {
+                break;
+            }
+
+            if(temp.dir.name[j] != name[j]) {
+                matched = false;
+                break;
+            }
+        }
+        if (matched) {
+            __cio_printf("ERROR in _sys_fcreate: %s already exists in DIR\n", name);
+            RET(_current) = E_BAD_PARAM;
+            return;
+        }
     }
 
     // Fail if no write permission in this directory
@@ -941,14 +970,14 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Find next free inode
     result = _fs_allocNode(currentDir.devID, &newID);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NO_DATA;
         return;
     }
 
     // Get the inode via the index
     result = _fs_getInode(newID, &newNode);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NOT_FOUND;
         return;
     }    
     
@@ -972,7 +1001,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Update parent Inode
     result = _fs_addDirEnt(currentDir, name, newID);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_FAILURE;
         return;
     }
 
