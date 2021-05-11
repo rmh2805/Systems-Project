@@ -40,6 +40,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             
             swrites("\r\n\tcat <file path>: Cat the file contents out to the console\r\n");
             swrites("\tls <file path>: Print the contents and permissions of the subdirectory\r\n");
+            swrites("\tap <file path>: Append a line to a file\r\n");
 
 
         } else if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
@@ -189,6 +190,14 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             }
 
 
+        } else if(strncmp(iBuf, "ap", 2) == 0) {
+            strTrim(oBuf, iBuf + 2);
+
+            ret = ap((uint32_t)&oBuf, 0);
+            if(ret < 0) {
+                sprint(iBuf, "Failed to append line to file \"%s\"\r\n", oBuf);
+                swrites(iBuf);
+            }
         } else {    //Unknown Command
             sprint(oBuf, "Uncrecognized command \"%s\", try \"help\"", iBuf);
             swrites(oBuf);

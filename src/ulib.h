@@ -240,7 +240,7 @@ int32_t setgid( gid_t gid );
  * @param path The path of the file to open
  * @param append If set, offset initialized to EOF
  * 
- * @return file descriptor on success, negative on failure
+ * @return file descriptor on success, negative on failure (E_NO_CHILDREN if not found)
  */
 int32_t fopen(char* path, bool_t append);
 
