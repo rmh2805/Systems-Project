@@ -1414,6 +1414,58 @@ static void _sys_fSetPerm(uint32_t args[4]) {
     return;
 }
 
+
+/**
+ * _sys_setDir - Sets a new working directory
+ * 
+ * implements:
+ *      int32_t setDir(char * path);
+ */
+static void _sys_setDir(uint32_t args[4]) {
+    char * path = (char*) args[0];
+    int ret;
+
+    inode_id_t id;
+    inode_t node;
+    
+    // Seek the new directory
+    ret = _sys_seekFile(path, &id);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_setDir: Failed to seek directory \"%s\" (%d)\n", path, ret);
+        RET(_current) = E_NOT_FOUND;
+        return;
+    }
+
+    // Pull the node
+    ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_setDir: Failed to get inode for directory \"%s\" (%d)\n", path, ret);
+        RET(_current) = E_NOT_FOUND;
+        return;
+    }
+
+    // Check that this is a directory
+    if(node.nodeType != INODE_DIR_TYPE) {
+        __cio_printf("*ERROR* in _sys_setDir: \"%s\" is not a directory\n", path);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    // Check that we have read permissions here
+    bool_t canRead;
+    _fs_nodePermission(&node, _current->uid, _current->gid, &canRead, NULL, NULL);
+    if(!canRead) {
+        __cio_printf("*ERROR* in _sys_setDir: No read permissions in \"%s\"\n", path);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
+    // Update the working directory and exit successfully
+    _current->wDir = id;
+    RET(_current) = E_SUCCESS;
+    return;
+}
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -1464,6 +1516,7 @@ void _sys_init( void ) {
     _syscalls[ SYS_dirname]   = _sys_dirname;
     _syscalls[ SYS_fchown]    = _sys_fchown;
     _syscalls[ SYS_fSetPerm]  = _sys_fSetPerm;
+    _syscalls[ SYS_setDir]    = _sys_setDir;
 
 
     /*

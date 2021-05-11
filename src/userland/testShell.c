@@ -42,6 +42,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("\tls <file path>: Print the contents and permissions of the subdirectory\r\n");
             swrites("\tap <file path>: Append a line to a file\r\n");
             swrites("\trm <file path>: Remove a directory entry\r\n");
+            swrites("\tcd <file path>: Change the working directory\r\n");
 
 
         } else if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
@@ -219,6 +220,14 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             if(ret < 0) {
                 sprint(iBuf, "Failed to remove file \"%s\" (%s)\r\n", nBuf, oBuf);
                 swrites(iBuf);
+            }
+        } else if (strncmp(iBuf, "cd", 2) == 0) {
+            strTrim(iBuf, iBuf + 2);
+            
+            ret = setDir(iBuf);
+            if(ret < 0) {
+                sprint(oBuf, "Failed to change working directory to \"%s\"\r\n", iBuf);
+                swrites(oBuf);
             }
         } else {    //Unknown Command
             sprint(oBuf, "Uncrecognized command \"%s\", try \"help\"", iBuf);

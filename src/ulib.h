@@ -329,7 +329,7 @@ int32_t dirname(char * path, char* buf, uint32_t subDirNr);
  * @param uid The uid of the new owner
  * @param gid The gid of the new owner
  * 
- * @result 0 on success, negative on failure
+ * @return 0 on success, negative on failure
  */
 int32_t fchown(char * path, uid_t uid, gid_t gid);
 
@@ -341,9 +341,20 @@ int32_t fchown(char * path, uid_t uid, gid_t gid);
  * @param path The path of the file to change
  * @param permissions The new permissions of the file
  * 
- * @result 0 on success, negative on failure
+ * @return 0 on success, negative on failure
  */
 int32_t fSetPerm(char * path, uint32_t permissions);
+
+/**
+ * setDir - Sets a new working directory
+ * 
+ * usage: setDir(char * path);
+ * 
+ * @param path The path of the new working directory
+ * 
+ * @return A standard exit status (0 on success, <0 on failure)
+ */
+int32_t setDir(char * path);
 
 /*
 **********************************************
