@@ -1,24 +1,181 @@
 CSCI 452 Final submission - Experiences Doc
-Raymond Healy, Ian Campbell, Koen Komeya
+Ray Healy, Ian Campbell, Koen Komeya
 
-Permission System (Raymond) -
+Permission System (Ray) -
+    The multi-user/permission system (as implemented) didn't pose particularly 
+    many issues of its own, although its development and testing did help to 
+    reveal some of the issues in the underlying systems.
 
-File System (Ian & Raymond) -
+    I had already started planning before the baseline was completed, primarily 
+    thinking through the elements of linux multi-user systems that I commonly 
+    interracted with (e.g. divided file permissions, group sharing, sudo) and 
+    both their requirements and logical successors to them. For instance, when 
+    considering the actions required to sign in as a user with a password that 
+    access to the master user file would be required but given the sensitivity 
+    of even hashed passwords, that access to that file should be restricted, 
+    meaning the sign in process should be run at an elevated user level, which 
+    further led to the realization that only those users who absolutely must use
+    it (e.g. root for sign in) should be able to modify their own UIDs. Although
+    this process did also lead to a few awful ideas, like an idea to implement 
+    some form of IPC to spawn a daemon to run sudo checks, but it was useful, 
+    and did lead to a better understanding of the reasoning behind many features
+    I had taken for granted.
 
-    The file system (FS) was a really unique experience to develop over the course of the semester.I belive that it can generally be broken down into 3 major parts across the semester: early planning and groundwork, developing sys calls and helper functions, and developing test applications.These can be more easily sumarized as planning, developing, and testing. And while some of these had minor overlap the project was generally approached in this order.
+    Once development began I quickly got to work modifying the baseline to be 
+    ready for multi-user implementation. The major steps in this were tracking 
+    uid and gid in the PCB, modifying spawn and proc_create to enable their 
+    inheritence, and inserting new syscalls to set and query these new values. 
+    Afterwards, but still in this early phase, I modified our main testing 
+    environment, introducing first the sign-in shell to allow us to run our 
+    tests as different users and then the testing shell to allow for greater 
+    control over test spawn order, and for tests to be repeated. It is also 
+    in this phase that I modified the kill syscall to only accept kill orders 
+    from the owner or from root (with sudo not implemented at this point).
+
+    2 notable bugs stick out to me from this point in development. The first was
+    the hard limit on number of processes, which I noticed when attempting to 
+    sign in to multiple different users and caused by failing to decrement the 
+    active process counter on pcb cleanup. The second was less a bug and more an
+    annoyance, but it concerned the baseline cio's handling of carriage returns
+    and line feeds. While both are fully valid (reseting the cursor to start of 
+    line and printing spaces until the end of the line buffer), in conjunction 
+    they served to erase any lines printed to console ending in the windows-
+    style line ending ("\r\n") prefered by SIO, making printing lines to both 
+    for debugging difficult. The solution to this was simple enough (a global 
+    flag to track if the last char was a return, and line feed behavior change 
+    on that basis), but actually tracking down the problem was difficult.
+
+    After this I focussed most of my attention on the file system 
+    implementation while keeping in mind the eventual needs of this system (e.g.
+    making sure to track ownership and include space for permissions in the 
+    inode struct from the start). However, when nearing the end of the project I
+    did return to complete my multi-user work. This too was fairly simple, 
+    involving the addition of file IO to some existing code (the login shell to 
+    check for usernames and passwords in .shadow and the setgid syscall to check
+    for group membership), the insertion of simple permission checks into most 
+    of the filesystem syscalls to ensure compliance (made simple by developing a
+    pair of helper functions to run the proper comparisons against the inode), 
+    and the addition of a few new syscalls to aid in the manipulation of file 
+    ownership and permissions.
+
+    Once again, the only bugs that I recall tracking from this stage were 
+    located in the filesystem, and were simply made more obvious by my inclusion
+    of additional files in the root file system image. These were primarily 
+    based around difficulties allocating and freeing data blocks. In allocation 
+    a proper offset was not applied to allocated blocks to skip the inode array 
+    and allocation bitmap, leading to eventual corruption of that map, and from 
+    there the corruption of the meta and root nodes of the disk. Once this was 
+    fixed, an error in the block free code became apparent, which after thorough
+    tracking was finally isolated to a failure to convert a file-system 
+    reference to a disk reference, at least in part due to ambiguous naming 
+    schemes.
+
+    Overall, the multi-user system was largely bug-free, although this can be 
+    attributed primarily to the simplicity of its core logic and ease of 
+    testing, particularly when compared to the driver and filesystem which are 
+    rendered more difficult at a baseline due to the increased ammount of data 
+    at play, before even considering the massive possibilities for side-effects,
+    given its persistent nature. As mentioned in the presentation, given more 
+    time I would have liked to expand this system to make use of virtual memory 
+    and hardware privelege levels to add a new dimension to the offered 
+    protection, but I am satisfied with this product.
+
+File System (Ian & Ray) -
+            ===<Ian>===
+    The file system (FS) was a really unique experience to develop over the 
+    course of the semester.I belive that it can generally be broken down into 3 
+    major parts across the semester: early planning and groundwork, developing 
+    sys calls and helper functions, and developing test applications.These can 
+    be more easily sumarized as planning, developing, and testing. And while 
+    some of these had minor overlap the project was generally approached in this
+    order.
+
+Early Planning: 
+    We started by defining the core element of any FS which is the inode. Our 
+    inode is a 256 byte structure (see fs.h) that contains all the necessary 
+    elements to store and keep track of files in our system. We put a lot of 
+    thought into what we wanted to include. A lot of the basics were no brainers
+    such as: inode index, number of bytes, number of blocks etc. But there are a
+    few decisions worth mentioning. We wanted the inode to be 256 bytes so we 
+    could fit 2 inodes into a single 512 block on disk. This meant we were able 
+    to store 14 direct pointers that each point to a data block (for directories
+    they contain a directory entry). This meant each file could have a max size 
+    of 14 * 512 bytes covered by direct pointers. We also defined a structure 
+    block_t and gave space for an extension block in the inode. We ended up 
+    running out of time and steam and were not able to use extension blocks and 
+    if we had extra time this would be one of the first things we would focus 
+    on. 
     
- Early Planning: 
-    We started by defining the core element of any FS which is the inode. Our inode is a 256 byte structure (see fs.h) that contains all the necessary elements to store and keep track of files in our system. We put a lot of thought into what we wanted to include. A lot of the basics were no brainers such as: inode index, number of bytes, number of blocks etc. But there are a few decisions worth mentioning. We wanted the inode to be 256 bytes so we could fit 2 inodes into a single 512 block on disk. This meant we were able to store 14 direct pointers that each point to a data block (for directories they contain a directory entry). This meant each file could have a max size of 14 * 512 bytes covered by direct pointers. We also defined a structure block_t and gave space for an extension block in the inode. We ended up running out of time and steam and were not able to use extension blocks and if we had extra time this would be one of the first things we would focus on. 
-    At this stage Raymond came up with and developed a RAMdisk that was easy to implement that would allow us to test the software side of our FS without waiting on a disk driver at the last minute. This became pivotal in our successes with the FS. We developed a simple device registration method that essentially passes a read and write functin pointer to the FS agnostic of the device. This approach meant that if we got a working driver down the line we would theoretically just plug and play. It is also worth mentioning that the RAMdisk is located right after the bootstrap stack and before the OS stack. We essentially just took a chunk out of the OS stack of about 16Kb (see Memory.txt for specific addresses). We initially attempted to put this section after the OS stack but had problems editing bootstrap to make this possible, so we just shoved it in there.
-    We also added a section to each processes PCB that stored MAX_OPEN_FILES of file desriptors. These descriptors simply contained an inode_id and the current offset into a file. 
+    At this stage Raymond came up with and developed a RAMdisk that was easy to 
+    implement that would allow us to test the software side of our FS without 
+    waiting on a disk driver at the last minute. This became pivotal in our 
+    successes with the FS. We developed a simple device registration method that
+    essentially passes a read and write functin pointer to the FS agnostic of 
+    the device. This approach meant that if we got a working driver down the 
+    line we would theoretically just plug and play. It is also worth mentioning 
+    that the RAMdisk is located right after the bootstrap stack and before the 
+    OS stack. We essentially just took a chunk out of the OS stack of about 16Kb
+    (see Memory.txt for specific addresses). We initially attempted to put this 
+    section after the OS stack but had problems editing bootstrap to make this 
+    possible, so we just shoved it in there.
+    
+    We also added a section to each processes PCB that stored MAX_OPEN_FILES of 
+    file desriptors. These descriptors simply contained an inode_id and the 
+    current offset into a file.
 
  Developing:
-    We started developing by outlining the new syscalls we wanted to implement to faciliate solid FS facilities. These syscalls were: fCreate, fRemove, fMove, fOpen, fClose, getInode and dirName. The combination of these syscalls allow us to make new files and directories, move files, and open and close files as well. GetInode and dirName are primarily used as helper syscalls that are also used in some tests and applications. We decided that we would implement read and write by selecting additional channel via the already available read and write syscall. This allowed us to essentially just to update the current default cases of the switch statements. If it wasn't a read/write to sio/cio then we would take the channel number and attempt to read/write to the file that is located at that file descriptor in the processes PCB. If that doesn't work we error out, but if that is a valid open FD we will then call the FS read/write. At this point the FS will call the driver_interface.h corresponding to the inode we are reading and writing. This driver interface contains the drivers read/write that is going to be called to actually do the read/write. Both located in kfs.c.
-    It turns out that implementing reading (especially with a RAMDisk) was honestly pretty trivial. Essentially you just need to make sure you can grab the necessary inode on the disk then we read byte by byte and copy it into the given buffer. This was fairly simple once we established that we could read 512 bytes from a given offset with our drivers. It required reading a handful of blocks to get the inode and to read each block containing data of the file. 
-    Write is where things started to get complicated. Writing to a disk requries first identifying that we are located in a valid file and that we are offset to the end of the file. We dropped the idea of implementing setting offset operations. This means we open a file we can either start reading from the file at the beginning, or we can write to the end of the file. After we verify that the file is valid and we are at the end we have to write byte by byte to the last block that is allocated. If this block is filled OR there is not any blocks allocated we have to allocate the block. Allocating a block (kfs.c) was a hot bed for minor bugs that we encountered througout development. 
-    Overall, the development period went pretty well. It required a lot iterative development and debugging. But once we finished most the code we were ready for testing. 
+    We started developing by outlining the new syscalls we wanted to implement 
+    to faciliate solid FS facilities. These syscalls were: fCreate, fRemove, 
+    fMove, fOpen, fClose, getInode and dirName. The combination of these 
+    syscalls allow us to make new files and directories, move files, and open 
+    and close files as well. GetInode and dirName are primarily used as helper 
+    syscalls that are also used in some tests and applications. We decided that 
+    we would implement read and write by selecting additional channel via the 
+    already available read and write syscall. This allowed us to essentially 
+    just to update the current default cases of the switch statements. If it 
+    wasn't a read/write to sio/cio then we would take the channel number and 
+    attempt to read/write to the file that is located at that file descriptor in
+    the processes PCB. If that doesn't work we error out, but if that is a valid
+    open FD we will then call the FS read/write. At this point the FS will call 
+    the driver_interface.h corresponding to the inode we are reading and 
+    writing. This driver interface contains the drivers read/write that is going
+    to be called to actually do the read/write. Both located in kfs.c.
     
- Testing:    
-    Testing of the FS happened near the end of the previous phase before manifesting into its own phase once most development was finished. FS currently has 7 distinct tests that work all the developed syscalls. I won't go through each test here, but by running `make qemu` and then running `list` will show you all 7 and give a brief description of what they are doing. Testing for FS was extremelly easy because the method of testing laid down by Raymond for multi user gave an easy standard to follow. The only hiccups here were making sure each syscall was correctly included in all the necessary files to make it available for the user. This phase also included development of a few userspace applications to give greater testing abilities. These include: ls, cat, and chmod. 
+    It turns out that implementing reading (especially with a RAMDisk) was 
+    honestly pretty trivial. Essentially you just need to make sure you can grab
+    the necessary inode on the disk then we read byte by byte and copy it into 
+    the given buffer. This was fairly simple once we established that we could 
+    read 512 bytes from a given offset with our drivers. It required reading a 
+    handful of blocks to get the inode and to read each block containing data of
+    the file. 
+    
+    Write is where things started to get complicated. Writing to a disk requries
+    first identifying that we are located in a valid file and that we are offset
+    to the end of the file. We dropped the idea of implementing setting offset 
+    operations. This means we open a file we can either start reading from the 
+    file at the beginning, or we can write to the end of the file. After we 
+    verify that the file is valid and we are at the end we have to write byte by
+    byte to the last block that is allocated. If this block is filled OR there 
+    is not any blocks allocated we have to allocate the block. Allocating a 
+    block (kfs.c) was a hot bed for minor bugs that we encountered througout 
+    development. 
+    
+    Overall, the development period went pretty well. It required a lot 
+    iterative development and debugging. But once we finished most the code we 
+    were ready for testing. 
+    
+ Testing: 
+    Testing of the FS happened near the end of the previous phase before 
+    manifesting into its own phase once most development was finished. FS 
+    currently has 7 distinct tests that work all the developed syscalls (at 
+    initial time of writing). I won't go through each test here, but by running 
+    `make qemu` and then running `list` will show you all 7 and give a brief 
+    description of what they are doing. Testing for FS was extremelly easy 
+    because the method of testing laid down by Raymond for multi user gave an 
+    easy standard to follow. The only hiccups here were making sure each syscall
+    was correctly included in all the necessary files to make it available for 
+    the user. This phase also included development of a few userspace 
+    applications to give greater testing abilities. These include: ls, cat, 
+    and chmod. 
     
 Driver (Koen) -
