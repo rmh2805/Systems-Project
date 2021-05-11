@@ -37,6 +37,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("\r\n\tsetgid [GID]: Set a new GID (defaults to user GID 0)\r\n");
             swrites("\tchown <uid> <gid> <path>: Set a new group and user owner for path\r\n");
             swrites("\tchmod <permStr> <path>: Set new permissions for path\r\n");
+            swrites("\tsudo: Toggles sudo mode\r\n");
             
             swrites("\r\n\tcat <file path>: Cat the file contents out to the console\r\n");
             swrites("\tls <file path>: Print the contents and permissions of the subdirectory\r\n");
@@ -229,6 +230,17 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
                 sprint(oBuf, "Failed to change working directory to \"%s\"\r\n", iBuf);
                 swrites(oBuf);
             }
+        } else if (strcmp(iBuf, "sudo") == 0) {
+            if(getgid() != GID_SUDO) {
+                if(setgid(GID_SUDO) < 0) {
+                    swrites("Failed to enter sudo mode\r\n");
+                }
+            } else {
+                if(setgid(GID_USER) < 0) {
+                    swrites("Failed to leave sudo mode\r\n");
+                }
+            }
+            
         } else {    //Unknown Command
             sprint(oBuf, "Uncrecognized command \"%s\", try \"help\"", iBuf);
             swrites(oBuf);
