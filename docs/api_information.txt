@@ -117,33 +117,43 @@ Multi User syscalls
         SIGNATURE: 
             uid_t getuid( void )
         DESC:
-            Retrieves the uid of this process
+            Retrieves the uid of the calling process
         RETURN VALUE:
-            Returns the current process uid value in a uid_t            
+            Returns the calling process' uid
 
     SYS_getgid
         SIGNATURE:
             gid_t getgid( void )
         DESC:
-            Retrieves the gid of the current process
+            Retrieves the gid of the calling process
         RETURN VALUE:
-            Returns the current process gid value in a gid_t
+            Returns the calling process' gid
 
     SYS_setuid
         SIGNATURE:
-            uint32_t setuid( uid_t uid )
+            int32_t setuid( uid_t uid )
         DESC:
-            Attemps to modify the uid of the current process
+            Modifies the UID of the calling process. Returns error on all 
+            attempts to modify uid (caller.UID != newUID) unless performed by 
+            root user. Will also set current GID to user group on successful 
+            modification.
         RETURN VALUE:
-            E_SUCCESS on success and a negative error status on failure. 
+            E_SUCCESS on success
+            E_NO_PERMISSION if lacking permission
 
     SYS_setgid
         SIGNATURE:
-            uint32_t setuid( uid_t uid )
+            int32_t setgid( gid_t gid )
         DESC:
-            Attempts to modify the uid of the current process
+            Modifies the active GID of the calling process. Checks for group 
+            existence and membership against the file "/.groups", except for 
+            user group (0) and open group (1), which are universal.
         RETURN VALUE:
-            E_SUCCESS on success and a negative error status on failure. 
+            E_SUCCESS on success.
+            E_NOT_FOUND if the groups file is not found
+            E_NO_PERMISSION if the caller does not belong to the specified group
+            E_EOF if the group is not defined in the file
+            E_FAILURE on general failure
 
 File System syscalls
     SYS_fopen
