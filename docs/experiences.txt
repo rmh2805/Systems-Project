@@ -164,6 +164,27 @@ Early Planning:
     iterative development and debugging. But once we finished most the code we 
     were ready for testing. 
     
+         ===<Ray>===
+    Since Ian made his first comments, I've added more filesystem syscalls (e.g.
+    setDir) which aren't included in any of the static tests due to their 
+    development in parallel with more flexible programs which utilize them (e.g.
+    cd).
+
+    In my opinion reading was actually the more... interesting portion of code 
+    to debug. If nothing else, it is harder for a write to a distant block of 
+    memory to corrupt the stack to cause largely unexplained recursion. That 
+    said, I've already covered what I think are the most interesting bugs to 
+    come out of the filesystem, both in this paragraph and in my earlier 
+    section.
+
+    The only other thing I'd like to point out here was the development of our
+    image generation tools. This was a required precursor to our development, 
+    as it defined elements of the system that it would be impossible or 
+    impractical to do elsewhere (e.g. the allocation map) and allowed us to 
+    ensure that we had valid files available to us even before implementing all 
+    of the syscalls required to generate it in system (e.g. fcreate, fread, 
+    fwrite), which made testing much easier.
+    
  Testing: 
     Testing of the FS happened near the end of the previous phase before 
     manifesting into its own phase once most development was finished. FS 
