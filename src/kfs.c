@@ -101,7 +101,7 @@ int _fs_read(fd_t * file, char * buf, uint32_t len) {
     if(ret < 0) {
         __cio_printf("*ERROR* in _fs_read: Failed to read inode %d.%d (%d)\n", 
             file->inode_id.devID, file->inode_id.idx, ret);
-        return ret;
+        return E_FAILURE;
     }
     
 
@@ -133,7 +133,7 @@ int _fs_read(fd_t * file, char * buf, uint32_t len) {
         ret = disks[devID].readBlock(block, data_buffer, disks[devID].driverNr);
         if(ret < 0) {
             __cio_printf( "*ERROR* in _fs_read: Unable to read block %d from disk (%d)\n", block, ret);
-            return ret;
+            return E_FAILURE;
         }
 
         // Read bytes until buffer full, file done, or block end
@@ -292,7 +292,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
     if(ret < 0) {
         __cio_printf("*ERROR* in _fs_write: Failed to read inode %d.%d (%d)\n", 
             file->inode_id.devID, file->inode_id.idx, ret);
-        return ret;
+        return E_FAILURE;
     }
 
     // Make sure are offset is the end of the file
@@ -318,7 +318,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
             if(ret < 0) {
                 __cio_printf("*ERROR* in _fs_write: Failed to read node entry %d (%d)\n",
                     blockIdx/4, ret);
-                return ret;
+                return E_FAILURE;
             }
         }
         // Potentially allocate a new block
@@ -331,7 +331,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
             ret = _fs_alloc_block(file->inode_id.devID, &newBlock);
             if(ret < 0) {
                 __cio_printf("*ERROR* in _fs_write: Unable to alloc new block\n");
-                return ret;
+                return E_NO_DATA;
             }
 
             // Update the data entry
@@ -352,7 +352,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
             if(ret < 0) {
                 __cio_printf( "*ERROR* in _fs_write: Unable to read block %d from disk (%d)\n", 
                     block, ret);
-                return ret;
+                return E_FAILURE;
             }
         } else { // Otherwise clear the buffer
             for(int x = 0; x < 512; x++) {  // zero out the data buffer
@@ -372,7 +372,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
         if(ret < 0) {
             __cio_printf( "*ERROR* in _fs_write: Unable to write block %d to disk (%d)\n", 
                 block, ret);
-            return ret;
+            return E_FAILURE;
         }
     }
     
@@ -381,7 +381,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
     if(ret < 0) {
         __cio_printf("*ERROR* in _fs_read: Failed to write inode to disk %d.%d (%d)\n", 
             node.id.devID, node.id.idx, ret);
-        return ret;
+        return E_FAILURE;
     }
     
     // Return the number of bytes written
@@ -470,6 +470,7 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
     }
     
     if(id.devID == 0) { // Return 0 if targeting a non-existent dev ID
+        __cio_printf("*ERROR* in _fs_getInode: Non-existent node %d.%d\n", id.devID, id.idx);
         return E_BAD_CHANNEL;
     }
     
@@ -482,7 +483,10 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
             break;
         }
     }
-    if (disk == MAX_DISKS) return E_BAD_CHANNEL; // Ensure disk exists
+    if (disk == MAX_DISKS) {
+        __cio_printf("*ERROR* in _fs_getInode: Unable to find disk %d\n", id.devID);
+        return E_BAD_CHANNEL; // Ensure disk exists
+    }
     
     // Read the metadata node from disk
     int result = disks[disk].readBlock(0, meta_buffer, disks[disk].driverNr);
@@ -966,13 +970,15 @@ int _fs_allocNode(uint8_t devID, inode_id_t * ret) {
             __cio_printf("*ERROR* in _fs_allocNode: No default disk registered\n");
             return E_FAILURE;
         }
+    } else {
+        ret->devID = devID;
     }
     ret->idx = 0;
 
     // Read the metanode for disk
     result = _fs_getInode(*ret, &metaNode);
     if(result < 0) {
-        __cio_printf( "*ERROR* in _fs_allocNode: Unable to read meta node for disk %d\n", devID);
+        __cio_printf( "*ERROR* in _fs_allocNode: Unable to read meta node for disk %d (%d)\n", devID, result);
         return result;
     }
 

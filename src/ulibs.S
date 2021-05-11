@@ -65,6 +65,9 @@ SYSCALL(fremove)
 SYSCALL(fmove)
 SYSCALL(getinode)
 SYSCALL(dirname)
+SYSCALL(fchown)
+SYSCALL(fSetPerm)
+SYSCALL(setDir)
 
 /*
 ** This is a bogus system call; it's here so that we can test
