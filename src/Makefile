@@ -180,7 +180,7 @@ prog.b:	prog.o
 	$(LD) $(LDFLAGS) -o prog.b -s --oformat binary -Ttext $(OS_LOAD) prog.o
 
 fs.img: MakeFSImage AddFile .shadow .groups testLongNames.txt 
-	./MakeFSImage fs.dmg 16 10 1 disk 2
+	./MakeFSImage fs.dmg 16 10 1 disk 2 disk2 3
 	./AddFile fs.dmg .shadow fs.img n n
 	./AddFile fs.img testLongNames.txt fs.dmg y y
 	./AddFile fs.dmg .groups fs.img y n
@@ -190,6 +190,9 @@ disk.img: MakeFSImage AddFile
 	./MakeFSImage disk.dmg 128 30 2
 	./AddFile disk.dmg placeholder disk.img y y
 	rm disk.dmg
+
+disk2.img: MakeFSImage
+	./MakeFSImage disk2.img 128 30 3
 
 #
 # Targets for copying bootable image onto boot devices
@@ -232,6 +235,7 @@ realclean:	clean
 qemu: usb.image
 	qemu-system-x86_64 -serial mon:stdio -drive format=raw,id=usb,file=usb.image \
 	-drive format=raw,id=disk,file='disk.img',if=none \
+	-drive format=raw,id=disk,file='disk2.img',if=none \
 	-device ide-drive,drive=disk,bus=ide.0
 	@echo ""
 
