@@ -1026,7 +1026,7 @@ static void _sys_fremove (uint32_t args[4]) {
         return;
     }
 
-    // Find the child node to check priveleges
+    // Find the child node
     inode_id_t childId;
     result = _fs_getSubDir(targetDirID, name, &childId);
     if(result < 0) {
@@ -1035,16 +1035,28 @@ static void _sys_fremove (uint32_t args[4]) {
         return; 
     }
 
+    // Read the child node in
+    inode_t child;
+    result = _fs_getInode(childId, &child);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fremove: Could not grab for \"%s/%s\"\n", path, name);
+        RET(_current) = E_NOT_FOUND;
+        return;
+    }
+
     // Actually check node priveleges
     bool_t canMeta;
-    result = _fs_getPermission(childId, _current->uid, _current->gid, NULL, NULL, &canMeta);
-    if(result < 0) {
-        __cio_printf("*ERROR* in _sys_fremove: Could not grab permissions for \"%s/%s\"\n", path, name);
-        RET(_current) = E_NO_PERMISSION;
-        return; 
-    } else if(!canMeta) {
+    result = _fs_nodePermission(&child, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    if(!canMeta) {
         __cio_printf("*ERROR* in _sys_fremove: Do not have meta priveleges for \"%s/%s\"\n", path, name);
         RET(_current) = E_NO_PERMISSION;
+        return; 
+    }
+
+    // Check that the child is not a directory with referands
+    if(child.nodeType == INODE_DIR_TYPE && child.nBytes != 0 && child.nRefs == 1) {
+        __cio_printf("*ERROR* in _sys_fremove: Cannot remove non-empty directory \"%s/%s\"\n", path, name);
+        RET(_current) = E_FAILURE;
         return; 
     }
 
