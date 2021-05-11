@@ -293,7 +293,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
     if(ret < 0) {
         __cio_printf("*ERROR* in _fs_write: Failed to read inode %d.%d (%d)\n", 
             file->inode_id.devID, file->inode_id.idx, ret);
-        return ret;
+        return E_FAILURE;
     }
 
     // Make sure are offset is the end of the file
@@ -319,7 +319,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
             if(ret < 0) {
                 __cio_printf("*ERROR* in _fs_write: Failed to read node entry %d (%d)\n",
                     blockIdx/4, ret);
-                return ret;
+                return E_FAILURE;
             }
         }
         // Potentially allocate a new block
@@ -332,7 +332,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
             ret = _fs_alloc_block(file->inode_id.devID, &newBlock);
             if(ret < 0) {
                 __cio_printf("*ERROR* in _fs_write: Unable to alloc new block\n");
-                return ret;
+                return E_NO_DATA;
             }
 
             // Update the data entry
@@ -353,7 +353,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
             if(ret < 0) {
                 __cio_printf( "*ERROR* in _fs_write: Unable to read block %d from disk (%d)\n", 
                     block, ret);
-                return ret;
+                return E_FAILURE;
             }
         } else { // Otherwise clear the buffer
             for(int x = 0; x < 512; x++) {  // zero out the data buffer
@@ -373,7 +373,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
         if(ret < 0) {
             __cio_printf( "*ERROR* in _fs_write: Unable to write block %d to disk (%d)\n", 
                 block, ret);
-            return ret;
+            return E_FAILURE;
         }
     }
     
@@ -382,7 +382,7 @@ int _fs_write(fd_t * file, char * buf, uint32_t len) {
     if(ret < 0) {
         __cio_printf("*ERROR* in _fs_read: Failed to write inode to disk %d.%d (%d)\n", 
             node.id.devID, node.id.idx, ret);
-        return ret;
+        return E_FAILURE;
     }
     
     // Return the number of bytes written
