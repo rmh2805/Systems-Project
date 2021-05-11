@@ -47,9 +47,11 @@ typedef struct _pci_device _pci_device_t;
 void _pci_init( void );
 
 /**
-** _pci_get_devices()
+** _pci_get_devices(buf)
 **
-** Get SATA device iterator.
+** Creates a SATA device iterator given a buffer
+**
+** @param itr_buf  the buffer to create the iterator in
 */
 void _pci_get_devices( _pci_dev_itr_t *itr_buf );
 
@@ -57,8 +59,11 @@ void _pci_get_devices( _pci_dev_itr_t *itr_buf );
 ** _pci_devices_next()
 **
 ** Get next SATA device from iterator
+** 
+** @param itr     the iterator
+** @param dev_buf the buffer to hold the device info
 **
-** @return 1 if success, 0 if no more devices
+** @return        1 if success, 0 if no more devices
 */
 uint8_t _pci_devices_next( _pci_dev_itr_t *itr, _pci_device_t *dev_buf );
 
