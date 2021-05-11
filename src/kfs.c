@@ -477,6 +477,9 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
     
     uint32_t disk = 0;
     for(; disk < MAX_DISKS; disk++) {
+#if _DEBUG
+        __cio_printf("(%d,%d)\n", disks[disk].fsNr, id.devID);
+#endif
         if(disks[disk].fsNr == id.devID) {
             break;
         }
