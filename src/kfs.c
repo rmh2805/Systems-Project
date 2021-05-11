@@ -471,6 +471,7 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
     }
     
     if(id.devID == 0) { // Return 0 if targeting a non-existent dev ID
+        __cio_printf("*ERROR* in _fs_getInode: Non-existent node %d.%d\n", id.devID, id.idx);
         return E_BAD_CHANNEL;
     }
     
@@ -480,7 +481,10 @@ int _fs_getInode(inode_id_t id, inode_t * inode) {
             break;
         }
     }
-    if (disk == MAX_DISKS) return E_BAD_CHANNEL; // Ensure disk exists
+    if (disk == MAX_DISKS) {
+        __cio_printf("*ERROR* in _fs_getInode: Unable to find disk %d\n", id.devID);
+        return E_BAD_CHANNEL; // Ensure disk exists
+    }
     
     // Read the metadata node from disk
     int result = disks[disk].readBlock(0, meta_buffer, disks[disk].driverNr);
@@ -965,12 +969,13 @@ int _fs_allocNode(uint8_t devID, inode_id_t * ret) {
             return E_FAILURE;
         }
     }
+    ret->devID = devID;
     ret->idx = 0;
 
     // Read the metanode for disk
     result = _fs_getInode(*ret, &metaNode);
     if(result < 0) {
-        __cio_printf( "*ERROR* in _fs_allocNode: Unable to read meta node for disk %d\n", devID);
+        __cio_printf( "*ERROR* in _fs_allocNode: Unable to read meta node for disk %d (%d)\n", devID, result);
         return result;
     }
 
