@@ -19,9 +19,9 @@ Base line syscalls
         PARAMETERS:
             chan: The channel to read from
             buffer: The buffer to read in to
-            length: The maximum number of bytes to read
+            length: The maximum number of bytes to read/buffer length
         RETURN VALUE:
-            Number of bytes read on success, negative value on failure.
+            Returns the number of bytes read on success
             E_NO_PERMISSION if lacking read permission for the stream
             E_EOF if the end of the stream has been reached
             E_BAD_CHANNEL if an undefined channel is specified
@@ -32,11 +32,15 @@ Base line syscalls
         DESC:
             Write from a buffer to a stream. This was edited by us 
             to faciliate re-using this syscall to write to a file in the FS.
+        PARAMETERS:
+            chan: The channel to write to
+            void*: The buffer to write data from
+            length: The maximum number of bytes to write/buffer size
         RETURN VALUE:
-            Number of bytes written on success, negative value on failure.
-            Returns E_NO_PERMISSION if lacking read permission for the stream
-            Returns E_BAD_CHANNEL if an undefined channel is specified
-            Returns E_NO_DATA on failure to allocate data blocks for write
+            Returns the number of bytes written on success
+            E_NO_PERMISSION if lacking read permission for the stream
+            E_BAD_CHANNEL if an undefined channel is specified
+            E_NO_DATA on failure to allocate data blocks for write
 
     SYS_getpid
         SIGNATURE:
@@ -44,7 +48,7 @@ Base line syscalls
         DESC:
             Retrieves the PID of this process
         RETURN VALUE:
-            The pid of the current process.
+            The pid of the current process
             
     SYS_getppid
         SIGNATURE:
@@ -52,7 +56,7 @@ Base line syscalls
         DESC:
             Retrieves the PID of the parent of this process
         RETURN VALUE:
-            A pid_t containing the PID information of the parent.
+           The pid information of the parent process
 
     SYS_gettime
         SIGNATURE:
@@ -68,16 +72,18 @@ Base line syscalls
         DESC:
             Retrieves the priority for this process
         RETURN VALUE:
-            Returns a prio_t containing the processes priority
+            Returns the processes' priority
 
     SYS_setprio
         SIGNATURE:
             prio_t setprio( prio_t new )
         DESC:
             Set the priority of this process
+        PARAMETERS:
+            new: The desired new priority
         RETURN VALUE:
-            Returns previous priority on success 
-            Returns E_BAD_PARAM on failure
+            Returns previous priority on success
+            E_BAD_PARAM on failure
 
     SYS_kill
         SIGNATURE:
@@ -86,16 +92,20 @@ Base line syscalls
             Terminates the process with the specified pid. Each process can only
             be terminated by a process from the same user, a user with active 
             group sudo, or the root user.
+        PARAMETERS:
+            victim: The pid of the targeted process
         RETURN VALUE:
-            Returns E_SUCCESS on succes
-            Returns E_NOT_FOUND if the target pcb is not E_NOT_FOUND
-            Returns E_NO_PERMISSION if lacking permission
+            E_SUCCESS on succes
+            E_NOT_FOUND if the target pcb is not E_NOT_FOUND
+            E_NO_PERMISSION if lacking permission
 
     SYS_sleep
         SIGNATURE:
             void sleep (uint32_t msec)
+        PARAMETERS:
+            msec: The number of milliseconds to sleep for
         DESC:
-            Put the current process to sleep for some time
+            Puts the calling process to sleep for some time
 
     SYS_spawn
         SIGNATURE:
@@ -104,19 +114,26 @@ Base line syscalls
         DESC:
             Creates a new process with the specified entry point, priority, and 
             args.
+        PARAMETERS:
+            entry: The entrypoint of the new process
+            prio: The initial priority of the new process
+            arg1: The first argument to pass to the new process
+            arg2: The second argument to pass to the new process
         RETURN VALUE:
             Returns the PID of the new child spawned on success
-            Returns E_BAD_PARAM on processes with invalid args (e.g. null entry)
-            Returns E_NO_MEMORY on failure to spawn the process.
+            E_BAD_PARAM on processes with invalid args (e.g. null entry)
+            E_NO_MEMORY on failure to spawn the process
 
     SYS_wait
         SIGNATURE:
             pid_t wait( int32_t *status )
         DESC:
-            Wait for a child process to terminate. 
+            Wait for a child process to terminate
+        PARAMETERS:
+            status: A return pointer for the child's exit status
         RETURN VALUE:
             Returns the exited process' PID on success
-            Returns E_NO_PROCS if the caller has no living children
+            E_NO_PROCS if the caller has no living children
 
 Multi User syscalls 
     SYS_getuid
@@ -143,6 +160,8 @@ Multi User syscalls
             attempts to modify uid (caller.UID != newUID) unless performed by 
             root user. Will also set current GID to user group on successful 
             modification.
+        PARAMETERS:
+            uid: The new uid to set
         RETURN VALUE:
             E_SUCCESS on success
             E_NO_PERMISSION if lacking permission
@@ -154,6 +173,8 @@ Multi User syscalls
             Modifies the active GID of the calling process. Checks for group 
             existence and membership against the file "/.groups", except for 
             user group (0) and open group (1), which are universal.
+        PARAMETERS:
+            gid: The new gid to set
         RETURN VALUE:
             E_SUCCESS on success
             E_NOT_FOUND if the groups file is not found
@@ -167,6 +188,9 @@ File System syscalls
             int32_t fopen( char * path, bool_t append )
         DESC:
             Opens a file and assigns it a channel in the caller's PCB.
+        PARAMETERS:
+            path: The path of the file to open
+            append: If true, initialize file offset to EOF, else initialize to 0
         RETURN VALUE:
             Returns the assigned chanel number on success
             E_FILE_LIMIT if no more files may be opened
@@ -179,6 +203,8 @@ File System syscalls
             int32_t fclose( uint32_t chanNr )
         DESC:
             Closes a file and frees its associated channel in the caller's PCB
+        PARAMETERS:
+            chanNr: The channel number of the file to close
         RETURN VALUE:
             E_SUCCESS on successful closure of the file
             E_FILE_LIMIT if the specified channel lies outside of file range
@@ -190,6 +216,10 @@ File System syscalls
         DESC:
             Attempts to create a file/dir after the provided path with the 
             specified name
+        PARAMETERS:
+            path: The path of the directory to insert the entry into
+            name: The name of the new entry in the target directory
+            isFile: If true, create new directory. Else create new file
         RETURN VALUE:
             E_SUCCESS on successful file creation
             E_NO_CHILDREN on failure to seek the end of the specified path
@@ -206,6 +236,9 @@ File System syscalls
         DESC:
             Attempts to remove the file/dir with the specified name at the end 
             of the path
+        PARAMETERS:
+            path: The path of the directory to remove the file from
+            name: The name of the file to remove
         RETURN VALUE:
             E_SUCCESS on success
             E_NOT_FOUND on failure to seek the target
@@ -218,6 +251,11 @@ File System syscalls
         DESC:
             Removes file/dir sName at the end of sPath while inserting it at 
             dPath with the name dName.
+        PARAMETERS:
+            sPath: The path of the source directory
+            sName: The current name of the file
+            dPath: The path of the destination directory
+            dName: The new name of the file
         RETURN VALUE:
             E_SUCCESS on success
             E_BAD_PARAM on failure to seek source or dest directory
@@ -230,6 +268,9 @@ File System syscalls
             int32_t getinode( char * path, inode_t * inode )
         DESC:
             Retrieves the inode at the end of the given path.
+        PARAMETERS:
+            path: The path of the node to get
+            inode: A return pointer for the grabbed inode
         RETURN VALUE:
             E_SUCCESS on success
             E_BAD_PARAM on failure to seek the end of path
@@ -241,7 +282,15 @@ File System syscalls
         DESC:
             Attempts to retrieve a subdirectory name after the end of the 
             given path and put it in the given buffer.
+        PARAMETERS:
+            path: The path of the subdirectory to get names from
+            buf: A return buffer to receive the requested file name
+            subDirNr: The entry number to retrieve
         RETURN VALUE:
-            Returns E_SUCCESS on success and a negative error status
-            on failure.
+            E_SUCCESS on success
+            E_BAD_PARAM on failure to seek the directory
+            E_NO_CHILDREN if path does not lead to a directory
+            E_NO_PERMISSION if lacking read permission in directory
+            E_FILE_LIMIT if subDirNr is out of bounds
+            E_FAILURE on failure to retreive directory entry
 

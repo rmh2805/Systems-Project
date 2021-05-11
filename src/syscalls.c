@@ -1260,7 +1260,7 @@ static void _sys_dirname (uint32_t args[4]) {
     result = _fs_getInode(id, &node);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_dirname: Failed to grab inode %d.%d (%d)\n", id.devID, id.idx, result);
-        RET(_current) = E_FAILURE;
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 
