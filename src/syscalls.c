@@ -994,7 +994,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Write the inode
     result = _fs_setInode(newNode);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NOT_FOUND;
         return;
     }
 
@@ -1110,7 +1110,7 @@ static void _sys_fmove (uint32_t args[4]) {
     result = _fs_getInode(sourceDir, &sourceNode);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_fmove: Failed to grab inode %d.%d (%d)\n", sourceDir.devID, sourceDir.idx, result);
-        RET(_current) = E_FAILURE;
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 
@@ -1134,7 +1134,7 @@ static void _sys_fmove (uint32_t args[4]) {
     result = _fs_getInode(destDir, &destNode);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_fmove: Failed to grab inode %d.%d (%d)\n", destDir.devID, destDir.idx, result);
-        RET(_current) = E_FAILURE;
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 
@@ -1157,7 +1157,7 @@ static void _sys_fmove (uint32_t args[4]) {
     result = _fs_getSubDir(sourceDir, sName, &copyTarg); 
     if(result < 0) {
         __cio_printf("*ERROR* Unable to get \"%s\" in \"%s\"\n", sName, sourceDir);
-        RET(_current) = result;
+        RET(_current) = E_FAILURE;
         return;
     }
 
@@ -1178,7 +1178,7 @@ static void _sys_fmove (uint32_t args[4]) {
     result = _fs_addDirEnt(destDir, dName, copyTarg);
     if(result < 0) {
         __cio_printf("*ERROR* Unable to add \"%s\" to \"%s\"\n", dName, destDir);
-        RET(_current) = result;
+        RET(_current) = E_FAILURE;
         return;
     }
     

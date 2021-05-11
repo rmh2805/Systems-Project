@@ -7,6 +7,8 @@ Base line syscalls
             void exit(int32_t status)
         DESC:
             Terminates the calling process with the provided exit status
+        PARAMETERS:
+            status: The exit status to set
 
     SYS_read
         SIGNATURE:
@@ -14,11 +16,15 @@ Base line syscalls
         DESC:
             Read into a buffer from a stream. This was edited by us
             to faciliate re-using this syscall to read from a file in the FS.
+        PARAMETERS:
+            chan: The channel to read from
+            buffer: The buffer to read in to
+            length: The maximum number of bytes to read
         RETURN VALUE:
             Number of bytes read on success, negative value on failure.
-            Returns E_NO_PERMISSION if lacking read permission for the stream
-            Returns E_EOF if the end of the stream has been reached
-            Returns E_BAD_CHANNEL if an undefined channel is specified
+            E_NO_PERMISSION if lacking read permission for the stream
+            E_EOF if the end of the stream has been reached
+            E_BAD_CHANNEL if an undefined channel is specified
 
     SYS_write
         SIGNATURE:
@@ -149,7 +155,7 @@ Multi User syscalls
             existence and membership against the file "/.groups", except for 
             user group (0) and open group (1), which are universal.
         RETURN VALUE:
-            E_SUCCESS on success.
+            E_SUCCESS on success
             E_NOT_FOUND if the groups file is not found
             E_NO_PERMISSION if the caller does not belong to the specified group
             E_EOF if the group is not defined in the file
@@ -158,58 +164,76 @@ Multi User syscalls
 File System syscalls
     SYS_fopen
         SIGNATURE:
-            int32_t fopen( char * path, bool_t appen )
+            int32_t fopen( char * path, bool_t append )
         DESC:
-            Attempts to open a file and store its FD in the PCBs block
+            Opens a file and assigns it a channel in the caller's PCB.
         RETURN VALUE:
-            Returns the file descriptor integer on success and a negative 
-            error status on failure.
+            Returns the assigned chanel number on success
+            E_FILE_LIMIT if no more files may be opened
+            E_NO_CHILDREN on failure to seek the requested file
+            E_BAD_PARAM if the specified path does not lead to a file
+            E_NO_PERMISSION if the user lacks both read and write permissions
 
     SYS_fclose
         SIGNATURE:
             int32_t fclose( uint32_t chanNr )
         DESC:
-            Attempts to close an opened file
+            Closes a file and frees its associated channel in the caller's PCB
         RETURN VALUE:
-            Returns E_SUCCESS on success and a negative error status 
-            on failure.
+            E_SUCCESS on successful closure of the file
+            E_FILE_LIMIT if the specified channel lies outside of file range
+            E_BAD_CHANNEL on an unopened/already closed file
 
     SYS_fcreate
         SIGNATURE:
             int32_t fcreate( char * path, char * name, bool_t isFile )
         DESC:
-            Attempts to create a file/dir after the provided path
+            Attempts to create a file/dir after the provided path with the 
+            specified name
         RETURN VALUE:
-            Returns E_SUCCESS on success and a negative error status 
-            on failure.
+            E_SUCCESS on successful file creation
+            E_NO_CHILDREN on failure to seek the end of the specified path
+            E_BAD_PARAM on non-dir path, failure to get entry, or name reuse
+            E_NO_PERMISSION if lacking permission to write to the directory
+            E_NO_DATA on failure to allocate a new inode for the file
+            E_NOT_FOUND on failure to retrieve or set the new inode
+            E_FAILURE on failure to insert the new file into the dir at path
+
 
     SYS_fremove
         SIGNATURE:
             int32_t fremove( char * path, char * name)
         DESC:
-            Attempts to remove the file/dir at the end of the path
+            Attempts to remove the file/dir with the specified name at the end 
+            of the path
         RETURN VALUE:
-            Returns E_SUCCESS on success and a negative error status 
-            on failure.
+            E_SUCCESS on success
+            E_NOT_FOUND on failure to seek the target
+            E_NO_PERMISSION if lacking meta permissions (owner, root, or sudo)
+            E_FAILURE if otherwise unable to delete the entry
 
     SYS_fmove
         SIGNATURE:
             int32_t fmove( char * sPath, char * sName, char * dPath, char * dName )
         DESC:
-            Attempts to remove the file/dir at the end of sPath and move it 
-            to a new location at dPath with the name dName.
+            Removes file/dir sName at the end of sPath while inserting it at 
+            dPath with the name dName.
         RETURN VALUE:
-            Returns E_SUCCESS on success and a negative error status
-            on failure.
+            E_SUCCESS on success
+            E_BAD_PARAM on failure to seek source or dest directory
+            E_NO_CHILDREN of sPath or dPath do not lead to directories
+            E_NO_PERMISSION if lacking meta permission on file or write on dirs
+            E_FAILURE on other failures
 
     SYS_getinode
         SIGNATURE:
             int32_t getinode( char * path, inode_t * inode )
         DESC:
-            Attempts to retrieve the inode at the end of the given path.
+            Retrieves the inode at the end of the given path.
         RETURN VALUE:
-            Returns E_SUCCESS on success and a negative error status
-            on failure.
+            E_SUCCESS on success
+            E_BAD_PARAM on failure to seek the end of path
+            E_FAILURE on failure to retrieve the inode
 
     SYS_dirname
         SIGNATURE:
