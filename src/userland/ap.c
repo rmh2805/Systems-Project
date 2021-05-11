@@ -23,9 +23,10 @@ int32_t ap(uint32_t arg1, uint32_t arg2) {
             lineBuf[i] = 0;
             i += 1;
         }
-        lineBuf[i] = 0;
-        
-        ret = fcreate(lineBuf, nBuf, true);
+
+        strncpy(nBuf, &(lineBuf[i]), MAX_FILENAME_SIZE);
+
+        ret = fcreate((i == 0) ? "" : lineBuf, nBuf, true);
         if(ret < 0) {
             sprint(lineBuf, "*ERROR* in ap: Failed to open file %s (name %s) (%d)\r\n", path, nBuf, fp);
             swrites(lineBuf);
