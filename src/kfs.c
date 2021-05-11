@@ -102,7 +102,7 @@ int _fs_read(fd_t * file, char * buf, uint32_t len) {
     if(ret < 0) {
         __cio_printf("*ERROR* in _fs_read: Failed to read inode %d.%d (%d)\n", 
             file->inode_id.devID, file->inode_id.idx, ret);
-        return ret;
+        return E_FAILURE;
     }
     
 
@@ -134,7 +134,7 @@ int _fs_read(fd_t * file, char * buf, uint32_t len) {
         ret = disks[devID].readBlock(block, data_buffer, disks[devID].driverNr);
         if(ret < 0) {
             __cio_printf( "*ERROR* in _fs_read: Unable to read block %d from disk (%d)\n", block, ret);
-            return ret;
+            return E_FAILURE;
         }
 
         // Read bytes until buffer full, file done, or block end
