@@ -584,14 +584,14 @@ static void _sys_getgid ( uint32_t args[4] ) {
 ** _sys_setuid - attempts to modify the uid of the current process
 ** 
 ** implements:
-**    uint32_t setuid( uid_t uid );
+**    int32_t setuid( uid_t uid );
 */
 static void _sys_setuid ( uint32_t args[4] ) {
     uid_t uid = args[0];
     
     if (_current->uid == uid) { // Report success for same user
         RET(_current) = E_SUCCESS;
-    } else if (_current->uid != UID_ROOT && _current->gid != GID_SUDO) { // Return no permissions if non-root user & not sudoing
+    } else if (_current->uid != UID_ROOT) { // Return no permissions if non-root user
         RET(_current) = E_NO_PERMISSION;
     } else { // Otherwise update uid, set default gid, and return success
         _current->uid = uid;
@@ -649,7 +649,7 @@ static int _sys_fGetLn(fd_t* fd, char * buf, int bufLen) {
 ** _sys_setgid - attempts to modify the gid of the current process
 ** 
 ** implements:
-**    uint32_t setgid( gid_t gid );
+**    int32_t setgid( gid_t gid );
 */
 static void _sys_setgid ( uint32_t args[4] ) {
     const int bufSize = 128;
