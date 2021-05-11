@@ -1,0 +1,30 @@
+A quick overview on our permissions scheme:
+
+Each file and directory has 3 types of permissions, read, write, and meta.
+
+Meta permission controls the ability to modify the entry's position within the 
+file system (e.g. removing or moving it), and is held by the file owning user,
+root, and sudoed users.
+
+Read and write permissions control the ability to (shock) read and write from/to
+entries. These are divided into three layers: user, which controls the owning 
+user's permissions; group, which controls the owning group's permissons; and 
+general, which controls access to all non-owners.
+
+Other notable elements:
+    - users may only set their working directories to directories where they 
+      have read permissions
+    - root users are members of all groups within the filesystem
+    - sudoed users are able to bypass most permission checks within the system,
+      with the exception of checks on setgid and setuid
+   
+    - Group 0 is defined as a group whose only members are root and the file's 
+      owner
+    - Group 1 is defined as a group with total membership (every user is a 
+      member of group 1)
+    - Group 2 is defined as the sudo group, and its membership is defined in the
+      main "/.groups" file
+
+    - Only the root user can make use of the setuid syscall to change their uid
+    - Only the owning user, sudoers, and root may kill any given process.
+    
