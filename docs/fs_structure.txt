@@ -49,24 +49,39 @@ typedef struct inode_s {
 
 2 specially defined inodes will reside in the first 2 array entries. The first 
 (at index 0) is the metadata inode, which makes unique use of some fields:
-    - `nBlocks` contains the number of blocks dedicated to the data block allocation bitmap
+    - `nBlocks` contains the number of blocks dedicated to the data block 
+      allocation bitmap
     - `nBytes` refers to the total disk size (in Bytes)
     - `nRefs` refers to the total number of inodes in the array
 
-The second (at index 1) is the reserved root directory of the disk, and is an otherwise 
-normal directory inode
+The second (at index 1) is the reserved root directory of the disk, and is an 
+otherwise normal directory inode
 
 # Allocation Map
-Following this array of inodes is an array of bitmap blocks (the count stored in `nBlocks`) which
-track the allocation of blocks in the data section. Each map bit represents the block with the same
-offset from the end of the allocation map. If the bit is set, it is allocated (or otherwise 
-unavailable), and if it is not set, it is free for allocation.
+Following this array of inodes is an array of bitmap blocks (the count stored in
+`nBlocks`) which track the allocation of blocks in the data section. Each map 
+bit represents the block with the same offset from the end of the allocation 
+map. If the bit is set, it is allocated (or otherwise unavailable), and if it is
+not set, it is free for allocation.
 
 # Data Blocks
-These blocks store all filesystem data not contained within the inodes themselves (e.g. file 
-contents).
+These blocks store all filesystem data not contained within the inodes 
+themselves (e.g. file contents).
 
 # Using FS
-Our FS images are accessible by a variety of syscalls made available to users. These syscalls are: fcreate, fremove, fopen, fclose, fmove, getinode, and dirname. A complete reference of these syscalls is available in `api_information`. Read and writing to a file are done with the already present read and write syscalls. Now users can call read or write and pass a file descriptor (returned to them after a successful fopen) which will the internal _fs_read/_fs_write (kfs.c) which will then determine which device is being used and call that devices read and write.
+Our FS images are accessible by a variety of syscalls made available to users. 
+These syscalls include: fcreate, fremove, fopen, fclose, and fmove. A complete 
+list and reference of these syscalls is available in `api_information`. Reading
+and writing to a file are done with the already present read and write syscalls.
+Calling fopen will register a file with the process as a channel and return a 
+file descriptor to the user, which can then be used as the channel number for 
+read and write syscalls. These will then check permissions and call the internal
+_fs_read/_fs_write (kfs.c) which will then communicate with drivers through 
+standard interfaces to complete all requested operations.
 
-Our FS is device agnostic. This is done by having each driver that is loaded in the kernels initialization call a function called _fs_register. This stores the read and write function pointers for the driver and gives it a number to be referenced by. Once the device is registered the user just has to do operations on files and it all comes together in fs. 
+Our FS is device agnostic. This is done by having each driver that is loaded in 
+the kernel's initialization call a function called _fs_register. This stores 
+read and write function pointers for the driver and assignes it an internal 
+reference number for the use within and between filesystems. Once the device is
+registered the user may simply perform operations on files contained within 
+without worry for the operations of the driver.
