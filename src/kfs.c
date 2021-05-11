@@ -31,7 +31,6 @@ void _fs_init( void ) {
  * @returns The number this was registered as (error if return < 0)
  */
 int _fs_registerDev(driverInterface_t interface) {
-    __cio_printf("(regStart %d) ", interface.driverNr);
     if(interface.readBlock == NULL || interface.writeBlock == NULL) {
         return E_BAD_PARAM;
     }
