@@ -24,7 +24,7 @@
 #include "scheduler.h"
 #include "support.h"
 #include "disk.h"
-#include "sata.h"
+#include "pci.h"
 
 // need init() and idle() addresses
 #include "users.h"
@@ -138,7 +138,7 @@ void _init( void ) {
     _sched_init();
     _clk_init();
     _sio_init();
-    _sata_init();
+    _pci_init();
 
     _fs_init();     // Must come before driver inits
     _rd_init();
