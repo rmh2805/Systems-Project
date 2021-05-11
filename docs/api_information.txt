@@ -325,3 +325,15 @@ File System syscalls
             E_NO_PERMISSION if lacking meta priveleges on entry
             E_NO_DATA on failure to update the inode
 
+    SYS_setDir
+        SIGNATURE:
+            int32_t setDir(char * path)
+        DESC: 
+            Sets a new working directory
+        PARAMS:
+            path: The path of the new working directory
+        RETURN VALUE:
+            E_SUCCESS on success
+            E_BAD_PARAM on failure to seek path
+            E_NO_CHILDREN on non-directory path
+            E_NO_PERMISSION if lacking read permission on path

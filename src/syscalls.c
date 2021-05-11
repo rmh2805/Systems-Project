@@ -1432,7 +1432,7 @@ static void _sys_setDir(uint32_t args[4]) {
     ret = _sys_seekFile(path, &id);
     if(ret < 0) {
         __cio_printf("*ERROR* in _sys_setDir: Failed to seek directory \"%s\" (%d)\n", path, ret);
-        RET(_current) = E_NOT_FOUND;
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 
@@ -1440,14 +1440,14 @@ static void _sys_setDir(uint32_t args[4]) {
     ret = _fs_getInode(id, &node);
     if(ret < 0) {
         __cio_printf("*ERROR* in _sys_setDir: Failed to get inode for directory \"%s\" (%d)\n", path, ret);
-        RET(_current) = E_NOT_FOUND;
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 
     // Check that this is a directory
     if(node.nodeType != INODE_DIR_TYPE) {
         __cio_printf("*ERROR* in _sys_setDir: \"%s\" is not a directory\n", path);
-        RET(_current) = E_BAD_PARAM;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
