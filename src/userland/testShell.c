@@ -41,6 +41,7 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             swrites("\r\n\tcat <file path>: Cat the file contents out to the console\r\n");
             swrites("\tls <file path>: Print the contents and permissions of the subdirectory\r\n");
             swrites("\tap <file path>: Append a line to a file\r\n");
+            swrites("\trm <file path>: Remove a directory entry\r\n");
 
 
         } else if(strcmp(iBuf, "exit") == 0 || strcmp(iBuf, "logoff") == 0 || 
@@ -196,6 +197,27 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
             ret = ap((uint32_t)&oBuf, 0);
             if(ret < 0) {
                 sprint(iBuf, "Failed to append line to file \"%s\"\r\n", oBuf);
+                swrites(iBuf);
+            }
+        } else if(strncmp(iBuf, "rm", 2) == 0) {
+            strTrim(oBuf, iBuf + 2);
+            
+            // Separate the path and the file name
+            char nBuf[MAX_FILENAME_SIZE + 1];
+            nBuf[MAX_FILENAME_SIZE] = 0;
+            
+            int i;
+            for(i = strlen(oBuf); i > 0 && oBuf[i] != '/'; i--);
+            if(oBuf[i] == '/') {
+                oBuf[i] = 0;
+                i += 1;
+            }
+            
+            strncpy(nBuf, &(oBuf[i]), MAX_FILENAME_SIZE);
+
+            ret = fremove((i == 0) ? "" : oBuf, nBuf);
+            if(ret < 0) {
+                sprint(iBuf, "Failed to remove file \"%s\" (%s)\r\n", nBuf, oBuf);
                 swrites(iBuf);
             }
         } else {    //Unknown Command
