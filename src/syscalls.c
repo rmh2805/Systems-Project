@@ -1386,7 +1386,7 @@ static void _sys_fSetPerm(uint32_t args[4]) {
     ret = _fs_getInode(id, &node);
     if(ret < 0) {
         __cio_printf("*ERROR* in _sys_fSetPerm: Failed to get inode at %s (%d)\n", path, ret);
-        RET(_current) = E_NO_DATA;
+        RET(_current) = E_BAD_PARAM;
         return;
     }
 

@@ -308,4 +308,20 @@ File System syscalls
             E_BAD_PARAM on failure to seek entry
             E_NO_PERMISSION if lacking meta permissions on file
             E_NO_DATA on failure to update the inode
+    
+    SYS_fSetPerm
+        SIGNATURE:
+            int32_t fSetPerm(char * path, uint32_t permissions)
+        DESC:
+            Changes the permission bits of an entry. (from least to most 
+            significant bits) Bits come in 3 pairs (read then write) for user, 
+            group, and general permissions.
+        PARAMETERS:
+            path: The path of the entry to modify
+            permissions: The new permission bits
+        RETURN VALUE:
+            E_SUCCESS on success
+            E_BAD_PARAM on failure to seek path
+            E_NO_PERMISSION if lacking meta priveleges on entry
+            E_NO_DATA on failure to update the inode
 
