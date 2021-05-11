@@ -62,8 +62,12 @@ int32_t ls(uint32_t arg1, uint32_t arg2) {
         }
 
         // Genearte the path
-        strcpy(oBuf, path);
-        strcat(oBuf, "/");
+        if(*path) {
+            strcpy(oBuf, path);
+            strcat(oBuf, "/");
+        } else {
+            oBuf[0] = 0;
+        }
         strcat(oBuf, nBuf);
 
         // Get the child
