@@ -6,9 +6,7 @@ Base line syscalls
         SIGNATURE:
             void exit(int32_t status)
         DESC:
-            Terminate the calling process
-        RETURN VALUE:
-            A standard exit status
+            Terminates the calling process with the provided exit status
 
     SYS_read
         SIGNATURE:
@@ -18,6 +16,9 @@ Base line syscalls
             to faciliate re-using this syscall to read from a file in the FS.
         RETURN VALUE:
             Number of bytes read on success, negative value on failure.
+            Returns E_NO_PERMISSION if lacking read permission for the stream
+            Returns E_EOF if the end of the stream has been reached
+            Returns E_BAD_CHANNEL if an undefined channel is specified
 
     SYS_write
         SIGNATURE:
@@ -27,6 +28,9 @@ Base line syscalls
             to faciliate re-using this syscall to write to a file in the FS.
         RETURN VALUE:
             Number of bytes written on success, negative value on failure.
+            Returns E_NO_PERMISSION if lacking read permission for the stream
+            Returns E_BAD_CHANNEL if an undefined channel is specified
+            Returns E_NO_DATA on failure to allocate data blocks for write
 
     SYS_getpid
         SIGNATURE:
@@ -58,7 +62,7 @@ Base line syscalls
         DESC:
             Retrieves the priority for this process
         RETURN VALUE:
-            Returns a prio_t containing the processes priority 
+            Returns a prio_t containing the processes priority
 
     SYS_setprio
         SIGNATURE:
@@ -66,33 +70,38 @@ Base line syscalls
         DESC:
             Set the priority of this process
         RETURN VALUE:
-            Returns current priority on success or returns E_BAD_PARAM on failure.
+            Returns previous priority on success 
+            Returns E_BAD_PARAM on failure
 
     SYS_kill
         SIGNATURE:
             int32_t kill( pid_t victim )
         DESC:
-            Terminates a process with EXTREME prejudice
+            Terminates the process with the specified pid. Each process can only
+            be terminated by a process from the same user, a user with active 
+            group sudo, or the root user.
         RETURN VALUE:
-            Returns E_SUCCESS on succes or a negative error status on failure.
+            Returns E_SUCCESS on succes
+            Returns E_NOT_FOUND if the target pcb is not E_NOT_FOUND
+            Returns E_NO_PERMISSION if lacking permission
 
     SYS_sleep
         SIGNATURE:
             void sleep (uint32_t msec)
         DESC:
             Put the current process to sleep for some time
-        RETURN VALUE:
-            Void
 
     SYS_spawn
         SIGNATURE:
             pid_t spawn(int (*entry)(uint32_t, uint32_t), 
                         prio_t prio, uint32_t arg1, uint32_t arg2)
         DESC:
-            Create a new process
+            Creates a new process with the specified entry point, priority, and 
+            args.
         RETURN VALUE:
-            Return the PID of the new child spawned or a negative error
-            status on failure.
+            Returns the PID of the new child spawned on success
+            Returns E_BAD_PARAM on processes with invalid args (e.g. null entry)
+            Returns E_NO_MEMORY on failure to spawn the process.
 
     SYS_wait
         SIGNATURE:
@@ -100,8 +109,8 @@ Base line syscalls
         DESC:
             Wait for a child process to terminate. 
         RETURN VALUE:
-            Returns the new zombies process PID on success or a negative error
-            status on failure.
+            Returns the exited process' PID on success
+            Returns E_NO_PROCS if the caller has no living children
 
 Multi User syscalls 
     SYS_getuid
