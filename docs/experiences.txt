@@ -177,6 +177,16 @@ Early Planning:
     come out of the filesystem, both in this paragraph and in my earlier 
     section.
 
+    While file allocation was discussed, I would also like to briefly go into 
+    how files are freed. Each inode internally tracks the number of others that
+    reference it. Each time a new reference to the node is created, this count 
+    is incremented, and each time a reference is deleted, it is decremented.
+    If this decrement were to bring that reference count to zero, we also free
+    the inode (setting its id to a reserved unallocated setting, {0, 0}) and 
+    any data blocks associated with it. To ease complications, we prevent 
+    freeing the last reference to a non-empty directory, to avoid having to 
+    recursively free all of its entries.
+
     The only other thing I'd like to point out here was the development of our
     image generation tools. This was a required precursor to our development, 
     as it defined elements of the system that it would be impossible or 
