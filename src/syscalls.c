@@ -829,7 +829,7 @@ static void _sys_fopen( uint32_t args[4]) {
     int result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_fopen: failed to seek target inode \"%s\"\n", path);
-        RET(_current) = result;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
@@ -838,7 +838,7 @@ static void _sys_fopen( uint32_t args[4]) {
     result = _fs_getInode(currentDir, &tgt);
     if(result < 0) {
         __cio_printf("*ERROR* in _sys_fopen: failed to retrieve target inode \"%s\"\n", path);
-        RET(_current) = result;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
@@ -911,14 +911,14 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Get Current Directory
     result = _sys_seekFile(path, &currentDir);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
     // Get the parent inode
     result = _fs_getInode(currentDir, &pNode);
     if(result < 0){
-        RET(_current) = result;
+        RET(_current) = E_NO_CHILDREN;
         return;
     }
 
@@ -927,6 +927,35 @@ static void _sys_fcreate  (uint32_t args[4]) {
         __cio_printf("*ERROR* in _sys_fcreate: path \"%s\" leads to non-directory\n", path);
         RET(_current) = E_BAD_PARAM;
         return;
+    }
+
+    // Check for name overlap
+    for(uint32_t i = 0; i < pNode.nBytes; i++) {
+        data_u temp;
+        bool_t matched;
+
+        result = _fs_getNodeEnt(&pNode, i, &temp);
+        if(result < 0) { 
+            RET(_current) = E_BAD_PARAM;
+            return;
+        }
+
+        matched = true;
+        for(uint32_t j = 0; j < MAX_FILENAME_SIZE; j++) {
+            if(temp.dir.name[j] == 0 && name[j] == 0) {
+                break;
+            }
+
+            if(temp.dir.name[j] != name[j]) {
+                matched = false;
+                break;
+            }
+        }
+        if (matched) {
+            __cio_printf("ERROR in _sys_fcreate: %s already exists in DIR\n", name);
+            RET(_current) = E_BAD_PARAM;
+            return;
+        }
     }
 
     // Fail if no write permission in this directory
@@ -941,14 +970,14 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Find next free inode
     result = _fs_allocNode(currentDir.devID, &newID);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NO_DATA;
         return;
     }
 
     // Get the inode via the index
     result = _fs_getInode(newID, &newNode);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_NOT_FOUND;
         return;
     }    
     
@@ -972,7 +1001,7 @@ static void _sys_fcreate  (uint32_t args[4]) {
     // Update parent Inode
     result = _fs_addDirEnt(currentDir, name, newID);
     if(result < 0) {
-        RET(_current) = result;
+        RET(_current) = E_FAILURE;
         return;
     }
 
@@ -997,7 +1026,7 @@ static void _sys_fremove (uint32_t args[4]) {
         return;
     }
 
-    // Find the child node to check priveleges
+    // Find the child node
     inode_id_t childId;
     result = _fs_getSubDir(targetDirID, name, &childId);
     if(result < 0) {
@@ -1006,16 +1035,28 @@ static void _sys_fremove (uint32_t args[4]) {
         return; 
     }
 
+    // Read the child node in
+    inode_t child;
+    result = _fs_getInode(childId, &child);
+    if(result < 0) {
+        __cio_printf("*ERROR* in _sys_fremove: Could not grab for \"%s/%s\"\n", path, name);
+        RET(_current) = E_NOT_FOUND;
+        return;
+    }
+
     // Actually check node priveleges
     bool_t canMeta;
-    result = _fs_getPermission(childId, _current->uid, _current->gid, NULL, NULL, &canMeta);
-    if(result < 0) {
-        __cio_printf("*ERROR* in _sys_fremove: Could not grab permissions for \"%s/%s\"\n", path, name);
-        RET(_current) = E_NO_PERMISSION;
-        return; 
-    } else if(!canMeta) {
+    result = _fs_nodePermission(&child, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    if(!canMeta) {
         __cio_printf("*ERROR* in _sys_fremove: Do not have meta priveleges for \"%s/%s\"\n", path, name);
         RET(_current) = E_NO_PERMISSION;
+        return; 
+    }
+
+    // Check that the child is not a directory with referands
+    if(child.nodeType == INODE_DIR_TYPE && child.nBytes != 0 && child.nRefs == 1) {
+        __cio_printf("*ERROR* in _sys_fremove: Cannot remove non-empty directory \"%s/%s\"\n", path, name);
+        RET(_current) = E_FAILURE;
         return; 
     }
 
@@ -1263,6 +1304,116 @@ static void _sys_dirname (uint32_t args[4]) {
 
 }
 
+/**
+ * _sys_fchown - Changes the ownership of a directory 
+ * 
+ * implements:
+ *    int32_t fchown(char * path, uid_t uid, gid_t gid)
+ */
+static void _sys_fchown(uint32_t args[4]) {
+    char * path = (char *) args[0];
+    uid_t uid = (uid_t) args[1];
+    gid_t gid = (gid_t) args[2];
+
+    inode_id_t id;
+    inode_t node;
+    int ret;
+
+    // Seek the file
+    ret = _sys_seekFile(path, &id);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fchown: Failed to get file at %s (%d)\n", path, ret);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    // Get the file's inode
+    ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fchown: Failed to get inode at %s (%d)\n", path, ret);
+        RET(_current) = E_NO_DATA;
+        return;
+    }
+
+    // Check that we have permissions
+    bool_t canMeta;
+    _fs_nodePermission(&node, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    if(!canMeta) {
+        __cio_printf("*ERROR* in _sys_fchown: No meta permissions on %s\n", path);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
+    // Update the node
+    node.uid = uid;
+    node.gid = gid;
+
+    // Write the updated node to disk
+    ret = _fs_setInode(node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fchown: Failed to update inode at %s (%d)\n", path, ret);
+        RET(_current) = E_NO_DATA;
+        return;
+    }
+
+    RET(_current) = E_SUCCESS;
+    return;
+}
+
+/**
+ * _sys_fSetPerm - Changes the permissions of a directory 
+ * 
+ * implements:
+ *    int32_t fSetPerm(char * path, uint32_t permissions);
+ */
+static void _sys_fSetPerm(uint32_t args[4]) {
+    char * path = (char *) args[0];
+    uint32_t permissions = args[1];
+
+    inode_id_t id;
+    inode_t node;
+    int ret;
+
+    // Seek the file
+    ret = _sys_seekFile(path, &id);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fSetPerm: Failed to get file at %s (%d)\n", path, ret);
+        RET(_current) = E_BAD_PARAM;
+        return;
+    }
+
+    // Get the file's inode
+    ret = _fs_getInode(id, &node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fSetPerm: Failed to get inode at %s (%d)\n", path, ret);
+        RET(_current) = E_NO_DATA;
+        return;
+    }
+
+    // Check that we have permissions
+    bool_t canMeta;
+    _fs_nodePermission(&node, _current->uid, _current->gid, NULL, NULL, &canMeta);
+    if(!canMeta) {
+        __cio_printf("*ERROR* in _sys_fSetPerm: No meta permissions on %s\n", path);
+        RET(_current) = E_NO_PERMISSION;
+        return;
+    }
+
+    // Update the node
+    node.permissions = permissions;
+
+    // Write the updated node to disk
+    ret = _fs_setInode(node);
+    if(ret < 0) {
+        __cio_printf("*ERROR* in _sys_fSetPerm: Failed to update inode at %s (%d)\n", path, ret);
+        RET(_current) = E_NO_DATA;
+        return;
+    }
+
+    RET(_current) = E_SUCCESS;
+    return;
+}
+
 /*
 ** PUBLIC FUNCTIONS
 */
@@ -1311,6 +1462,8 @@ void _sys_init( void ) {
     _syscalls[ SYS_fmove ]    = _sys_fmove;
     _syscalls[ SYS_getinode ] = _sys_getinode;
     _syscalls[ SYS_dirname]   = _sys_dirname;
+    _syscalls[ SYS_fchown]    = _sys_fchown;
+    _syscalls[ SYS_fSetPerm]  = _sys_fSetPerm;
 
 
     /*

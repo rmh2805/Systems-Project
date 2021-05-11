@@ -328,7 +328,7 @@ users.o: userland/testFS1.c userland/testFS2.c userland/testFS3.c
 users.o: userland/testFS4.c userland/testFS5.c userland/testFS6.c
 users.o: userland/testFS7.c userland/init.c userland/doTests.c
 users.o: userland/idle.c userland/signIn.c userland/testShell.c
-users.o: userland/cat.c userland/ls.c
+users.o: userland/cat.c userland/ls.c userland/chmod.c userland/ap.c
 ulibc.o: common.h fs.h kdefs.h cio.h kmem.h compat.h support.h kernel.h
 ulibc.o: x86arch.h process.h stacks.h queues.h kfs.h driverInterface.h klib.h
 ulibs.o: syscalls.h common.h fs.h kdefs.h cio.h kmem.h compat.h support.h

@@ -240,7 +240,7 @@ int32_t setgid( gid_t gid );
  * @param path The path of the file to open
  * @param append If set, offset initialized to EOF
  * 
- * @return file descriptor on success, negative on failure
+ * @return file descriptor on success, negative on failure (E_NO_CHILDREN if not found)
  */
 int32_t fopen(char* path, bool_t append);
 
@@ -319,6 +319,31 @@ int32_t getinode(char * path, inode_t * inode);
  * @return 0 on success, negative on failure (E_FILE_LIMIT on index out of bounds)
  */
 int32_t dirname(char * path, char* buf, uint32_t subDirNr);
+
+/**
+ * fchown - Changes the ownership of a file 
+ * 
+ * usage: fchown(char * path, uid_t uid, gid_t gid);
+ * 
+ * @param path The path of the file to change
+ * @param uid The uid of the new owner
+ * @param gid The gid of the new owner
+ * 
+ * @result 0 on success, negative on failure
+ */
+int32_t fchown(char * path, uid_t uid, gid_t gid);
+
+/**
+ * fSetPerm - Changes the permissions of a directory 
+ * 
+ * usage: fSetPerm(char * path, uint32_t permissions);
+ * 
+ * @param path The path of the file to change
+ * @param permissions The new permissions of the file
+ * 
+ * @result 0 on success, negative on failure
+ */
+int32_t fSetPerm(char * path, uint32_t permissions);
 
 /*
 **********************************************

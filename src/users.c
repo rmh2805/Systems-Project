@@ -63,7 +63,9 @@ int32_t testFS5(uint32_t, uint32_t); int32_t testFS6(uint32_t, uint32_t);
 int32_t testFS7(uint32_t, uint32_t);
 
 int32_t signIn(uint32_t, uint32_t ); int32_t testShell(uint32_t , uint32_t );
+
 int32_t cat(uint32_t, uint32_t);     int32_t ls(uint32_t, uint32_t);
+int32_t chmod(uint32_t, uint32_t);   int32_t ap(uint32_t, uint32_t);
 
 /*
 ** The user processes
@@ -121,3 +123,5 @@ int32_t cat(uint32_t, uint32_t);     int32_t ls(uint32_t, uint32_t);
 
 #include "userland/cat.c"
 #include "userland/ls.c"
+#include "userland/chmod.c"
+#include "userland/ap.c"
