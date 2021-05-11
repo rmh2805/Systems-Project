@@ -1,0 +1,79 @@
+PCI
+---
+
+The two functions you'll need to get devices is _pci_get_devices 
+and_pci_devices_next which serve the purpose of being an iterator over all
+the PCI devices. The key fields to determine whether the device is one of the
+devices you are looking for, as well as the bus, device, and func IDs and 
+bar registers are included in the _pci_device struct. 
+
+PATA/IDE
+--------
+//Per-channel registers
+struct _disk_ide_channel_regs {
+    uint16_t base;
+    uint16_t ctrl;
+} _disk_ide_channels[2];
+
+From line 71 - There are two things we need to save for the two IDE channels 
+and those are the two register base addresses, namely the base address and the
+control address, which corresponds to what is given by first four BARs.
+
+struct _disk_ide_device {
+    uint8_t channel;
+    uint8_t drive; 
+    uint16_t capabilities;
+    uint32_t command_sets; 
+    uint32_t size;
+    uint16_t heads;
+    uint16_t per_track;
+} _disk_ide_devices[4];
+
+From line 80 - We also need to store some data regarding each device. We save 
+the channel number of the device and which drive it is (master or slave). We 
+save one of the capability datas from thefor that is how we tell whether it is 
+a CHS (cylinder-head-sector) or LBA (logical block addressing) drive. We also 
+save a command set word that tells us whether or not we can use 48-bit LBA. We 
+also save the size, and for the case of CHS, save the number of sectors per 
+track and the number of heads per cylinder.
+
+During initialization, these properties are all determined in _disk_init and its
+helper functions and the disk handles for the drives are automatically created
+and added to the disk modules, meaning no further direct access of the module
+is necessary.
+
+The initialization code installs an ISR _disk_dummy_isr at vector 46 for the 
+sole purpose of handling the confusing interrupts that occur occasionally, 
+mentioned and explained in the experiences document.
+
+This module was designed around automatically working with the file system 
+module, however I also implemented a way to work with the file system
+externally. The amount of drives can be found by calling the
+_disk_get_drive_count function. The size (in sectors) of each drive can be
+determined by calling the _disk_get_drive_capacity function. The disk can then
+be read from or written to by calling the _disk_read_block and 
+_disk_write_block functions respectively.
+
+Reading and writing to the disks are done externally by those two functions and
+implemented internally by the _disk_ide_ata_io function. The point of this
+function is for code reuse the procedure for reading and writing is essentially
+the same. What the function does is determine what it should write to the 
+registers, depending on what input it receives, waits for the IDE component to 
+become free, writes to the registers those values, and then sends the command
+register the command to read or write, which will vary between whether the disk
+is CHS or LBA. The data is then transferred in words through the data register,
+pausing when necessary at the instruction of the IDE component.
+
+There are specialized functions for accessing the registers, including the bulk
+read necessary for the Identify Device command, for convenience. 
+
+There are also a _disk_ide_poll_wait function which is intended to be a polling
+block in cases where we want to use the IDE device in question. This function
+serves the purpose of ensuring that the device is available before attempting to
+use it.
+
+
+
+
+
+

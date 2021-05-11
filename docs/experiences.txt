@@ -210,3 +210,60 @@ Early Planning:
     and chmod. 
     
 Driver (Koen) -
+    My side of the project started out somewhat slowly as I had been occupied 
+    with other team projects and was generally burdened with work during the
+    first half of the project, so development was slow around then. But as the
+    semester progressed, I was able to find time for this project and was able
+    to complete the driver. There were no particular creative design decisions
+    involved for my side. Most decisions came as a result of encountering 
+    issues with my driver. I didn't have to worry much about design primarily
+    because I knew what I needed to supply: something that could read and write
+    to a disk efficiently and accurately. There isn't really much more to
+    writing drivers outside of implementation. My teammates gave me two
+    functions I needed to implement so I didn't need to architect much of an
+    API. 
+
+ Planning/Development:
+    Work simply started by doing research on how I'd go about creating a disk
+    driver. I then started work on the PCI driver and completed it. My initial
+    plan was to create an AHCP driver. However, as I worked on it and the end
+    of the semester came ever closer, I slowly began to realize the potential 
+    magnitude of having to try debug the AHCP with so many potential places for
+    things to go wrong, like in general interrupt handling and direct memory
+    access, and I wanted to end up with something functional so that I did not
+    end up with a poor grade. There was also pressure from the fact that my
+    teammates already had something working (given that their side of the
+    project was much simpler and more open-ended, not having to conform to the
+    complications of having to conform to the requirements a device sets
+    forth). So I ended up scrapping the AHCP driver and decided to switch to
+    developing a polled I/O driver while I still had the chance. While the PCI
+    driver turned out to be relatively simple, the PATA/IDE driver was more
+    complex. I started by implementing an initalization routine to get the
+    information I needed to do the I/O operations. This included using the 
+    Identify Device command to get the size of the disk and other info. I then
+    started on the read/write function and built up the driver as I thought of
+    things to add. After working through it, the driver was then finished. Next
+    was testing. By then, my teammates already had a functional file system. So
+    it was a matter of figuring out what was wrong and updating it until it
+    worked. During this phase, I used the console I/O functions to output what 
+    variables looked like when something went wrong.
+
+ Struggles:
+    The biggest difficulty I faced was debugging what turned out to be a 
+    misconfiguration of QEMU. No matter what I seemed to do, the read command
+    seemed to give out what seemed to be junk data, rather than what was 
+    actually on the disk. I spent hours trying to fix this, changing things 
+    around and trying to add things to no avail. Eventually, I came to convince
+    myself that it was nothing to do with my code and that it had to be with
+    QEMU. So I devoted a few hours to tinkering with QEMU and trying different
+    configurations of devices and through that, I was finally able to get my
+    code to actually read correctly.
+
+    Another difficulty I faced was mysterious interrupts being fired to the 
+    Hard Disk ISR even though I had interrupts disabled on a module-level. At 
+    first I thought this was the symptom of me doing something wrong, but after
+    doing some research I determined that in some cases these interrupts can't
+    completely be stopped, so I simply wrote a dummy ISR so that the kernel
+    wouldn't panic on the interrupt happening and things turned out smoothly
+    from there.
+    

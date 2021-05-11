@@ -72,7 +72,6 @@ int _disk_write( uint32_t blockNr, char* buf, uint8_t devId );
 struct _disk_ide_channel_regs {
     uint16_t base;
     uint16_t ctrl;
-    uint8_t nien;
 } _disk_ide_channels[2];
 
 // Buffer for holding identify command output.
@@ -303,8 +302,8 @@ void _disk_ide_initialize(void) {
 #endif
 
     // Disable IRQs
-    _disk_ide_write_ctrl(0, _DISK_ATA_REG_CTRL_CONTROL, _disk_ide_channels[0].nien = 2);
-    _disk_ide_write_ctrl(1, _DISK_ATA_REG_CTRL_CONTROL, _disk_ide_channels[1].nien = 2);
+    _disk_ide_write_ctrl(0, _DISK_ATA_REG_CTRL_CONTROL, 2);
+    _disk_ide_write_ctrl(1, _DISK_ATA_REG_CTRL_CONTROL, 2);
 
     for (int ch = 0; ch < 2; ch++) {
         for (int dr = 0; dr < 2; dr++) {
@@ -412,7 +411,7 @@ unsigned char _disk_ide_ata_io(uint8_t dir, uint8_t drive, uint32_t block, char 
     uint32_t words = 256;
     uint8_t top;
 
-    _disk_ide_write_ctrl(chan, _DISK_ATA_REG_CTRL_CONTROL, _disk_ide_channels[chan].nien = 0x02);
+    _disk_ide_write_ctrl(chan, _DISK_ATA_REG_CTRL_CONTROL, 0x02);
 
     if (_disk_ide_devices[drive].capabilities & 0x200)  { 
         // LBA
