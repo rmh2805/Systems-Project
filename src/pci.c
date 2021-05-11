@@ -29,7 +29,9 @@ void _pci_init( void ) {
 /**
 ** _pci_get_devices(buf)
 **
-** Get SATA device iterator
+** Creates a SATA device iterator given a buffer
+**
+** @param itr_buf  the buffer to create the iterator in
 */
 void _pci_get_devices( _pci_dev_itr_t *itr_buf ){
     itr_buf->bus = 0;
@@ -40,13 +42,21 @@ void _pci_get_devices( _pci_dev_itr_t *itr_buf ){
 /**
 ** _pci_config_read()
 **
-** Reads the PCI config word
+** Reads the PCI config word from a given register.
+** 
+** @param bus     the PCI bus to select
+** @param slot    the slot number to select
+** @param func    the function number to read
+** @param offset  the register offset to read
 **
-** @return read word
+** @return   read word
 */
 static uint16_t _pci_config_read( uint32_t bus, uint32_t slot, uint32_t func, uint8_t offset ){
-    uint32_t address = (((uint32_t)0x80000000) | (bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc));
-    __outl(0xCF8, address);
+    //Calculate "address" to put in the register
+    uint32_t addr = (((uint32_t)0x80000000) | (bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc));
+    //Write to the PCI config register
+    __outl(0xCF8, addr);
+    //Read the register
     return (uint16_t)((__inl(0xCFC) >> ((offset & 2) * 8)) & 0xffff);
 }
 
@@ -54,20 +64,31 @@ static uint16_t _pci_config_read( uint32_t bus, uint32_t slot, uint32_t func, ui
 /**
 ** _pci_config_read_32()
 **
-** Reads the PCI config doubleword
+** Reads the PCI config doubleword from a given register.
+** 
+** @param bus     the PCI bus to select
+** @param slot    the slot number to select
+** @param func    the function number to read
+** @param offset  the register offset to read
 **
-** @return read doubleword
+** @return        read doubleword
 */
 static uint32_t _pci_config_read_32( uint32_t bus, uint32_t slot, uint32_t func, uint8_t offset ){
-    uint32_t address = (((uint32_t)0x80000000) | (bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc));
-    __outl(0xCF8, address);
+    //Calculate "address" to put in the register
+    uint32_t addr = (((uint32_t)0x80000000) | (bus << 16) | (slot << 11) | (func << 8) | (offset & 0xfc));
+    //Write to the PCI config register
+    __outl(0xCF8, addr);
+    //Read the register
     return __inl(0xCFC);
 }
 
 /**
-** _pci_load_func()
+** _pci_load_device()
 **
-** Loads function
+** Loads device function info into the buffer
+** 
+** @param itr     the iterator
+** @param dev_buf the buffer to hold the device info
 */
 static void _pci_load_device( _pci_dev_itr_t *itr, _pci_device_t *dev_buf ){
     uint16_t bus = dev_buf->bus = itr->bus;
@@ -91,7 +112,10 @@ static void _pci_load_device( _pci_dev_itr_t *itr, _pci_device_t *dev_buf ){
 /**
 ** _pci_get_device()
 **
-** Checks if there is a device on bus/device.
+** Checks if there is a device on bus/device and if so, enters it into dev_buf.
+** 
+** @param itr     the iterator
+** @param dev_buf the buffer to hold the device info
 **
 ** @return 1 if success, 0 if not a device
 */
@@ -125,8 +149,11 @@ static uint8_t _pci_get_device( _pci_dev_itr_t *itr, _pci_device_t *dev_buf ){
 ** _pci_devices_next()
 **
 ** Get next SATA device from iterator
+** 
+** @param itr     the iterator
+** @param dev_buf the buffer to hold the device info
 **
-** @return 1 if success, 0 if no more devices
+** @return        1 if success, 0 if no more devices
 */
 uint8_t _pci_devices_next( _pci_dev_itr_t *itr, _pci_device_t *dev_buf ){
     for (;itr->bus < 256; itr->bus += 1) {
