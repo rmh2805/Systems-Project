@@ -222,6 +222,28 @@ int32_t testShell(uint32_t arg1, uint32_t arg2) {
                 sprint(iBuf, "Failed to remove file \"%s\" (%s)\r\n", nBuf, oBuf);
                 swrites(iBuf);
             }
+        } else if(strncmp(iBuf, "mkdir", 5) == 0) {
+            strTrim(oBuf, iBuf + 5);
+            
+            // Separate the path and the file name
+            char nBuf[MAX_FILENAME_SIZE + 1];
+            nBuf[MAX_FILENAME_SIZE] = 0;
+            
+            int i;
+            for(i = strlen(oBuf); i > 0 && oBuf[i] != '/'; i--);
+            if(oBuf[i] == '/') {
+                oBuf[i] = 0;
+                i += 1;
+            }
+            
+            strncpy(nBuf, &(oBuf[i]), MAX_FILENAME_SIZE);
+
+            ret = fcreate((i == 0) ? "" : oBuf, nBuf, false);
+            if(ret < 0) {
+                sprint(iBuf, "Failed to create directory \"%s\" (%s)\r\n", nBuf, oBuf);
+                swrites(iBuf);
+            }
+            
         } else if (strncmp(iBuf, "cd", 2) == 0) {
             strTrim(iBuf, iBuf + 2);
             
