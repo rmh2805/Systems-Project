@@ -988,8 +988,17 @@ static void _sys_fcreate  (uint32_t args[4]) {
     newNode.permissions = DEFAULT_PERMISSIONS;     // Default to open access
     newNode.nRefs = 0; // No references yet
     newNode.nBlocks = 0;
-    newNode.nBytes = 0;
-    newNode.nodeType = (isFile) ? INODE_FILE_TYPE : INODE_DIR_TYPE;
+    newNode.nBytes = 1;
+    if(isFile) {
+        newNode.nodeType = INODE_FILE_TYPE;
+    } else {
+        newNode.nodeType = INODE_DIR_TYPE;
+        for(int i = 0; i < MAX_FILENAME_SIZE; i++) newNode.direct_pointers->dir.name[i] = 0;
+        newNode.direct_pointers[0].dir.name[0] = '.';
+        newNode.direct_pointers[0].dir.name[1] = '.';
+        newNode.direct_pointers[0].dir.inode = currentDir;
+    }
+
     
     // Write the inode
     result = _fs_setInode(newNode);
@@ -1054,7 +1063,7 @@ static void _sys_fremove (uint32_t args[4]) {
     }
 
     // Check that the child is not a directory with referands
-    if(child.nodeType == INODE_DIR_TYPE && child.nBytes != 0 && child.nRefs == 1) {
+    if(child.nodeType == INODE_DIR_TYPE && child.nBytes > 1 && child.nRefs == 1) {
         __cio_printf("*ERROR* in _sys_fremove: Cannot remove non-empty directory \"%s/%s\"\n", path, name);
         RET(_current) = E_FAILURE;
         return; 

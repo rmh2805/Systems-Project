@@ -968,8 +968,9 @@ int _fs_allocNode(uint8_t devID, inode_id_t * ret) {
             __cio_printf("*ERROR* in _fs_allocNode: No default disk registered\n");
             return E_FAILURE;
         }
+    } else {
+        ret->devID = devID;
     }
-    ret->devID = devID;
     ret->idx = 0;
 
     // Read the metanode for disk
